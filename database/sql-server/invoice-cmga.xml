@@ -1,0 +1,372 @@
+﻿<factures>
+  <facture numeroFacture="BC0042473" dateFacture="2025-03-01T00:00:00" codeClient="411GISFN010">
+    <client>
+      <telephone>77 544 18 52</telephone>
+      <nom>OUSMANE BA OUAKAM</nom>
+      <code>411GISFN010</code>
+    </client>
+  </facture>
+  <facture numeroFacture="FA0001314" dateFacture="2025-03-01T00:00:00" codeClient="401FRUY">
+    <client>
+      <telephone></telephone>
+      <nom>FRUYPER SA</nom>
+      <code>401FRUY</code>
+    </client>
+  </facture>
+  <facture numeroFacture="FA0001315" dateFacture="2025-03-01T00:00:00" codeClient="401CHALONG">
+    <client>
+      <telephone></telephone>
+      <nom>CHALONG CO.. LTD</nom>
+      <code>401CHALONG</code>
+    </client>
+  </facture>
+  <facture numeroFacture="FA0039399" dateFacture="2025-03-01T00:00:00" codeClient="411ASFLEKK001">
+    <client>
+      <telephone>33 858 78 78</telephone>
+      <nom>LEKKU FII BOUTIQUE TOUBA</nom>
+      <code>411ASFLEKK001</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="300.000000" prixUnitaire="1165.250000" montantHT="349576.270000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="300.000000" prixUnitaire="635.590000" montantHT="190677.970000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="100.000000" prixUnitaire="381.360000" montantHT="38135.590000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="200.000000" prixUnitaire="762.710000" montantHT="152542.370000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="50.000000" prixUnitaire="381.360000" montantHT="19067.800000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039400" dateFacture="2025-03-01T00:00:00" codeClient="411AWAAT018">
+    <client>
+      <telephone>77 822 44 84</telephone>
+      <nom>OUSSEYNOU NDIAYE THIAROYE</nom>
+      <code>411AWAAT018</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="22.000000" prixUnitaire="1194.920000" montantHT="24973.730000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="13.000000" prixUnitaire="1478.810000" montantHT="19224.580000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039401" dateFacture="2025-03-01T00:00:00" codeClient="411NGAT019">
+    <client>
+      <telephone>77 408 18 92</telephone>
+      <nom>ABDOU LAHAT MBACKE BAMBILOR </nom>
+      <code>411NGAT019</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="30.000000" prixUnitaire="1194.920000" montantHT="34055.080000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="17.000000" prixUnitaire="1478.810000" montantHT="25139.830000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="10.000000" prixUnitaire="326.270000" montantHT="3262.710000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039402" dateFacture="2025-03-01T00:00:00" codeClient="411NGAT139">
+    <client>
+      <telephone>76 909 33 19</telephone>
+      <nom>CHEIKH DIA BAYAKH</nom>
+      <code>411NGAT139</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="17.000000" prixUnitaire="1194.920000" montantHT="19297.880000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="14.000000" prixUnitaire="1478.810000" montantHT="20703.390000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="14.000000" prixUnitaire="326.270000" montantHT="4567.800000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039403" dateFacture="2025-03-01T00:00:00" codeClient="411ASFAUCH001">
+    <client>
+      <telephone></telephone>
+      <nom>AUCHAN ENTREPÔT</nom>
+      <code>411ASFAUCH001</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="11.000000" prixUnitaire="1194.920000" montantHT="12486.860000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="12.000000" prixUnitaire="1478.810000" montantHT="17745.760000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="7.000000" prixUnitaire="326.270000" montantHT="2283.900000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039404" dateFacture="2025-03-01T00:00:00" codeClient="411ASFHYP01">
+    <client>
+      <telephone>77 121 05 54</telephone>
+      <nom>HYPERMARCHE VDN</nom>
+      <code>411ASFHYP01</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="500.000000" prixUnitaire="1100.000000" montantHT="550000.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="500.000000" prixUnitaire="296.610000" montantHT="148305.080000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="300.000000" prixUnitaire="625.420000" montantHT="187627.120000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039405" dateFacture="2025-03-01T00:00:00" codeClient="411ASFMD285">
+    <client>
+      <telephone>76 747 04 33</telephone>
+      <nom>CCMS SARL PARCELLES ASSAINIES 24</nom>
+      <code>411ASFMD285</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="6.000000" prixUnitaire="1478.810000" montantHT="8872.880000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="17.000000" prixUnitaire="326.270000" montantHT="5546.610000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039406" dateFacture="2025-03-01T00:00:00" codeClient="411GISFN005">
+    <client>
+      <telephone>77 545 76 77</telephone>
+      <nom>BA SACRE COEUR</nom>
+      <code>411GISFN005</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="29.000000" prixUnitaire="1194.920000" montantHT="32919.920000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="1.000000" prixUnitaire="1478.810000" montantHT="1478.810000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="4.000000" prixUnitaire="762.710000" montantHT="3050.850000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039407" dateFacture="2025-03-01T00:00:00" codeClient="411YASFN010">
+    <client>
+      <telephone>77 220 12 15</telephone>
+      <nom>MODOU DIAGNE NGELAW</nom>
+      <code>411YASFN010</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="6.000000" prixUnitaire="1478.810000" montantHT="8872.880000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="12.000000" prixUnitaire="326.270000" montantHT="3915.250000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039408" dateFacture="2025-03-01T00:00:00" codeClient="411AWAAT109">
+    <client>
+      <telephone>77 757 91 06</telephone>
+      <nom>BADA FALL THIAROYE</nom>
+      <code>411AWAAT109</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="200.000000" prixUnitaire="738.980000" montantHT="147796.610000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039409" dateFacture="2025-03-01T00:00:00" codeClient="411AWAAT007">
+    <client>
+      <telephone>76 293 68 08</telephone>
+      <nom>TOUBA KHEWEUL THIAROYE</nom>
+      <code>411AWAAT007</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="15.000000" prixUnitaire="1194.920000" montantHT="17027.540000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="3.000000" prixUnitaire="1478.810000" montantHT="4436.440000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="1.000000" prixUnitaire="762.710000" montantHT="762.710000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039410" dateFacture="2025-03-01T00:00:00" codeClient="411NGAT016">
+    <client>
+      <telephone>76 665 73 13</telephone>
+      <nom>AZIZ SEYE KEUR MASSAR</nom>
+      <code>411NGAT016</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="2.000000" prixUnitaire="1194.920000" montantHT="2270.340000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="2.000000" prixUnitaire="1478.810000" montantHT="2957.630000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="2.000000" prixUnitaire="762.710000" montantHT="1525.420000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039411" dateFacture="2025-03-01T00:00:00" codeClient="411CHMFN001">
+    <client>
+      <telephone>77 166 29 31</telephone>
+      <nom>DIAM DIALLLE RUFISQUE</nom>
+      <code>411CHMFN001</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="40.000000" prixUnitaire="1194.920000" montantHT="45406.780000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="26.000000" prixUnitaire="1478.810000" montantHT="38449.150000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="42.000000" prixUnitaire="326.270000" montantHT="13703.390000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039412" dateFacture="2025-03-01T00:00:00" codeClient="411FNSOL069">
+    <client>
+      <telephone>77 775 57 57</telephone>
+      <nom>BOUSTANE COMMERCIAL RAFFENEL</nom>
+      <code>411FNSOL069</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="11.000000" prixUnitaire="1194.920000" montantHT="12486.860000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="17.000000" prixUnitaire="1478.810000" montantHT="25139.830000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="3.000000" prixUnitaire="326.270000" montantHT="978.810000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039413" dateFacture="2025-03-01T00:00:00" codeClient="411YALAT001">
+    <client>
+      <telephone>77 538 27 05</telephone>
+      <nom>KHADIM SENE DIAMAGUENE</nom>
+      <code>411YALAT001</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="200.000000" prixUnitaire="635.590000" montantHT="127118.640000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039414" dateFacture="2025-03-01T00:00:00" codeClient="411ISYAT047">
+    <client>
+      <telephone>78 237 77 77</telephone>
+      <nom>THIERNO DIAN DIALLO PARCELLES ASSAI</nom>
+      <code>411ISYAT047</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="200.000000" prixUnitaire="635.590000" montantHT="127118.640000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039415" dateFacture="2025-03-01T00:00:00" codeClient="411ASFMD054">
+    <client>
+      <telephone>77 655 13 47</telephone>
+      <nom>GSE  CLUNNY </nom>
+      <code>411ASFMD054</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="150.000000" prixUnitaire="635.590000" montantHT="95338.980000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="20.000000" prixUnitaire="381.360000" montantHT="7627.120000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039416" dateFacture="2025-03-01T00:00:00" codeClient="411ISYAT039">
+    <client>
+      <telephone>77 618 60 61</telephone>
+      <nom>SOGECAL MARCHE GUEULE TAPEE 2</nom>
+      <code>411ISYAT039</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="150.000000" prixUnitaire="635.590000" montantHT="95338.980000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="30.000000" prixUnitaire="381.360000" montantHT="11440.680000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="40.000000" prixUnitaire="1165.250000" montantHT="46610.170000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039417" dateFacture="2025-03-01T00:00:00" codeClient="411GISFN154">
+    <client>
+      <telephone>77 253 51 88</telephone>
+      <nom>LAMANE DIENG YOFF</nom>
+      <code>411GISFN154</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="200.000000" prixUnitaire="1194.920000" montantHT="227033.900000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="150.000000" prixUnitaire="762.710000" montantHT="114406.780000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="50.000000" prixUnitaire="675.420000" montantHT="32082.630000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="50.000000" prixUnitaire="1478.810000" montantHT="73940.680000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 20L (19L+1L GRATUIT)" quantite="25.000000" prixUnitaire="1059.320000" montantHT="26483.050000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="25.000000" prixUnitaire="4500.000000" montantHT="112500.000000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039418" dateFacture="2025-03-01T00:00:00" codeClient="411GISFN018">
+    <client>
+      <telephone>77 654 84 47</telephone>
+      <nom>ABDOUL BA LIBERTE 6</nom>
+      <code>411GISFN018</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="100.000000" prixUnitaire="635.590000" montantHT="63559.320000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039419" dateFacture="2025-03-01T00:00:00" codeClient="411GISFN151">
+    <client>
+      <telephone>77 092 69 47</telephone>
+      <nom>DAME LO CASTORS</nom>
+      <code>411GISFN151</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE 10L" quantite="50.000000" prixUnitaire="635.590000" montantHT="31779.660000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="20.000000" prixUnitaire="1165.250000" montantHT="23305.080000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039420" dateFacture="2025-03-01T00:00:00" codeClient="411GISFN021">
+    <client>
+      <telephone>78 290 35 64</telephone>
+      <nom>LAMINE BA BATRAIN OUAKAM</nom>
+      <code>411GISFN021</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="50.000000" prixUnitaire="381.360000" montantHT="19067.800000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039421" dateFacture="2025-03-01T00:00:00" codeClient="411ASFMD162">
+    <client>
+      <telephone>77 655 13 47</telephone>
+      <nom>GSE  PASTEUR DAKAR FACE DANTEC</nom>
+      <code>411ASFMD162</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="30.000000" prixUnitaire="381.360000" montantHT="11440.680000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039422" dateFacture="2025-03-01T00:00:00" codeClient="411ASFEDK08">
+    <client>
+      <telephone>77 611 86 00</telephone>
+      <nom>EDK LOW PRICE DEPOT</nom>
+      <code>411ASFEDK08</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="20.000000" prixUnitaire="381.360000" montantHT="7627.120000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039423" dateFacture="2025-03-01T00:00:00" codeClient="411DIVERS">
+    <client>
+      <telephone></telephone>
+      <nom>CLIENTS DIVERS</nom>
+      <code>411DIVERS</code>
+    </client>
+    <orders>
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 20L (19L+1L GRATUIT)" quantite="8.000000" prixUnitaire="1059.320000" montantHT="8474.580000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="8.000000" prixUnitaire="4500.000000" montantHT="36000.000000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039424" dateFacture="2025-03-01T00:00:00" codeClient="411ALNBS308">
+    <client>
+      <telephone>78 371 52 03</telephone>
+      <nom>MARIEME SALL CITE AIR AFRIQUE GUEDI</nom>
+      <code>411ALNBS308</code>
+    </client>
+    <orders>
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 20L (19L+1L GRATUIT)" quantite="13.000000" prixUnitaire="1059.320000" montantHT="13771.190000" />
+      <produit designation="" quantite="0.000000" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="13.000000" prixUnitaire="4500.000000" montantHT="58500.000000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039425" dateFacture="2025-03-01T00:00:00" codeClient="411FNSOL075">
+    <client>
+      <telephone>77 559 89 02</telephone>
+      <nom>ALIMENTATION ADJARA NDELLA </nom>
+      <code>411FNSOL075</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="100.000000" prixUnitaire="1165.250000" montantHT="113612.290000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 20L (19L+1L GRATUIT)" quantite="80.000000" prixUnitaire="1059.320000" montantHT="84745.760000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039426" dateFacture="2025-03-01T00:00:00" codeClient="411PSPD001">
+    <client>
+      <telephone></telephone>
+      <nom>MAMADOU CELLOU DIALLO KAOLACK</nom>
+      <code>411PSPD001</code>
+    </client>
+    <orders>
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="80.000000" prixUnitaire="4500.000000" montantHT="360000.000000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FA0039427" dateFacture="2025-03-01T00:00:00" codeClient="411ASFFSY127">
+    <client>
+      <telephone>78 165 26 70</telephone>
+      <nom>MODOU DIOP NGAPAROU</nom>
+      <code>411ASFFSY127</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="50.000000" prixUnitaire="326.270000" montantHT="16313.560000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FR0010842" dateFacture="2025-03-01T00:00:00" codeClient="411AWAAT001">
+    <client>
+      <telephone>77 195 26 87</telephone>
+      <nom>KHADIM FALL THIAROYE</nom>
+      <code>411AWAAT001</code>
+    </client>
+    <orders>
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 20L (19L+1L GRATUIT)" quantite="-2.000000" prixUnitaire="1059.320000" montantHT="-2118.640000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-5.000000" prixUnitaire="4500.000000" montantHT="-22500.000000" />
+    </orders>
+  </facture>
+  <facture numeroFacture="FR0010843" dateFacture="2025-03-01T00:00:00" codeClient="411NGAT019">
+    <client>
+      <telephone>77 408 18 92</telephone>
+      <nom>ABDOU LAHAT MBACKE BAMBILOR </nom>
+      <code>411NGAT019</code>
+    </client>
+    <orders>
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="-30.000000" prixUnitaire="381.360000" montantHT="-11440.680000" />
+    </orders>
+  </facture>
+</factures>
