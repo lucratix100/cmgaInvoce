@@ -25,6 +25,8 @@ export default class Invoice extends BaseModel {
   declare isCompleted: boolean
 
   @column()
+  declare totalTTC: number
+  @column()
   declare isCompleteDelivery: boolean
 
   @column()

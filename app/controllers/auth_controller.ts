@@ -8,16 +8,12 @@ export default class AuthController {
 
   public async login({ request, response }: HttpContext) {
     const { phone, password } = await request.validateUsing(loginValidator)
-
     const user = await User.verifyCredentials(phone, password)
-
     if (!user.isActive) {
       return response.status(403).json({ message: 'Votre compte a été bloqué...' })
     }
-
     const accessToken = await User.accessTokens.create(user)
     const refreshToken = await User.refreshTokens.create(user)
-
     return response.ok({
       user: user.serialize(),
       accessToken: accessToken,
@@ -25,13 +21,11 @@ export default class AuthController {
       type: 'bearer'
     })
   }
-
   public async refresh({ request, response }: HttpContext) {
     const refreshToken = request.input('refresh_token')
     try {
       const token = await User.refreshTokens.verify(refreshToken)
       const user = await User.findOrFail(token?.tokenableId)
-
       if (!user.isActive) {
         return response.unauthorized('Account is not active')
       }
@@ -49,14 +43,12 @@ export default class AuthController {
   }
 
   public async logout({ auth, response }: HttpContext) {
-
     const user = auth.getUserOrFail()
     const token = auth.user?.currentAccessToken.identifier
     if (!token) {
       return response.badRequest({ message: 'Token not found' })
     }
     await User.accessTokens.delete(user, token)
-
     return response.ok({ message: 'Logged out' })
 
   }

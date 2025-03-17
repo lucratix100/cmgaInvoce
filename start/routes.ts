@@ -29,9 +29,10 @@ router.group(() => {
 // custom routes
 router.group(() => {
     router.get('/invoice', [SageInvoicesController, 'invoice_xml_to_json'])
+    router.get('/invoice/:number', [InvoicesController, 'getInvoiceByNumber'])
     router.post('/refresh', [AuthController, 'refresh'])
     router.post('/process-delivery', [ProcessDeliveriesController, 'processDeliveries'])
-    router.post('/confirm-bl', [ProcessDeliveriesController, 'confirmBl'])
+    router.post('/confirm-delivery', [ProcessDeliveriesController, 'confirmBl'])
 }).prefix('api').use([middleware.auth()])
 
 // admin routes
@@ -41,6 +42,6 @@ router.group(() => {
     router.resource('/drivers', DriversController)
     router.resource('/invoices', InvoicesController)
     router.resource('/bls', BlController)
-}).prefix('api')
+}).prefix('api').use([middleware.auth()])
 
 

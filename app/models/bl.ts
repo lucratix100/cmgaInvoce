@@ -27,9 +27,6 @@ export default class Bl extends BaseModel {
   @column()
   declare invoiceId: number
 
-  @column()
-  declare remainingQty: number
-
   @belongsTo(() => Driver)
   declare driver: BelongsTo<typeof Driver>
 

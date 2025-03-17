@@ -7,20 +7,20 @@ export function calculateQuantityDifferences(hasBL: boolean, oldBlProducts: any,
         if (hasBL) {
             let currentProducts = currentBlProducts.find(p => p.reference === oldProduct.reference);
             return {
-                name: oldProduct.name,
+                designation: oldProduct.designation,
                 reference: oldProduct.reference,
                 montantHT: oldProduct.montantHT,
                 quantite: currentProducts.quantite,
                 remainingQty: oldProduct.remainingQty - currentProducts.quantite
             };
         } else {
-            let currentProducts = currentBlProducts.find(p => p.reference === oldProduct._attributes.reference);
+            let currentProducts = currentBlProducts.find(p => p.reference === oldProduct.reference);
             return {
-                name: currentProducts.designation,
+                designation: currentProducts.designation,
                 reference: currentProducts.reference,
                 montantHT: currentProducts.montantHT,
                 quantite: parseInt(currentProducts.quantite),
-                remainingQty: parseInt(oldProduct._attributes.quantite) - currentProducts.quantite
+                remainingQty: parseInt(oldProduct.quantite) - currentProducts.quantite
             };
         }
 

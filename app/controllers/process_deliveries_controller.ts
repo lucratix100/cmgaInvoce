@@ -8,7 +8,7 @@ import { calculateQuantityDifferences } from '../utils/helpers.js'
 export default class ProcessDeliveriesController {
     async confirmBl({ request, response, auth }: HttpContext) {
         const { id: authUserId } = auth.getUserOrFail()
-        const { invoiceNumber } = request.body()
+        const { invoiceNumber, driverId } = request.body()
         const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
@@ -17,7 +17,7 @@ export default class ProcessDeliveriesController {
             return response.status(400).json({ message: 'La facture a déjà été livrée.' })
         }
         const bl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
-        console.log(bl)
+
         if (!bl) {
             return response.status(400).json({ message: 'en attente du 1 ere confirmation' })
         }
@@ -31,7 +31,7 @@ export default class ProcessDeliveriesController {
                 userId: authUserId,
                 blId: bl.id,
             })
-            bl.merge({ status: 'validée', isDelivered: true })
+            bl.merge({ status: 'validée', isDelivered: true, driverId })
             await bl.save()
             // Vérifier si la facture doit être marquée comme complétée
             const blProducts = bl.products
@@ -56,7 +56,7 @@ export default class ProcessDeliveriesController {
         }
     }
     async processDeliveries({ request, response, auth }: HttpContext) {
-        const { invoiceNumber, products, isCompleteDelivery, driverId } = request.body()
+        const { invoiceNumber, products, isCompleteDelivery } = request.body()
         const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
@@ -72,7 +72,7 @@ export default class ProcessDeliveriesController {
         const { needDoubleCheck } = depot
         if (!needDoubleCheck) {
             const newBlproducts = await this.calculateNewBlProducts(invoice, isCompleteDelivery, products)
-            const bl = await this.createBl(invoice.id, newBlproducts, driverId, needDoubleCheck)
+            const bl = await this.createBl(invoice.id, newBlproducts, needDoubleCheck)
             await Confirmation.create({
                 userId: userId,
                 blId: bl.id,
@@ -100,7 +100,7 @@ export default class ProcessDeliveriesController {
             if (lastBl && lastBl.status === 'en attente de confirmation') {
                 return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
             }
-            const bl = await this.createBl(invoice.id, newBlproducts, driverId, needDoubleCheck)
+            const bl = await this.createBl(invoice.id, newBlproducts, needDoubleCheck)
             await Confirmation.create({
                 userId: userId,
                 blId: bl.id,
@@ -113,15 +113,14 @@ export default class ProcessDeliveriesController {
                 invoice.merge({ isCompleteDelivery: true })
                 await invoice.save()
             }
-            return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
+            return response.status(201).json({ message: 'En attente de la 2 eme confirmation.' })
         }
     }
 
-    private async createBl(invoiceId: number, products: string, driverId: number, needDoubleCheck: boolean) {
+    private async createBl(invoiceId: number, products: string, needDoubleCheck: boolean) {
         return await Bl.create({
             invoiceId,
             products,
-            driverId,
             isDelivered: !needDoubleCheck,
             status: 'en attente de confirmation',
         })
