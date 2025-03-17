@@ -18,8 +18,34 @@ export default class DriversController {
             const driver = await Driver.create(data)
             return response.json(driver)
         } catch (error) {
-            console.log(error)
-            return response.status(400).json({ message: 'Invalid data' })
+            console.error('Erreur de création:', error)
+            return response.status(400).json({ 
+                message: 'Erreur de validation',
+                errors: error.messages 
+            })
+        }
+    }
+
+    async update({ request, response, params }: HttpContext) {
+        try {
+            const data = await request.validateUsing(driverSchema)
+            const driver = await Driver.findOrFail(params.id)
+            
+            driver.merge({
+                firstname: data.firstname,
+                lastname: data.lastname,
+                phone: data.phone,
+                isActive: data.isActive
+            })
+            
+            await driver.save()
+            return response.json(driver)
+        } catch (error) {
+            console.error('Erreur de mise à jour:', error)
+            return response.status(400).json({ 
+                message: 'Erreur de validation',
+                errors: error.messages 
+            })
         }
     }
 }

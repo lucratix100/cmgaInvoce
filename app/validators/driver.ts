@@ -2,9 +2,9 @@ import vine from '@vinejs/vine'
 
 export const driverSchema = vine.compile(
     vine.object({
-        firstName: vine.string().minLength(3).maxLength(255),
-        lastName: vine.string().minLength(3).maxLength(255),
-        phone: vine.string().minLength(9).maxLength(15),
+        firstname: vine.string().trim(),
+        lastname: vine.string().trim(),
+        phone: vine.string().trim(),
         isActive: vine.boolean().optional(),
     })
 )

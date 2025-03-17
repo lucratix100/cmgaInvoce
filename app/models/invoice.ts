@@ -4,6 +4,7 @@ import Depot from './depot.js'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Customer from './customer.js'
 import Bl from './bl.js'
+import { InvoiceStatus } from '../enum/index.js'
 
 export default class Invoice extends BaseModel {
   @column({ isPrimary: true })
@@ -19,7 +20,7 @@ export default class Invoice extends BaseModel {
   declare date: Date
 
   @column()
-  declare status: string
+  declare status: InvoiceStatus
 
   @column()
   declare isCompleted: boolean
@@ -34,7 +35,13 @@ export default class Invoice extends BaseModel {
   declare customerId: number
 
   @column()
-  declare order: string | null
+  declare order: {
+    reference: string
+    designation: string
+    quantity: number
+    unitPrice: number
+    totalHT: number
+  }[]
 
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>

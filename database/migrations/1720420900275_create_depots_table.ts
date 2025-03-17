@@ -6,8 +6,9 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.string('name')
-      table.boolean('need_double_check').defaultTo(false)
+      table.string('name').notNullable().unique()
+      table.boolean('need_double_check').notNullable().defaultTo(true)
+      table.boolean('is_active').notNullable().defaultTo(true)
       table.timestamp('created_at')
       table.timestamp('updated_at')
     })

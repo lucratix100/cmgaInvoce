@@ -1,15 +1,14 @@
 import vine from '@vinejs/vine'
-import { Role } from '../enum/roles.js'
+import { Role } from '../enum/index.js'
 
-export const userValidator = vine.compile
-    (vine.object({
-        firstname: vine.string().minLength(3).maxLength(255),
-        lastname: vine.string().minLength(3).maxLength(255),
-        isActive: vine.boolean().optional(),
-        phone: vine.string().maxLength(15),
-        role: vine.enum(Role),
-        email: vine.string().email().optional(),
-        password: vine.string().maxLength(255),
-        depotId: vine.number().optional(),
-    }))
+export const userValidator = vine.compile(vine.object({
+    firstname: vine.string().trim(),
+    lastname: vine.string().trim(),
+    email: vine.string().email().optional(),
+    phone: vine.string().trim(),
+    password: vine.string(),
+    role: vine.enum(Object.values(Role)),
+    depotId: vine.number(),
+    isActive: vine.boolean().optional()
+}))
 

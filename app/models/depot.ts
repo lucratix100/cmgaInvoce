@@ -13,7 +13,10 @@ export default class Depot extends BaseModel {
   declare name: string
 
   @column()
-  declare needDoubleCheck: boolean
+  declare needDoubleCheck: boolean | null
+
+  @column()
+  declare isActive: boolean | null
 
   @hasMany(() => Invoice)
   declare invoice: HasMany<typeof Invoice>

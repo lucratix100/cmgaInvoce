@@ -1,4 +1,5 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
+import { InvoiceStatus } from '../../app/enum/index.js'
 
 export default class extends BaseSchema {
   protected tableName = 'invoices'
@@ -9,7 +10,7 @@ export default class extends BaseSchema {
       table.string('invoice_number')
       table.date('date')
       table.string('account_number')
-      table.string('status')
+      table.enum('status', Object.values(InvoiceStatus)).defaultTo(InvoiceStatus.EN_ATTENTE)
       table.jsonb('order').nullable()
       table.boolean('is_complete_delivery')
       table.boolean('is_completed').notNullable().defaultTo(false)
@@ -19,7 +20,6 @@ export default class extends BaseSchema {
       table.timestamp('updated_at')
     })
   }
-
   async down() {
     this.schema.dropTable(this.tableName)
   }
