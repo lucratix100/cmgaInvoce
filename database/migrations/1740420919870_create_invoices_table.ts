@@ -13,6 +13,7 @@ export default class extends BaseSchema {
       table.enum('status', Object.values(InvoiceStatus)).defaultTo(InvoiceStatus.EN_ATTENTE)
       table.jsonb('order').nullable()
       table.boolean('is_complete_delivery')
+      table.integer('total_ttc')
       table.boolean('is_completed').notNullable().defaultTo(false)
       table.integer('depot_id').unsigned().references('depots.id')
       table.integer('customer_id').unsigned().references('customers.id')

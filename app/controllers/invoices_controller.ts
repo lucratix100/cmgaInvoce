@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import Invoice from '#models/invoice'
 import { InvoiceStatus } from '../enum/index.js'
+import Bl from '#models/bl'
+
 
 export default class InvoicesController {
     async index({ request, response }: HttpContext) {
@@ -252,4 +254,33 @@ export default class InvoicesController {
             return response.status(404).json({ error: 'Facture non trouvée' })
         }
     }
+
+    async getInvoiceByNumber(ctx: HttpContext) {
+        const invoiceNumber = ctx.params.number
+        try {
+            const invoice = await Invoice.query()
+                .where('invoice_number', invoiceNumber)
+                .preload('customer')
+                .first()
+
+            if (!invoice) {
+                return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
+            }
+            const bl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
+            if (bl) {
+                return {
+                    invoice,
+                    bl
+                };
+            }
+
+            return { invoice, bl: null }
+        } catch (error) {
+            console.log(error)
+            return ctx.response.status(500).json({ message: 'Erreur lors de la récupération de la facture.' })
+        }
+    }
 }
+
+
+
