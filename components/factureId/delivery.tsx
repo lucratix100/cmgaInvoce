@@ -18,6 +18,7 @@ interface Product {
   designation: string
   quantite: number
   remainingQty: number
+  name: string
 }
 
 interface Driver {
@@ -91,7 +92,7 @@ export default function Delivery({ invoice }: DeliveryProps) {
         {products.map((product, index) => (
           <TableRow key={index} className="hover:bg-gray-50">
             <TableCell className="font-medium">{product.reference || 'N/A'}</TableCell>
-            <TableCell>{product.designation || product.name || 'N/A'}</TableCell>
+            <TableCell>{product.name || 'N/A'}</TableCell>
             <TableCell className="text-right font-medium">
               {product.quantite?.toFixed(2) || '0.00'}
             </TableCell>
@@ -99,13 +100,13 @@ export default function Delivery({ invoice }: DeliveryProps) {
               {product.remainingQty?.toFixed(2) || 'N/A'}
             </TableCell>
           </TableRow>
+
         ))}
       </TableBody>
     </Table>
   )
 
   if (loading) return <div className="p-8 text-center">Chargement des livraisons...</div>
-  if (!bls.length) return <div className="p-8 text-center text-gray-500">Aucune livraison enregistrée</div>
 
   return (
     <TabsContent value="livraisons">

@@ -62,8 +62,8 @@ export default function Detail({ invoice }: DetailProps) {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-en">
-        <Card className="border-none shadow-md bg-white">
+      <div className="flex justify-end">
+        <Card className="border-none shadow-md bg-white w-1/2">
           <CardHeader className="bg-primary-50 pb-3">
             <CardTitle className="flex items-center gap-2 text-primary-700 text-sm">RÉCAPITULATIF</CardTitle>
           </CardHeader>
