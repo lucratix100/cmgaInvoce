@@ -45,7 +45,7 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
   return (
     <div>
       <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card className="bg-gradient-to-br from-primary-50 to-white border-none shadow-md">
+      <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total des factures
@@ -65,7 +65,7 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md">
+        <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Factures livrées
@@ -85,7 +85,7 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-yellow-50 to-white border-none shadow-md">
+        <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               En attente
@@ -108,7 +108,7 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
 
       <div className="space-y-6">
         <main className="px-4 md:px-6 py-8 space-y-6">
-          <Card className="border-none shadow-md overflow-hidden bg-white">
+          <Card className="border-none shadow-md overflow-hidden bg-white ">
             <CardHeader className="bg-primary-50 pb-3">
               <CardTitle className="flex items-center gap-2 text-primary-700">
                 <FileText className="h-5 w-5" />

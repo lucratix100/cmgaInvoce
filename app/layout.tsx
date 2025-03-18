@@ -2,9 +2,9 @@ import './globals.css'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'CMGA Invoice',
-  description: 'Gestion des factures CMGA',
-  generator: 'CMGA Invoice',
+  title: 'CMGA Delivery',
+  description: 'Suivi livraisons CMGA',
+  generator: 'CMGA Delivery',
 }
 
 export default function RootLayout({

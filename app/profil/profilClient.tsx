@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import ChangePassword from "@/components/change-password"
+import ChangePassword from "@/components/changePassword/change-password"
 import InfoUser from "@/components/info-user"
 
 export default function ProfilClient() {
