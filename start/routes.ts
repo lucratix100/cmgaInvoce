@@ -36,7 +36,7 @@ router.group(() => {
     router.get('/invoices/:invoice_number/bls', [InvoicesController, 'getBls'])
     router.post('/confirm-delivery', [ProcessDeliveriesController, 'confirmBl'])
 }).prefix('api')
-// .use([middleware.auth()])
+    .use([middleware.auth()])
 
 
 // admin routes
@@ -46,6 +46,6 @@ router.group(() => {
     router.resource('/drivers', DriversController)
     router.resource('/invoices', InvoicesController)
     router.resource('/bls', BlController)
-}).prefix('api').use([middleware.auth()])
+}).prefix('api')
 
 

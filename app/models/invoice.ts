@@ -37,13 +37,7 @@ export default class Invoice extends BaseModel {
   declare customerId: number
 
   @column()
-  declare order: {
-    reference: string
-    designation: string
-    quantity: number
-    unitPrice: number
-    totalHT: number
-  }[]
+  declare order: JSON
 
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>

@@ -4,11 +4,14 @@ import Depot from '#models/depot'
 import Invoice from '#models/invoice'
 import type { HttpContext } from '@adonisjs/core/http'
 import { calculateQuantityDifferences } from '../utils/helpers.js'
+import { InvoiceStatus } from '../enum/index.js'
 
 export default class ProcessDeliveriesController {
     async confirmBl({ request, response, auth }: HttpContext) {
         const { id: authUserId } = auth.getUserOrFail()
-        const { invoiceNumber } = request.body()
+        const { invoiceNumber, driverId } = request.body()
+        console.log("invoiceNumber", invoiceNumber)
+        // return console.log("driverId", driverId)
         const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
@@ -31,13 +34,13 @@ export default class ProcessDeliveriesController {
                 userId: authUserId,
                 blId: bl.id,
             })
-            bl.merge({ status: 'validée', isDelivered: true })
+            bl.merge({ status: 'validée', isDelivered: true, driverId: Number(driverId) })
             await bl.save()
             // Vérifier si la facture doit être marquée comme complétée
             const blProducts = bl.products
             const remainingQty = blProducts.reduce((acc: number, curr: any) => acc + parseInt(curr.remainingQty || 0), 0)
             if (remainingQty === 0) {
-                invoice.merge({ isCompleted: true })
+                invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE })
                 await invoice.save()
                 return response.status(200).json({ message: 'Facture livrée.' })
             }
@@ -47,9 +50,9 @@ export default class ProcessDeliveriesController {
                 userId: authUserId,
                 blId: bl.id,
             })
-            bl.merge({ status: 'validée', isDelivered: true })
+            bl.merge({ status: 'validée', isDelivered: true, driverId: Number(driverId) })
             await bl.save()
-            invoice.merge({ isCompleted: true })
+            invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE })
             await invoice.save()
             return response.status(200).json({ message: 'BL validée.' })
 
@@ -107,7 +110,7 @@ export default class ProcessDeliveriesController {
             })
 
             if (!isCompleteDelivery) {
-                invoice.merge({ isCompleteDelivery: false })
+                invoice.merge({ isCompleteDelivery: false, status: InvoiceStatus.EN_COURS })
                 await invoice.save()
             } else {
                 invoice.merge({ isCompleteDelivery: true })

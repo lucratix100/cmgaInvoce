@@ -9,16 +9,12 @@ export default class InvoicesController {
     async index({ request, response }: HttpContext) {
         try {
             const { status, search, startDate, endDate } = request.qs()
-            console.log('Received query params:', { status, search, startDate, endDate })
-            
             let query = Invoice.query()
                 .preload('customer')
                 .orderBy('date', 'desc')
-
             if (status && Object.values(InvoiceStatus).includes(status)) {
                 query = query.where('status', status)
             }
-
             if (startDate) {
                 if (endDate) {
                     query = query
@@ -44,7 +40,7 @@ export default class InvoicesController {
             }
 
             const invoices = await query
-            console.log(`Found ${invoices.length} invoices for date criteria:`, 
+            console.log(`Found ${invoices.length} invoices for date criteria:`,
                 startDate ? (endDate ? 'range' : 'single day') : 'no date filter')
 
             const formattedInvoices = invoices.map(invoice => ({
@@ -56,9 +52,10 @@ export default class InvoicesController {
                 customer: invoice.customer ? {
                     name: invoice.customer.name,
                     phone: invoice.customer.phone
-                } : null
+                } : null,
+                order: invoice.order
             }))
-            
+
             return response.json(formattedInvoices)
         } catch (error) {
             console.error('Erreur détaillée:', error)
@@ -111,7 +108,7 @@ export default class InvoicesController {
     async get_invoice_by_date({ request, response }: HttpContext) {
         try {
             const { startDate, endDate } = request.qs()
-            
+
             if (!startDate || !endDate) {
                 return response.status(400).json({
                     error: 'Les dates de début et de fin sont requises'
@@ -124,19 +121,7 @@ export default class InvoicesController {
                 .where('created_at', '<=', `${endDate} 23:59:59`)
                 .orderBy('created_at', 'desc')
 
-            const formattedInvoices = invoices.map(invoice => ({
-                id: invoice.id,
-                invoiceNumber: invoice.invoiceNumber,
-                accountNumber: invoice.accountNumber,
-                date: invoice.date,
-                status: invoice.status,
-                customer: invoice.customer ? {
-                    name: invoice.customer.name,
-                    phone: invoice.customer.phone
-                } : null
-            }))
-            
-            return response.json(formattedInvoices)
+            return response.json(invoices)
         } catch (error) {
             console.error('Erreur détaillée:', error)
             return response.status(500).json({
@@ -168,8 +153,8 @@ export default class InvoicesController {
 
             let parsedOrder = []
             try {
-                const orderData = typeof invoice.order === 'string' 
-                    ? JSON.parse(invoice.order || '[]') 
+                const orderData = typeof invoice.order === 'string'
+                    ? JSON.parse(invoice.order || '[]')
                     : invoice.order
 
                 console.log('2. Parsed order data:', orderData)
@@ -191,26 +176,8 @@ export default class InvoicesController {
                 parsedOrder = []
             }
 
-            const formattedInvoice = {
-                id: invoice.id,
-                invoiceNumber: invoice.invoiceNumber,
-                accountNumber: invoice.accountNumber,
-                date: invoice.date,
-                status: invoice.status,
-                order: parsedOrder,
-                customer: invoice.customer ? {
-                    id: invoice.customer.id,
-                    name: invoice.customer.name,
-                    phone: invoice.customer.phone
-                } : null,
-                depot: invoice.depot ? {
-                    id: invoice.depot.id,
-                    name: invoice.depot.name
-                } : null
-            }
 
-            console.log('6. Final formatted invoice:', formattedInvoice)
-            return response.json(formattedInvoice)
+            return response.json(invoice)
         } catch (error) {
             console.error('7. Final error:', error)
             return response.status(500).json({
@@ -229,26 +196,26 @@ export default class InvoicesController {
                 })
                 .firstOrFail()
 
-            const formattedBls = invoice.bls.map(bl => ({
-                id: bl.id,
-                createdAt: bl.createdAt,
-                status: bl.status,
-                driver: bl.driver ? {
-                    firstname: bl.driver.firstname,
-                    lastname: bl.driver.lastname,
-                    phone: bl.driver.phone
-                } : null,
-                products: typeof bl.products === 'string' 
-                    ? JSON.parse(bl.products).map((product: any) => ({
-                        reference: product.reference || '',
-                        designation: product.name || '',
-                        quantite: Number(product.quantite || 0),
-                        remainingQty: Number(product.remainingQty || 0)
-                      }))
-                    : bl.products || []
-            }))
+            // const formattedBls = invoice.bls.map(bl => ({
+            //     id: bl.id,
+            //     createdAt: bl.createdAt,
+            //     status: bl.status,
+            //     driver: bl.driver ? {
+            //         firstname: bl.driver.firstname,
+            //         lastname: bl.driver.lastname,
+            //         phone: bl.driver.phone
+            //     } : null,
+            //     products: typeof bl.products === 'string'
+            //         ? JSON.parse(bl.products).map((product: any) => ({
+            //             reference: product.reference || '',
+            //             designation: product.name || '',
+            //             quantite: Number(product.quantite || 0),
+            //             remainingQty: Number(product.remainingQty || 0)
+            //         }))
+            //         : bl.products || []
+            // }))
 
-            return response.json(formattedBls)
+            return response.json(invoice.bls)
         } catch (error) {
             console.error('Erreur getBls:', error)
             return response.status(404).json({ error: 'Facture non trouvée' })
