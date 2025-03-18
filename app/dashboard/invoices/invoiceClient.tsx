@@ -12,7 +12,7 @@ import { getDefaultDates } from "@/lib/date-utils"
 
 interface FilterState {
   startDate: string
-  endDate: string
+  endDate?: string
   status: string
   searchInvoice: string
 }
@@ -38,14 +38,14 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
     searchInvoice: ""
   })
 
-  const handleFilterChange = (newFilters: FilterState) => {
-    setFilters(newFilters)
-  }
+  // const handleFilterChange = (newFilters: FilterState) => {
+  //   setFilters(newFilters)
+  // }
 
   return (
     <div>
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-      <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md hover:shadow-xl transition-shadow duration-300">
+      {/* <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card className="bg-gradient-to-br from-primary-50 to-white border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total des factures
@@ -104,19 +104,19 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       <div className="space-y-6">
         <main className="px-4 md:px-6 py-8 space-y-6">
-          <Card className="border-none shadow-md overflow-hidden bg-white ">
-            <CardHeader className="bg-primary-50 pb-3">
+          <Card className="border-none shadow-md overflow-hidden bg-white">
+            {/* <CardHeader className="bg-primary-50 pb-3">
               <CardTitle className="flex items-center gap-2 text-primary-700">
                 <FileText className="h-5 w-5" />
                 <div className="flex items-center gap-2 justify-between w-full">
                   <div>Liste des factures</div>
                 </div>
               </CardTitle>
-            </CardHeader>
+            </CardHeader> */}
             <div className="overflow-x-auto">
               <InvoiceTable initialData={initialData} />
             </div>

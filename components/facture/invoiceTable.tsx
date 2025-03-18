@@ -20,7 +20,7 @@ interface InvoiceTableProps {
 export default function InvoiceTable({ initialData }: InvoiceTableProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { 
+    const {
         filteredInvoices,
         loading,
         status,
@@ -30,17 +30,15 @@ export default function InvoiceTable({ initialData }: InvoiceTableProps) {
         setSearch,
         setDateRange,
         setInvoices,
-        setUser 
+        setUser
     } = useInvoiceStore()
 
     const handleDateChange = (startDate: string, endDate: string) => {
         // Mettre à jour l'URL
         const params = new URLSearchParams(searchParams.toString())
-        params.set('startDate', startDate)
-        params.set('endDate', endDate)
+        if (startDate) params.set('startDate', startDate)
+        if (endDate) params.set('endDate', endDate)
         router.push(`?${params.toString()}`)
-        
-        // Mettre à jour le store
         setDateRange(startDate, endDate)
     }
 
@@ -54,7 +52,7 @@ export default function InvoiceTable({ initialData }: InvoiceTableProps) {
     // Afficher uniquement le loader initial
     if (!initialData) {
         return (
-            <Table>
+            <Table >
                 <TableHeader>
                     <TableRow className="bg-primary-50/50">
                         <TableHead className="font-semibold text-primary-900">N° Facture</TableHead>
@@ -88,78 +86,80 @@ export default function InvoiceTable({ initialData }: InvoiceTableProps) {
 
     return (
         <>
-            <Filtre 
+            <Filtre
                 onStatusChange={setStatus}
                 onSearch={setSearch}
                 onDateChange={handleDateChange}
                 currentStatus={status}
                 searchValue={search}
             />
-            <Table>
-                <TableHeader>
-                    <TableRow className="bg-primary-50/50">
-                        <TableHead className="font-semibold text-primary-900">N° Facture</TableHead>
-                        <TableHead className="font-semibold text-primary-900">N° Compte</TableHead>
-                        <TableHead className="font-semibold text-primary-900">Date</TableHead>
-                        <TableHead className="font-semibold text-primary-900">Client</TableHead>
-                        <TableHead className="font-semibold text-primary-900">Téléphone</TableHead>
-                        <TableHead className="font-semibold text-primary-900">État</TableHead>
-                        <TableHead className="font-semibold text-primary-900">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {loading ? (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center py-4">
-                                Mise à jour des données...
-                            </TableCell>
+            <div className="h-[calc(80vh-220px)] overflow-auto">
+                <Table>
+                    <TableHeader className="sticky top-0 z-10">
+                        <TableRow className="bg-primary-50/50">
+                            <TableHead className="font-semibold text-primary-900">N° Facture</TableHead>
+                            <TableHead className="font-semibold text-primary-900">N° Compte</TableHead>
+                            <TableHead className="font-semibold text-primary-900">Date</TableHead>
+                            <TableHead className="font-semibold text-primary-900">Client</TableHead>
+                            <TableHead className="font-semibold text-primary-900">Téléphone</TableHead>
+                            <TableHead className="font-semibold text-primary-900">État</TableHead>
+                            <TableHead className="font-semibold text-primary-900">Actions</TableHead>
                         </TableRow>
-                    ) : filteredInvoices.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                                {noInvoicesMessage()}
-                            </TableCell>
-                        </TableRow>
-                    ) : (
-                        filteredInvoices.map((invoice) => (
-                            <TableRow key={invoice.id} className="hover:bg-primary-50/30 transition-colors">
-                                <TableCell className="font-medium">
-                                    <Link href={`/factures/${invoice.invoiceNumber}`} className="hover:text-primary transition-colors">
-                                        {invoice.invoiceNumber}
-                                    </Link>
-                                </TableCell>
-                                <TableCell>{invoice.accountNumber}</TableCell>
-                                <TableCell>{new Date(invoice.date).toLocaleDateString('fr-FR')}</TableCell>
-                                <TableCell>{invoice.customer?.name || <span className="text-red-500">Non renseigné</span>}</TableCell>
-                                <TableCell>{invoice.customer?.phone || <span className="text-red-500">Non renseigné</span>}</TableCell>
-                                <TableCell>
-                                    <StatusBadge status={invoice.status} />
-                                </TableCell>
-                                <TableCell>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        asChild
-                                        className="hover:bg-primary-100 hover:text-primary-700 transition-colors"
-                                    >
-                                        {user?.role === "ADMIN" ? (
-                                            <Link href={`/dashboard/invoices/${invoice.invoiceNumber}`} className="flex items-center gap-2">
-                                                <Eye className="h-4 w-4" />
-                                                Détails
-                                            </Link>
-                                        ) : (
-                                            <Link href={`/factures/${invoice.invoiceNumber}`} className="flex items-center gap-2">
-                                                <Eye className="h-4 w-4" />
-                                                Détails
-                                            </Link>
-                                        )}
-                                    </Button>
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={7} className="text-center py-4">
+                                    Mise à jour des données...
                                 </TableCell>
                             </TableRow>
-                        ))
-                    )}
-                </TableBody>
-            </Table>
+                        ) : filteredInvoices.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                                    {noInvoicesMessage()}
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            filteredInvoices.map((invoice) => (
+                                <TableRow key={invoice.id} className="hover:bg-primary-50/30 transition-colors">
+                                    <TableCell className="font-medium">
+                                        <Link href={`/factures/${invoice.invoiceNumber}`} className="hover:text-primary transition-colors">
+                                            {invoice.invoiceNumber}
+                                        </Link>
+                                    </TableCell>
+                                    <TableCell>{invoice.accountNumber}</TableCell>
+                                    <TableCell>{new Date(invoice.date).toLocaleDateString('fr-FR')}</TableCell>
+                                    <TableCell>{invoice.customer?.name || <span className="text-red-500">Non renseigné</span>}</TableCell>
+                                    <TableCell>{invoice.customer?.phone || <span className="text-red-500">Non renseigné</span>}</TableCell>
+                                    <TableCell>
+                                        <StatusBadge status={invoice.status} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            asChild
+                                            className="hover:bg-primary-100 hover:text-primary-700 transition-colors"
+                                        >
+                                            {user?.role === "ADMIN" ? (
+                                                <Link href={`/dashboard/invoices/${invoice.invoiceNumber}`} className="flex items-center gap-2">
+                                                    <Eye className="h-4 w-4" />
+                                                    Détails
+                                                </Link>
+                                            ) : (
+                                                <Link href={`/factures/${invoice.invoiceNumber}`} className="flex items-center gap-2">
+                                                    <Eye className="h-4 w-4" />
+                                                    Détails
+                                                </Link>
+                                            )}
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
         </>
     )
 }
@@ -167,11 +167,11 @@ export default function InvoiceTable({ initialData }: InvoiceTableProps) {
 function StatusBadge({ status }: { status: string }) {
     const getStatusStyles = (status: string) => {
         switch (status) {
-            case "LIVREE":
+            case "livrée":
                 return "bg-green-100 text-green-700 hover:bg-green-200 border-green-200"
-            case "EN ATTENTE DE LIVRAISON":
+            case "en attente de livraison":
                 return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200"
-            case "EN COURS DE LIVRAISON":
+            case "en cours de livraison":
                 return "bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200"
             default:
                 return "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
@@ -180,7 +180,7 @@ function StatusBadge({ status }: { status: string }) {
 
     return (
         <Badge variant="outline" className={`${getStatusStyles(status)} font-medium transition-colors`}>
-            {status}
+            {status.toUpperCase()}
         </Badge>
     )
 }

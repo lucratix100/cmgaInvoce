@@ -19,30 +19,21 @@ export default async function login(values: z.infer<typeof LoginSchema>) {
   // const user = await getUser();
 
   try {
-     const auth = await axios.post(`${process.env.API_URL}login`, {
+    const auth = await axios.post(`${process.env.API_URL}login`, {
       phone,
       password,
     });
 
-    
+
     const { accessToken, user } = auth.data;
 
-    console.log(auth.data,'auth data');
+
 
     if (accessToken) {
       const cookieStore = await cookies();
       cookieStore.set({
-        name: "token",
-        value: accessToken,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24,
-        path: "/"
-      });
-      
-      cookieStore.set({
-        name: "userId",
-        value: user.id,
+        name: "accessToken",
+        value: JSON.stringify(accessToken),
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24,
@@ -50,16 +41,18 @@ export default async function login(values: z.infer<typeof LoginSchema>) {
       });
 
       cookieStore.set({
-        name: "userRole",
-        value: user.role,
+        name: "user",
+        value: JSON.stringify(user),
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24,
         path: "/"
       });
 
-      return { 
-        success: "Authentication successful", 
+      axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken.token}`;
+
+      return {
+        success: "Authentication successful",
         user,
         redirectTo: user.role === 'ADMIN' ? '/dashboard' : '/'
       };
