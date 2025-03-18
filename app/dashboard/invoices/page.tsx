@@ -6,7 +6,7 @@ import { getInvoices } from "@/actions/invoice"
 
 async function getInitialData(searchParams: { [key: string]: string }) {
   const cookieStore = await cookies()
-  const token = cookieStore.get("token")
+  const token = cookieStore.get("accessToken")
 
   if (!token) {
     redirect("/")
@@ -17,7 +17,7 @@ async function getInitialData(searchParams: { [key: string]: string }) {
       getCurrentUser(),
       getInvoices({
         startDate: searchParams.startDate,
-        endDate: searchParams.endDate,
+        endDate: searchParams.endDate || undefined,
         status: searchParams.status,
         search: searchParams.search
       })

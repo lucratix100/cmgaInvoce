@@ -1,15 +1,48 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Type pour l'utilisateur
+interface User {
+  id: number;
+  firstname: string;
+  lastname: string;
+  role: string;
+  depotId: number;
+  phone: string;
+  isActive: boolean;
+}
+
+// Type pour le token d'accès
+interface AccessToken {
+  token: string;
+  expiresAt: string;
+}
+
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
-  const userRole = request.cookies.get("userRole")?.value;
-  
+  // Récupération sécurisée des cookies avec gestion des erreurs de parsing JSON
+  let accessToken: Partial<AccessToken> = {};
+  let user: Partial<User> = {};
+
+  try {
+    accessToken = JSON.parse(request.cookies.get("accessToken")?.value || "{}");
+    user = JSON.parse(request.cookies.get("user")?.value || "{}");
+  } catch (error) {
+    console.error("Erreur de parsing JSON des cookies:", error);
+  }
+
+  const token = accessToken.token;
+  const expireAt = accessToken.expiresAt;
+  const userRole = user.role;
+
+  // Vérification de l'expiration du token
+  const isTokenExpired = expireAt ? new Date(expireAt) <= new Date() : true;
+  const isAuthenticated = !!token && !isTokenExpired;
+
   const path = request.nextUrl.pathname;
 
   // Permettre l'accès à la page d'accueil sans token
   if (path === "/") {
-    if (token) {
+    if (isAuthenticated) {
       // Rediriger les utilisateurs connectés selon leur rôle
       if (userRole === "ADMIN") {
         return NextResponse.redirect(new URL("/dashboard", request.url));
@@ -21,7 +54,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Protection des routes authentifiées
-  if (!token) {
+  if (!isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { TabsContent } from "@radix-ui/react-tabs"
 import { Badge, FileText } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
-import { Invoice } from "@/types/invoice"
+import { Invoice, InvoiceProduct } from "@/lib/types"
 
 interface DetailProps {
   invoice: Invoice
@@ -48,13 +48,13 @@ export default function Detail({ invoice }: DetailProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoice.order?.map((item, index) => (
+              {invoice.order?.map((product: InvoiceProduct, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{item?.reference}</TableCell>
-                  <TableCell>{item?.designation}</TableCell>
-                  <TableCell className="text-right">{item?.quantity?.toFixed(2) || '0.00'}</TableCell>
-                  <TableCell className="text-right">{formatAmount(item?.unitPrice || 0)}</TableCell>
-                  <TableCell className="text-right">{formatAmount(item?.totalHT || 0)}</TableCell>
+                  <TableCell className="font-medium">{product?.reference}</TableCell>
+                  <TableCell>{product?.designation}</TableCell>
+                  <TableCell className="text-right">{product?.quantite}</TableCell>
+                  <TableCell className="text-right">{formatAmount(product.prixUnitaire)}</TableCell>
+                  <TableCell className="text-right">{formatAmount(product.total)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -71,15 +71,15 @@ export default function Detail({ invoice }: DetailProps) {
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">TOTAL HT</span>
-                <span>{formatAmount(totals.totalHT)}</span>
+                <span>{formatAmount(invoice.totalTtc / 1.18)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium">TVA 18%</span>
-                <span>{formatAmount(totals.tva)}</span>
+                <span>{formatAmount(invoice.totalTtc - (invoice.totalTtc / 1.18))}</span>
               </div>
               <div className="flex justify-between items-center py-2 text-lg font-bold text-primary-700">
                 <span>TOTAL TTC</span>
-                <span>{formatAmount(totals.totalTTC)}</span>
+                <span>{formatAmount(invoice.totalTtc)}</span>
               </div>
             </div>
           </CardContent>

@@ -2,6 +2,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { Clock } from "lucide-react"
+import { BarChart3, FileText } from "lucide-react"
 
 
 // Statistiques globales
@@ -38,37 +40,98 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Tableau de bord</h1>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard 
-          title="Total Factures" 
-          value="1,248" 
-          percentage="+5.2%" 
-          trend="up" 
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card className="bg-gradient-to-br from-primary-50 to-white border-none shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total des factures
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">1,248</div>
+              <div className="p-2 bg-primary-100 rounded-full text-primary">
+                <FileText className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              <span className="text-green-500 font-medium">+5.2%</span> depuis
+              le mois dernier
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Factures livrées
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">892</div>
+              <div className="p-2 bg-green-100 rounded-full text-green-600">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              <span className="text-green-500 font-medium">+12.4%</span> depuis
+              le mois dernier
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-yellow-50 to-white border-none shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              En attente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">356</div>
+              <div className="p-2 bg-yellow-100 rounded-full text-yellow-600">
+                <Clock className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              <span className="text-red-500 font-medium">+2.8%</span> depuis le
+              mois dernier
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Factures"
+          value="1,248"
+          percentage="+5.2%"
+          trend="up"
           color="primary"
         />
-        <StatCard 
-          title="Factures Livrées" 
-          value="892" 
-          percentage="+12.4%" 
-          trend="up" 
+        <StatCard
+          title="Factures Livrées"
+          value="892"
+          percentage="+12.4%"
+          trend="up"
           color="green"
         />
-        <StatCard 
-          title="En attente" 
-          value="356" 
-          percentage="+2.8%" 
-          trend="up" 
+        <StatCard
+          title="En attente"
+          value="356"
+          percentage="+2.8%"
+          trend="up"
           color="amber"
         />
-        <StatCard 
-          title="Retournées" 
-          value="43" 
-          percentage="-1.5%" 
-          trend="down" 
+        <StatCard
+          title="Retournées"
+          value="43"
+          percentage="-1.5%"
+          trend="down"
           color="rose"
         />
-      </div>
+      </div> */}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -105,7 +168,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium">
                       {
                         ["Mamadou Ba", "Fatou Diop", "Omar Sall", "Aissatou Ndiaye", "Ibrahima Diallo"][
-                          item - 1
+                        item - 1
                         ]
                       }{" "}
                       a{" "}

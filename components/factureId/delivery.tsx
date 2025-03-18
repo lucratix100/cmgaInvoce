@@ -8,41 +8,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Invoice } from "@/types/invoice"
 import { getBls } from "@/actions/bl"
 import { Badge } from "../ui/badge"
+import { InvoiceProduct, BlProduct, Driver, Bl } from '@/lib/types'
 
-interface DeliveryProps {
-  invoice: Invoice
-}
 
-interface Product {
-  reference: string
-  designation: string
-  quantite: number
-  remainingQty: number
-  name: string
-}
 
-interface Driver {
-  firstname: string
-  lastname: string
-  phone: string
-}
-
-interface BL {
-  id: number
-  createdAt: string
-  status: string
-  driver: Driver | null
-  products: Product[]
-}
-
-export default function Delivery({ invoice }: DeliveryProps) {
-  const [bls, setBls] = useState<BL[]>([])
+export default function Delivery({ invoice }: { invoice: Invoice }) {
+  const [bls, setBls] = useState<Bl[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadBls = async () => {
       try {
         const data = await getBls(invoice.invoiceNumber)
+        console.log(data, "bls")
         setBls(data)
       } finally {
         setLoading(false)
@@ -51,11 +29,11 @@ export default function Delivery({ invoice }: DeliveryProps) {
     loadBls()
   }, [invoice.invoiceNumber])
 
-  const progressPercentage = useMemo(() => 
-    bls.length > 0 
+  const progressPercentage = useMemo(() =>
+    bls.length > 0
       ? Math.round((bls.filter(bl => bl.status === 'validée').length / bls.length) * 100)
       : 0
-  , [bls])
+    , [bls])
 
   const renderDriverInfo = (driver: Driver | null) => (
     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -78,7 +56,7 @@ export default function Delivery({ invoice }: DeliveryProps) {
     </div>
   )
 
-  const renderProductsTable = (products: Product[]) => (
+  const renderProductsTable = (products: BlProduct[]) => (
     <Table>
       <TableHeader>
         <TableRow className="bg-gray-50">
@@ -92,12 +70,12 @@ export default function Delivery({ invoice }: DeliveryProps) {
         {products.map((product, index) => (
           <TableRow key={index} className="hover:bg-gray-50">
             <TableCell className="font-medium">{product.reference || 'N/A'}</TableCell>
-            <TableCell>{product.name || 'N/A'}</TableCell>
+            <TableCell>{product.designation || 'N/A'}</TableCell>
             <TableCell className="text-right font-medium">
-              {product.quantite?.toFixed(2) || '0.00'}
+              {product.quantite}
             </TableCell>
             <TableCell className="text-right text-gray-700">
-              {product.remainingQty?.toFixed(2) || 'N/A'}
+              {product.remainingQty}
             </TableCell>
           </TableRow>
 
@@ -150,8 +128,8 @@ export default function Delivery({ invoice }: DeliveryProps) {
               <div className="text-right">
                 <p className="font-medium">Progression: {progressPercentage}%</p>
                 <p className="text-sm text-muted-foreground">
-                  Dernière livraison: {bls[0]?.createdAt 
-                    ? new Date(bls[0].createdAt).toLocaleDateString('fr-FR') 
+                  Dernière livraison: {bls[0]?.createdAt
+                    ? new Date(bls[0].createdAt).toLocaleDateString('fr-FR')
                     : 'N/A'
                   }
                 </p>

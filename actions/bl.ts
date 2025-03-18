@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 
 export const getBls = async (invoiceNumber: string) => {
     const cookieStore = await cookies()
-    const token = cookieStore.get('token')?.value
+    const token = JSON.parse(cookieStore.get('accessToken')?.value || "{}").token
     try {
         const response = await axios.get(`${process.env.API_URL}invoices/${invoiceNumber}/bls`, {
             headers: {

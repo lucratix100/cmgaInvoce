@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 export default async function logout() {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+    const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}")?.token;
 
     if (!token) {
       return { error: "Déjà déconnecté" };
@@ -18,14 +18,15 @@ export default async function logout() {
           Authorization: `Bearer ${token}`
         }
       });
+      cookieStore.delete("accessToken");
+      cookieStore.delete("user");
     } catch (apiError) {
       console.error("Erreur API:", apiError);
     }
 
     // Toujours supprimer les cookies même si l'API échoue
-    cookieStore.set("token", "", { maxAge: 0, path: '/' });
-    cookieStore.set("userId", "", { maxAge: 0, path: '/' });
-    cookieStore.set("userRole", "", { maxAge: 0, path: '/' });
+    cookieStore.delete("accessToken");
+    cookieStore.delete("user");
 
     return { success: "Déconnexion réussie" };
   } catch (error) {

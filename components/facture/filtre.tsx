@@ -15,32 +15,32 @@ import { getCurrentUser } from "@/actions/user"
 import { useRouter, useSearchParams } from "next/navigation"
 
 interface FilterProps {
-  onStatusChange: (status: string) => void;
-  onSearch: (search: string) => void;
-  currentStatus: string;
-  searchValue: string;
-  onDateChange: (startDate: string, endDate: string) => void;
+    onStatusChange: (status: string) => void;
+    onSearch: (search: string) => void;
+    currentStatus: string;
+    searchValue: string;
+    onDateChange: (startDate: string, endDate?: string) => void;
 }
 
 interface FilterState {
-  startDate: string
-  endDate: string
-  status: string
-  searchInvoice: string
+    startDate: string
+    endDate: string
+    status: string
+    searchInvoice: string
 }
 
 
-export default function Filtre({ 
-    onStatusChange, 
-    onSearch, 
-    currentStatus, 
+export default function Filtre({
+    onStatusChange,
+    onSearch,
+    currentStatus,
     searchValue,
     onDateChange
 }: FilterProps) {
-  
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const statusOptions = [
+
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const statusOptions = [
         { value: "tous", label: "TOUS" },
         { value: InvoiceStatus.EN_ATTENTE, label: "EN ATTENTE DE LIVRAISON" },
         { value: InvoiceStatus.EN_COURS, label: "EN COURS DE LIVRAISON" },
@@ -53,20 +53,20 @@ export default function Filtre({
     const [error, setError] = useState<string | null>(null)
     const today = new Date().toISOString().split('T')[0]
     const [filters, setFilters] = useState({
-      startDate: searchParams.get('startDate') || today,
-      endDate: searchParams.get('endDate') || '',
-      status: searchParams.get('status') || "tous",
-      searchInvoice: searchParams.get('search') || ""
+        startDate: searchParams.get('startDate') || today,
+        endDate: searchParams.get('endDate') || undefined,
+        status: searchParams.get('status') || "tous",
+        searchInvoice: searchParams.get('search') || ""
     })
     const [searchField, setSearchField] = useState("invoiceNumber")
     const [user, setUser] = useState<any>(null)
 
     useEffect(() => {
-      const loadUser = async () => {
-        const data = await getCurrentUser()
-        setUser(data)
-      }
-      loadUser()
+        const loadUser = async () => {
+            const data = await getCurrentUser()
+            setUser(data)
+        }
+        loadUser()
     }, [])
 
     useEffect(() => {
@@ -116,7 +116,7 @@ export default function Filtre({
 
     const updateURL = (newFilters: typeof filters) => {
         const params = new URLSearchParams(searchParams.toString())
-        
+
         // Mettre à jour les paramètres
         params.set('startDate', newFilters.startDate)
         if (newFilters.endDate) {
@@ -124,7 +124,7 @@ export default function Filtre({
         } else {
             params.delete('endDate')
         }
-        if (newFilters.status !== 'tous') {
+        if (newFilters.status) {
             params.set('status', newFilters.status)
         } else {
             params.delete('status')
@@ -149,62 +149,62 @@ export default function Filtre({
             [type === 'start' ? 'startDate' : 'endDate']: value
         }
         setFilters(newFilters)
-        
+
         // Mettre à jour l'URL et le store en une seule fois
         updateURL(newFilters)
         onDateChange(newFilters.startDate, newFilters.endDate)
-        
+
         // Supprimer l'appel à fetchInvoices ici car il est déjà géré dans setDateRange
     }
 
     return (
         <Card className="border-none shadow-md overflow-hidden bg-white">
-            <CardHeader className="bg-primary-50 pb-3">
+            <CardHeader className="bg-primary-50 pb-1">
                 <CardTitle className="flex items-center gap-2 text-primary-700">
                     <div className="flex items-center gap-2 justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <Filter className="h-5 w-5" />
-                        Filtres
-                      </div>
-                      <div className="flex items-center gap-2">
-                  {user?.role === "ADMIN" && (
-                      <Select
-                  value={depot}
-                  onValueChange={setDepot}
-                  disabled={loading}
-                >
-                  <SelectTrigger className="w-[180px] border-dashed bg-white hover:bg-primary-100 transition-colors">
-                    <Building className="h-4 w-4 mr-2 text-primary" />
-                    <SelectValue
-                      placeholder={
-                        loading ? "Chargement..." : "Sélectionner un dépôt"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {error ? (
-                      <SelectItem 
-                        value="error" 
-                        disabled
-                        className="text-red-500"
-                      >
-                        {error}
-                      </SelectItem>
-                    ) : (
-                      depots.map((depot) => (
-                        <SelectItem 
-                          key={depot.id} 
-                          value={depot.id.toString()}
-                          className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
-                        >
-                          {depot.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                  </Select>
-                  )}
-                      </div>
+                        <div className="flex items-center gap-2">
+                            <Filter className="h-5 w-5" />
+                            <span className="text-md font-medium">Filtres</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {user?.role === "ADMIN" && (
+                                <Select
+                                    value={depot}
+                                    onValueChange={setDepot}
+                                    disabled={loading}
+                                >
+                                    <SelectTrigger className="w-[180px] border-dashed bg-white hover:bg-primary-100 transition-colors">
+                                        <Building className="h-4 w-4 mr-2 text-primary" />
+                                        <SelectValue
+                                            placeholder={
+                                                loading ? "Chargement..." : "Sélectionner un dépôt"
+                                            }
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        {error ? (
+                                            <SelectItem
+                                                value="error"
+                                                disabled
+                                                className="text-red-500"
+                                            >
+                                                {error}
+                                            </SelectItem>
+                                        ) : (
+                                            depots.map((depot) => (
+                                                <SelectItem
+                                                    key={depot.id}
+                                                    value={depot.id.toString()}
+                                                    className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                                >
+                                                    {depot.name}
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
                     </div>
                 </CardTitle>
             </CardHeader>
@@ -253,8 +253,8 @@ export default function Filtre({
                                 </SelectTrigger>
                                 <SelectContent className="bg-white">
                                     {statusOptions.map((option) => (
-                                        <SelectItem 
-                                            key={option.value} 
+                                        <SelectItem
+                                            key={option.value}
                                             value={option.value}
                                             className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
                                         >
