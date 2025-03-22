@@ -1,14 +1,4 @@
 ﻿<factures>
-  <facture numeroFacture="BC0093141" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTROS000">
-    <client>
-      <telephone>77 161 48 53</telephone>
-      <nom>OMAR SYLLA KHAR YALLA</nom>
-      <code>411ALNTROS000</code>
-    </client>
-    <orders>
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="30" prixUnitaire="338.980000" montantHT="10169.490000" />
-    </orders>
-  </facture>
   <facture numeroFacture="BC0093151" dateFacture="2025-03-13T00:00:00" codeClient="411ECLATEMENT004">
     <client>
       <telephone>77 589 95 93</telephone>
@@ -16,8 +6,8 @@
       <code>411ECLATEMENT004</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1200" prixUnitaire="750.000000" montantHT="900000.000000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L-------GRATUIT" quantite="24" prixUnitaire="750.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1200" prixUnitaire="750.000000" montantHT="900000.000000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L-------GRATUIT" quantite="24" prixUnitaire="750.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="BC0093159" dateFacture="2025-03-13T00:00:00" codeClient="411ALNKS662">
@@ -34,8 +24,8 @@
       <code>411ALNFD101</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="762.710000" montantHT="7627.120000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="762.710000" montantHT="7627.120000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="BC0093171" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBD066">
@@ -45,7 +35,7 @@
       <code>411ALNBD066</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="20" prixUnitaire="381.360000" montantHT="7627.120000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="20" prixUnitaire="381.360000" montantHT="7627.120000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="BC0093179" dateFacture="2025-03-13T00:00:00" codeClient="411ALNOT072">
@@ -55,9 +45,9 @@
       <code>411ALNOT072</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="3" prixUnitaire="762.710000" montantHT="2288.140000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="3" prixUnitaire="762.710000" montantHT="2288.140000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="BC0093184" dateFacture="2025-03-13T00:00:00" codeClient="411ALNSF171">
@@ -67,7 +57,7 @@
       <code>411ALNSF171</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="BC0093188" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMF130">
@@ -77,8 +67,8 @@
       <code>411ALNMF130</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="10" prixUnitaire="677.970000" montantHT="6779.660000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="10" prixUnitaire="635.590000" montantHT="6355.930000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="10" prixUnitaire="677.970000" montantHT="6779.660000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="10" prixUnitaire="635.590000" montantHT="6355.930000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="BC0093234" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTROS000">
@@ -90,13 +80,13 @@
   </facture>
   <facture numeroFacture="FD0040112" dateFacture="2025-03-13T00:00:00" codeClient="411ECLATEMENT011">
     <client>
-      <telephone>70 985 62 16</telephone>
+      <telephone>76 878 33 11</telephone>
       <nom>MANDIAYE DIOUF </nom>
       <code>411ECLATEMENT011</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1000" prixUnitaire="750.000000" montantHT="750000.000000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L---GRATUITE" quantite="21" prixUnitaire="750.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1000" prixUnitaire="750.000000" montantHT="750000.000000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L---GRATUITE" quantite="21" prixUnitaire="750.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040113" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTR001">
@@ -106,10 +96,10 @@
       <code>411ALNTR001</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="400" prixUnitaire="593.220000" montantHT="237288.140000" />
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="50" prixUnitaire="296.610000" montantHT="14830.510000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="350" prixUnitaire="635.590000" montantHT="222457.630000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="100" prixUnitaire="720.340000" montantHT="72033.900000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="400" prixUnitaire="593.220000" montantHT="237288.140000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="50" prixUnitaire="296.610000" montantHT="14830.510000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="350" prixUnitaire="635.590000" montantHT="222457.630000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="100" prixUnitaire="720.340000" montantHT="72033.900000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040114" dateFacture="2025-03-13T00:00:00" codeClient="411CHMFN003">
@@ -119,12 +109,12 @@
       <code>411CHMFN003</code>
     </client>
     <orders>
-      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="220" prixUnitaire="6355.930000" montantHT="1398305.080000" />
-      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="130" prixUnitaire="6355.930000" montantHT="826271.190000" />
-      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="100" prixUnitaire="6355.930000" montantHT="635593.220000" />
-      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="50" prixUnitaire="6355.930000" montantHT="317796.610000" />
-      <produit reference="AUJAGRATUITE01" designation="RANI GRATUITE---- COCKTAIL BLANC 24*240ML" quantite="25" prixUnitaire="0.000000" montantHT="0.000000" />
-      <produit reference="AUJAGRATUITE02" designation="RANI GRATUITE..........MANGUE 24*240ML" quantite="25" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="220" prixUnitaire="6355.930000" montantHT="1398305.080000" tva="18.000000" />
+      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="130" prixUnitaire="6355.930000" montantHT="826271.190000" tva="18.000000" />
+      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="100" prixUnitaire="6355.930000" montantHT="635593.220000" tva="18.000000" />
+      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="50" prixUnitaire="6355.930000" montantHT="317796.610000" tva="18.000000" />
+      <produit reference="AUJAGRATUITE01" designation="RANI GRATUITE---- COCKTAIL BLANC 24*240ML" quantite="25" prixUnitaire="0.000000" montantHT="0.000000" tva="18.000000" />
+      <produit reference="AUJAGRATUITE02" designation="RANI GRATUITE..........MANGUE 24*240ML" quantite="25" prixUnitaire="0.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040115" dateFacture="2025-03-13T00:00:00" codeClient="411ECLATEMENT008">
@@ -134,8 +124,8 @@
       <code>411ECLATEMENT008</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1000" prixUnitaire="750.000000" montantHT="750000.000000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L---GRATUITE" quantite="21" prixUnitaire="750.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1000" prixUnitaire="750.000000" montantHT="750000.000000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L---GRATUITE" quantite="21" prixUnitaire="750.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040116" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBD360">
@@ -145,7 +135,7 @@
       <code>411ALNBD360</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="25" prixUnitaire="677.970000" montantHT="16949.150000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="25" prixUnitaire="677.970000" montantHT="16949.150000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040117" dateFacture="2025-03-13T00:00:00" codeClient="411ALNOT072">
@@ -155,7 +145,7 @@
       <code>411ALNOT072</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040118" dateFacture="2025-03-13T00:00:00" codeClient="411NGAT128">
@@ -165,8 +155,8 @@
       <code>411NGAT128</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="500" prixUnitaire="718.640000" montantHT="341355.930000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="500" prixUnitaire="559.320000" montantHT="265677.970000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="500" prixUnitaire="718.640000" montantHT="341355.930000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="500" prixUnitaire="559.320000" montantHT="265677.970000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040119" dateFacture="2025-03-13T00:00:00" codeClient="411ISYAT054">
@@ -176,8 +166,8 @@
       <code>411ISYAT054</code>
     </client>
     <orders>
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="6" prixUnitaire="1059.320000" montantHT="6355.930000" />
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="6" prixUnitaire="4500.000000" montantHT="27000.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="6" prixUnitaire="1059.320000" montantHT="6355.930000" tva="0.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="6" prixUnitaire="4500.000000" montantHT="27000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040120" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTRAP010">
@@ -187,10 +177,10 @@
       <code>411ALNTRAP010</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="90" prixUnitaire="635.590000" montantHT="57203.390000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="48" prixUnitaire="593.220000" montantHT="28474.580000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="21" prixUnitaire="677.970000" montantHT="14237.290000" />
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="10" prixUnitaire="296.610000" montantHT="2966.100000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="90" prixUnitaire="635.590000" montantHT="57203.390000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="48" prixUnitaire="593.220000" montantHT="28474.580000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="21" prixUnitaire="677.970000" montantHT="14237.290000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="10" prixUnitaire="296.610000" montantHT="2966.100000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040121" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBB020">
@@ -200,7 +190,7 @@
       <code>411ALNBB020</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040122" dateFacture="2025-03-13T00:00:00" codeClient="411ASFTOTAL085">
@@ -210,8 +200,8 @@
       <code>411ASFTOTAL085</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="20" prixUnitaire="603.390000" montantHT="12067.800000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="666.950000" montantHT="20008.470000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="20" prixUnitaire="603.390000" montantHT="12067.800000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="666.950000" montantHT="20008.470000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040123" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTRAP002">
@@ -221,7 +211,7 @@
       <code>411ALNTRAP002</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="80" prixUnitaire="635.590000" montantHT="50847.460000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="80" prixUnitaire="635.590000" montantHT="50847.460000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040124" dateFacture="2025-03-13T00:00:00" codeClient="411ASFMAR30">
@@ -231,8 +221,8 @@
       <code>411ASFMAR30</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="40" prixUnitaire="677.970000" montantHT="27118.640000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="5" prixUnitaire="762.710000" montantHT="3813.560000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="40" prixUnitaire="677.970000" montantHT="27118.640000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="5" prixUnitaire="762.710000" montantHT="3813.560000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040125" dateFacture="2025-03-13T00:00:00" codeClient="411ASFFSY276">
@@ -242,11 +232,11 @@
       <code>411ASFFSY276</code>
     </client>
     <orders>
-      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="20" prixUnitaire="6440.680000" montantHT="128813.560000" />
-      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="30" prixUnitaire="6440.680000" montantHT="193220.340000" />
-      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="30" prixUnitaire="6440.680000" montantHT="193220.340000" />
-      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="20" prixUnitaire="6440.680000" montantHT="128813.560000" />
-      <produit reference="AUJAGRATUITE02" designation="RANI GRATUITE..........MANGUE 24*240ML" quantite="10" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="20" prixUnitaire="6440.680000" montantHT="128813.560000" tva="18.000000" />
+      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="30" prixUnitaire="6440.680000" montantHT="193220.340000" tva="18.000000" />
+      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="30" prixUnitaire="6440.680000" montantHT="193220.340000" tva="18.000000" />
+      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="20" prixUnitaire="6440.680000" montantHT="128813.560000" tva="18.000000" />
+      <produit reference="AUJAGRATUITE02" designation="RANI GRATUITE..........MANGUE 24*240ML" quantite="10" prixUnitaire="0.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040126" dateFacture="2025-03-13T00:00:00" codeClient="411ASFFSY398">
@@ -256,8 +246,8 @@
       <code>411ASFFSY398</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="7" prixUnitaire="4500.000000" montantHT="31500.000000" />
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="7" prixUnitaire="1059.320000" montantHT="7415.250000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="7" prixUnitaire="4500.000000" montantHT="31500.000000" tva="0.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="7" prixUnitaire="1059.320000" montantHT="7415.250000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040127" dateFacture="2025-03-13T00:00:00" codeClient="411ASFFSY059">
@@ -267,8 +257,8 @@
       <code>411ASFFSY059</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="4" prixUnitaire="4500.000000" montantHT="18000.000000" />
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="4" prixUnitaire="1059.320000" montantHT="4237.290000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="4" prixUnitaire="4500.000000" montantHT="18000.000000" tva="0.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="4" prixUnitaire="1059.320000" montantHT="4237.290000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040128" dateFacture="2025-03-13T00:00:00" codeClient="411ALNKS662">
@@ -278,7 +268,7 @@
       <code>411ALNKS662</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="60" prixUnitaire="677.970000" montantHT="40677.970000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="60" prixUnitaire="677.970000" montantHT="40677.970000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040129" dateFacture="2025-03-13T00:00:00" codeClient="411ECLATEMENT007">
@@ -288,8 +278,8 @@
       <code>411ECLATEMENT007</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="2000" prixUnitaire="750.000000" montantHT="1500000.000000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L----GRATUITE" quantite="41" prixUnitaire="750.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="2000" prixUnitaire="750.000000" montantHT="1500000.000000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L----GRATUITE" quantite="41" prixUnitaire="750.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040130" dateFacture="2025-03-13T00:00:00" codeClient="411MOUSSA9">
@@ -299,9 +289,9 @@
       <code>411MOUSSA9</code>
     </client>
     <orders>
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="5" prixUnitaire="1059.320000" montantHT="5296.610000" />
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="5" prixUnitaire="4500.000000" montantHT="22500.000000" />
-      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML---VRAC" quantite="1" prixUnitaire="2542.370000" montantHT="2542.370000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="5" prixUnitaire="1059.320000" montantHT="5296.610000" tva="0.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="5" prixUnitaire="4500.000000" montantHT="22500.000000" tva="0.000000" />
+      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML---VRAC" quantite="1" prixUnitaire="2542.370000" montantHT="2542.370000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040131" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMT550">
@@ -311,7 +301,7 @@
       <code>411ALNMT550</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040132" dateFacture="2025-03-13T00:00:00" codeClient="411ALNOT729">
@@ -321,7 +311,7 @@
       <code>411ALNOT729</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="25" prixUnitaire="677.970000" montantHT="16949.150000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="25" prixUnitaire="677.970000" montantHT="16949.150000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040133" dateFacture="2025-03-13T00:00:00" codeClient="411ALNOT821">
@@ -331,8 +321,8 @@
       <code>411ALNOT821</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="10" prixUnitaire="635.590000" montantHT="6355.930000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="10" prixUnitaire="635.590000" montantHT="6355.930000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040134" dateFacture="2025-03-13T00:00:00" codeClient="411ALNOT155">
@@ -342,7 +332,7 @@
       <code>411ALNOT155</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="30" prixUnitaire="677.970000" montantHT="20338.980000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040135" dateFacture="2025-03-13T00:00:00" codeClient="411ALNKS629">
@@ -352,9 +342,9 @@
       <code>411ALNKS629</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="15" prixUnitaire="762.710000" montantHT="11440.680000" />
-      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="1" prixUnitaire="6483.050000" montantHT="6483.050000" />
-      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="1" prixUnitaire="6483.050000" montantHT="6483.050000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="15" prixUnitaire="762.710000" montantHT="11440.680000" tva="18.000000" />
+      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="1" prixUnitaire="6483.050000" montantHT="6483.050000" tva="18.000000" />
+      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="1" prixUnitaire="6483.050000" montantHT="6483.050000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040136" dateFacture="2025-03-13T00:00:00" codeClient="411ALNID221">
@@ -364,8 +354,8 @@
       <code>411ALNID221</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" />
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="5" prixUnitaire="338.980000" montantHT="1694.920000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="5" prixUnitaire="338.980000" montantHT="1694.920000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040137" dateFacture="2025-03-13T00:00:00" codeClient="411ALNFD099">
@@ -375,8 +365,8 @@
       <code>411ALNFD099</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="2" prixUnitaire="677.970000" montantHT="1355.930000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="8" prixUnitaire="762.710000" montantHT="6101.690000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="2" prixUnitaire="677.970000" montantHT="1355.930000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="8" prixUnitaire="762.710000" montantHT="6101.690000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040138" dateFacture="2025-03-13T00:00:00" codeClient="411ALNFD351">
@@ -386,7 +376,7 @@
       <code>411ALNFD351</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="50" prixUnitaire="677.970000" montantHT="33898.310000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="50" prixUnitaire="677.970000" montantHT="33898.310000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040139" dateFacture="2025-03-13T00:00:00" codeClient="411ALNKS250">
@@ -396,7 +386,7 @@
       <code>411ALNKS250</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040140" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMF778">
@@ -406,7 +396,7 @@
       <code>411ALNMF778</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="5" prixUnitaire="762.710000" montantHT="3813.560000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="5" prixUnitaire="762.710000" montantHT="3813.560000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040141" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBG591">
@@ -416,8 +406,8 @@
       <code>411ALNBG591</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="10" prixUnitaire="677.970000" montantHT="6779.660000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1186.440000" montantHT="5932.200000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="10" prixUnitaire="677.970000" montantHT="6779.660000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1186.440000" montantHT="5932.200000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040142" dateFacture="2025-03-13T00:00:00" codeClient="411ALNNF402">
@@ -427,7 +417,7 @@
       <code>411ALNNF402</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="50" prixUnitaire="677.970000" montantHT="33898.310000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="50" prixUnitaire="677.970000" montantHT="33898.310000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040143" dateFacture="2025-03-13T00:00:00" codeClient="411ALNID288">
@@ -437,7 +427,7 @@
       <code>411ALNID288</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="677.970000" montantHT="13559.320000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040144" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBD553">
@@ -447,7 +437,7 @@
       <code>411ALNBD553</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="15" prixUnitaire="635.590000" montantHT="9533.900000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="15" prixUnitaire="635.590000" montantHT="9533.900000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040145" dateFacture="2025-03-13T00:00:00" codeClient="411ALNKS614">
@@ -457,7 +447,7 @@
       <code>411ALNKS614</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="25" prixUnitaire="677.970000" montantHT="16949.150000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="25" prixUnitaire="677.970000" montantHT="16949.150000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040146" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMD140">
@@ -467,8 +457,8 @@
       <code>411ALNMD140</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="10" prixUnitaire="338.980000" montantHT="3389.830000" />
-      <produit designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="10" prixUnitaire="338.980000" montantHT="3389.830000" tva="18.000000" />
+      <produit designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040147" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMF779">
@@ -478,7 +468,7 @@
       <code>411ALNMF779</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="60" prixUnitaire="677.970000" montantHT="40677.970000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="60" prixUnitaire="677.970000" montantHT="40677.970000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040148" dateFacture="2025-03-13T00:00:00" codeClient="411ECLATEMENT004">
@@ -488,8 +478,8 @@
       <code>411ECLATEMENT004</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1200" prixUnitaire="750.000000" montantHT="900000.000000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L---GRATUITE" quantite="25" prixUnitaire="750.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="1200" prixUnitaire="750.000000" montantHT="900000.000000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L---GRATUITE" quantite="25" prixUnitaire="750.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040149" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBD276">
@@ -499,8 +489,8 @@
       <code>411ALNBD276</code>
     </client>
     <orders>
-      <produit designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" />
-      <produit designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" tva="0.000000" />
+      <produit designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040150" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH011">
@@ -510,10 +500,10 @@
       <code>411ASFAUCH011</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="33" prixUnitaire="817.800000" montantHT="24288.560000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="12" prixUnitaire="635.590000" montantHT="7627.120000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="63" prixUnitaire="720.340000" montantHT="45381.360000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="33" prixUnitaire="817.800000" montantHT="24288.560000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="12" prixUnitaire="635.590000" montantHT="7627.120000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="63" prixUnitaire="720.340000" montantHT="45381.360000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040151" dateFacture="2025-03-13T00:00:00" codeClient="411ALNKS662">
@@ -523,7 +513,7 @@
       <code>411ALNKS662</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="40" prixUnitaire="381.360000" montantHT="15254.240000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="40" prixUnitaire="381.360000" montantHT="15254.240000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040152" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH002">
@@ -533,10 +523,10 @@
       <code>411ASFAUCH002</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="17" prixUnitaire="817.800000" montantHT="12512.290000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="9" prixUnitaire="1144.070000" montantHT="10296.610000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="17" prixUnitaire="817.800000" montantHT="12512.290000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="9" prixUnitaire="1144.070000" montantHT="10296.610000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040153" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH013">
@@ -546,10 +536,10 @@
       <code>411ASFAUCH013</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="11" prixUnitaire="720.340000" montantHT="7923.730000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="11" prixUnitaire="720.340000" montantHT="7923.730000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040154" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBD242">
@@ -559,8 +549,8 @@
       <code>411ALNBD242</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="40" prixUnitaire="677.970000" montantHT="27118.640000" />
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="5" prixUnitaire="423.730000" montantHT="2118.640000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="40" prixUnitaire="677.970000" montantHT="27118.640000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="5" prixUnitaire="423.730000" montantHT="2118.640000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040155" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH020">
@@ -570,9 +560,9 @@
       <code>411ASFAUCH020</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="8" prixUnitaire="1144.070000" montantHT="9152.540000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="8" prixUnitaire="1144.070000" montantHT="9152.540000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040156" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBG534">
@@ -582,7 +572,7 @@
       <code>411ALNBG534</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="30" prixUnitaire="381.360000" montantHT="11440.680000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="30" prixUnitaire="381.360000" montantHT="11440.680000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040157" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMF776">
@@ -592,7 +582,7 @@
       <code>411ALNMF776</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="10" prixUnitaire="381.360000" montantHT="3813.560000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="10" prixUnitaire="381.360000" montantHT="3813.560000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040158" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH017">
@@ -602,9 +592,9 @@
       <code>411ASFAUCH017</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="19" prixUnitaire="720.340000" montantHT="13686.440000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="19" prixUnitaire="720.340000" montantHT="13686.440000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040159" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH022">
@@ -614,9 +604,9 @@
       <code>411ASFAUCH022</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="6" prixUnitaire="635.590000" montantHT="3813.560000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="16" prixUnitaire="720.340000" montantHT="11525.420000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="6" prixUnitaire="635.590000" montantHT="3813.560000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="16" prixUnitaire="720.340000" montantHT="11525.420000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040160" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH006">
@@ -626,10 +616,10 @@
       <code>411ASFAUCH006</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040161" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH015">
@@ -639,8 +629,8 @@
       <code>411ASFAUCH015</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040162" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH019">
@@ -650,10 +640,10 @@
       <code>411ASFAUCH019</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="21" prixUnitaire="817.800000" montantHT="15456.360000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="6" prixUnitaire="720.340000" montantHT="4322.030000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="21" prixUnitaire="817.800000" montantHT="15456.360000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="6" prixUnitaire="720.340000" montantHT="4322.030000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040163" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH033">
@@ -663,9 +653,9 @@
       <code>411ASFAUCH033</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="20" prixUnitaire="817.800000" montantHT="14720.340000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="20" prixUnitaire="817.800000" montantHT="14720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="5" prixUnitaire="720.340000" montantHT="3601.690000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040164" dateFacture="2025-03-13T00:00:00" codeClient="411ASFWM092">
@@ -675,8 +665,8 @@
       <code>411ASFWM092</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="666.950000" montantHT="13338.980000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="756.780000" montantHT="7567.800000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="20" prixUnitaire="666.950000" montantHT="13338.980000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="756.780000" montantHT="7567.800000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040165" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMD131">
@@ -686,7 +676,7 @@
       <code>411ALNMD131</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="10" prixUnitaire="423.730000" montantHT="4237.290000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="10" prixUnitaire="423.730000" montantHT="4237.290000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040166" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTRPF000">
@@ -696,12 +686,12 @@
       <code>411ALNTRPF000</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="300" prixUnitaire="635.590000" montantHT="190677.970000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="100" prixUnitaire="720.340000" montantHT="72033.900000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="200" prixUnitaire="593.220000" montantHT="118644.070000" />
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="100" prixUnitaire="296.610000" montantHT="29661.020000" />
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="10" prixUnitaire="974.580000" montantHT="9745.760000" />
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="10" prixUnitaire="4500.000000" montantHT="45000.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="300" prixUnitaire="635.590000" montantHT="190677.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="100" prixUnitaire="720.340000" montantHT="72033.900000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="200" prixUnitaire="593.220000" montantHT="118644.070000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="100" prixUnitaire="296.610000" montantHT="29661.020000" tva="18.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="10" prixUnitaire="974.580000" montantHT="9745.760000" tva="0.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="10" prixUnitaire="4500.000000" montantHT="45000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040167" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTRAP001">
@@ -711,7 +701,7 @@
       <code>411ALNTRAP001</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="593.220000" montantHT="2966.100000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="593.220000" montantHT="2966.100000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040168" dateFacture="2025-03-13T00:00:00" codeClient="411SDKAW000">
@@ -721,7 +711,7 @@
       <code>411SDKAW000</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="150" prixUnitaire="677.970000" montantHT="101694.920000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="150" prixUnitaire="677.970000" montantHT="101694.920000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040169" dateFacture="2025-03-13T00:00:00" codeClient="411SDKAW039">
@@ -731,7 +721,7 @@
       <code>411SDKAW039</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="100" prixUnitaire="666.950000" montantHT="66694.920000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="100" prixUnitaire="666.950000" montantHT="66694.920000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040170" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH040">
@@ -741,8 +731,8 @@
       <code>411ASFAUCH040</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="6" prixUnitaire="720.340000" montantHT="4322.030000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="5" prixUnitaire="635.590000" montantHT="3177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="6" prixUnitaire="720.340000" montantHT="4322.030000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040171" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH041">
@@ -752,8 +742,8 @@
       <code>411ASFAUCH041</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="8" prixUnitaire="720.340000" montantHT="5762.710000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="5" prixUnitaire="1144.070000" montantHT="5720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="8" prixUnitaire="720.340000" montantHT="5762.710000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040172" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH028">
@@ -763,9 +753,9 @@
       <code>411ASFAUCH028</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="15" prixUnitaire="635.590000" montantHT="9533.900000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="21" prixUnitaire="720.340000" montantHT="15127.120000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="10" prixUnitaire="817.800000" montantHT="7360.170000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="15" prixUnitaire="635.590000" montantHT="9533.900000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="21" prixUnitaire="720.340000" montantHT="15127.120000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040173" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH029">
@@ -775,8 +765,8 @@
       <code>411ASFAUCH029</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="6" prixUnitaire="1144.070000" montantHT="6864.410000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="27" prixUnitaire="720.340000" montantHT="19449.150000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="6" prixUnitaire="1144.070000" montantHT="6864.410000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="27" prixUnitaire="720.340000" montantHT="19449.150000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040174" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH031">
@@ -786,7 +776,7 @@
       <code>411ASFAUCH031</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="10" prixUnitaire="4500.000000" montantHT="45000.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="10" prixUnitaire="4500.000000" montantHT="45000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040175" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH031">
@@ -796,7 +786,7 @@
       <code>411ASFAUCH031</code>
     </client>
     <orders>
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="10" prixUnitaire="1059.320000" montantHT="10593.220000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="10" prixUnitaire="1059.320000" montantHT="10593.220000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040176" dateFacture="2025-03-13T00:00:00" codeClient="411DIVERS">
@@ -806,7 +796,7 @@
       <code>411DIVERS</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="4" prixUnitaire="211.860000" montantHT="847.460000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="4" prixUnitaire="211.860000" montantHT="847.460000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FD0040177" dateFacture="2025-03-13T00:00:00" codeClient="411SDKMT000">
@@ -816,7 +806,7 @@
       <code>411SDKMT000</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="50" prixUnitaire="762.710000" montantHT="38135.590000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="50" prixUnitaire="762.710000" montantHT="38135.590000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033095" dateFacture="2025-03-13T00:00:00" codeClient="411SDKMT000">
@@ -826,7 +816,7 @@
       <code>411SDKMT000</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-1" prixUnitaire="4500.000000" montantHT="-4500.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-1" prixUnitaire="4500.000000" montantHT="-4500.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033096" dateFacture="2025-03-13T00:00:00" codeClient="411SDKMT017">
@@ -836,7 +826,7 @@
       <code>411SDKMT017</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-9" prixUnitaire="4500.000000" montantHT="-40500.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-9" prixUnitaire="4500.000000" montantHT="-40500.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033097" dateFacture="2025-03-13T00:00:00" codeClient="411ISYAT054">
@@ -846,7 +836,7 @@
       <code>411ISYAT054</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-6" prixUnitaire="4500.000000" montantHT="-27000.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-6" prixUnitaire="4500.000000" montantHT="-27000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033098" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTRPF000">
@@ -856,7 +846,7 @@
       <code>411ALNTRPF000</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-5" prixUnitaire="4500.000000" montantHT="-22500.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-5" prixUnitaire="4500.000000" montantHT="-22500.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033099" dateFacture="2025-03-13T00:00:00" codeClient="411ALNTRAP010">
@@ -866,10 +856,10 @@
       <code>411ALNTRAP010</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-90" prixUnitaire="720.340000" montantHT="-64830.510000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-48" prixUnitaire="593.220000" montantHT="-28474.580000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-21" prixUnitaire="677.970000" montantHT="-14237.290000" />
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-10" prixUnitaire="338.980000" montantHT="-3389.830000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-90" prixUnitaire="720.340000" montantHT="-64830.510000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-48" prixUnitaire="593.220000" montantHT="-28474.580000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-21" prixUnitaire="677.970000" montantHT="-14237.290000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-10" prixUnitaire="338.980000" montantHT="-3389.830000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033100" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH001">
@@ -879,10 +869,10 @@
       <code>411ASFAUCH001</code>
     </client>
     <orders>
-      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="-750" prixUnitaire="6737.290000" montantHT="-5052966.100000" />
-      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="-750" prixUnitaire="6737.290000" montantHT="-5052966.100000" />
-      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="-250" prixUnitaire="6737.290000" montantHT="-1684322.030000" />
-      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="-250" prixUnitaire="6737.290000" montantHT="-1684322.030000" />
+      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="-750" prixUnitaire="6737.290000" montantHT="-5052966.100000" tva="18.000000" />
+      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="-750" prixUnitaire="6737.290000" montantHT="-5052966.100000" tva="18.000000" />
+      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="-250" prixUnitaire="6737.290000" montantHT="-1684322.030000" tva="18.000000" />
+      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="-250" prixUnitaire="6737.290000" montantHT="-1684322.030000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033101" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH029">
@@ -892,9 +882,9 @@
       <code>411ASFAUCH029</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-18" prixUnitaire="817.800000" montantHT="-14720.340000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-7" prixUnitaire="635.590000" montantHT="-4449.150000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-8" prixUnitaire="720.340000" montantHT="-5762.710000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-18" prixUnitaire="817.800000" montantHT="-14720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-7" prixUnitaire="635.590000" montantHT="-4449.150000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-8" prixUnitaire="720.340000" montantHT="-5762.710000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033102" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH049">
@@ -904,11 +894,11 @@
       <code>411ASFAUCH049</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-13" prixUnitaire="817.800000" montantHT="-10631.360000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="-5" prixUnitaire="1144.070000" montantHT="-5720.340000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-13" prixUnitaire="635.590000" montantHT="-8262.710000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-9" prixUnitaire="720.340000" montantHT="-6483.050000" />
-      <produit designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-13" prixUnitaire="817.800000" montantHT="-10631.360000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="-5" prixUnitaire="1144.070000" montantHT="-5720.340000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-13" prixUnitaire="635.590000" montantHT="-8262.710000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-9" prixUnitaire="720.340000" montantHT="-6483.050000" tva="18.000000" />
+      <produit designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033103" dateFacture="2025-03-13T00:00:00" codeClient="411ASFEDK13">
@@ -918,13 +908,13 @@
       <code>411ASFEDK13</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-50" prixUnitaire="338.980000" montantHT="-16949.150000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-50" prixUnitaire="635.590000" montantHT="-31779.660000" />
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-150" prixUnitaire="817.800000" montantHT="-122669.490000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-150" prixUnitaire="720.340000" montantHT="-108050.850000" />
-      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="-50" prixUnitaire="1144.070000" montantHT="-57203.390000" />
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-20" prixUnitaire="4500.000000" montantHT="-90000.000000" />
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-20" prixUnitaire="1059.320000" montantHT="-21186.440000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-50" prixUnitaire="338.980000" montantHT="-16949.150000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-50" prixUnitaire="635.590000" montantHT="-31779.660000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-150" prixUnitaire="817.800000" montantHT="-122669.490000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-150" prixUnitaire="720.340000" montantHT="-108050.850000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X500" designation="EAU MINERALE SEO PAQUET 12*500ML" quantite="-50" prixUnitaire="1144.070000" montantHT="-57203.390000" tva="18.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-20" prixUnitaire="4500.000000" montantHT="-90000.000000" tva="0.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-20" prixUnitaire="1059.320000" montantHT="-21186.440000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033104" dateFacture="2025-03-13T00:00:00" codeClient="411ALNKS662">
@@ -934,8 +924,8 @@
       <code>411ALNKS662</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-60" prixUnitaire="677.970000" montantHT="-40677.970000" />
-      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="0" prixUnitaire="419.490000" montantHT="-4.190000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-60" prixUnitaire="677.970000" montantHT="-40677.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOSACH400" designation="EAU MINERALE TASNINE SACHET 30*400ML" quantite="0" prixUnitaire="419.490000" montantHT="-4.190000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033105" dateFacture="2025-03-13T00:00:00" codeClient="411NGAT149">
@@ -945,11 +935,11 @@
       <code>411NGAT149</code>
     </client>
     <orders>
-      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="-40" prixUnitaire="6440.680000" montantHT="-257627.120000" />
-      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="-20" prixUnitaire="6440.680000" montantHT="-128813.560000" />
-      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="-20" prixUnitaire="6440.680000" montantHT="-128813.560000" />
-      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="-20" prixUnitaire="6440.680000" montantHT="-128813.560000" />
-      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml--------GRATUITE" quantite="-10" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="AUJARANIBANFRA" designation="RANI FRAISE BANANE  24 X 240mL" quantite="-40" prixUnitaire="6440.680000" montantHT="-257627.120000" tva="18.000000" />
+      <produit reference="AUJARANIANANAS" designation="RANI ANANAS  24*240ML" quantite="-20" prixUnitaire="6440.680000" montantHT="-128813.560000" tva="18.000000" />
+      <produit reference="AUJARANICKTAIL" designation="RANI COCKTAIL BLANC 24*240ML" quantite="-20" prixUnitaire="6440.680000" montantHT="-128813.560000" tva="18.000000" />
+      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml" quantite="-20" prixUnitaire="6440.680000" montantHT="-128813.560000" tva="18.000000" />
+      <produit reference="AUJARANIMANGUE" designation="RANI MANGUE  24 x 240ml--------GRATUITE" quantite="-10" prixUnitaire="0.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033106" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAPI004">
@@ -959,7 +949,7 @@
       <code>411ASFAPI004</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-3" prixUnitaire="4500.000000" montantHT="-13500.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-3" prixUnitaire="4500.000000" montantHT="-13500.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033107" dateFacture="2025-03-13T00:00:00" codeClient="411ALNBD714">
@@ -969,7 +959,7 @@
       <code>411ALNBD714</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-50" prixUnitaire="677.970000" montantHT="-33898.310000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-50" prixUnitaire="677.970000" montantHT="-33898.310000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033108" dateFacture="2025-03-13T00:00:00" codeClient="411SDKND001">
@@ -979,7 +969,7 @@
       <code>411SDKND001</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-1" prixUnitaire="310.170000" montantHT="-310.170000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-1" prixUnitaire="310.170000" montantHT="-310.170000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033109" dateFacture="2025-03-13T00:00:00" codeClient="411ASFEDK36">
@@ -989,8 +979,8 @@
       <code>411ASFEDK36</code>
     </client>
     <orders>
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-2" prixUnitaire="1059.320000" montantHT="-2118.640000" />
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-20" prixUnitaire="4500.000000" montantHT="-90000.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-2" prixUnitaire="1059.320000" montantHT="-2118.640000" tva="0.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-20" prixUnitaire="4500.000000" montantHT="-90000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033110" dateFacture="2025-03-13T00:00:00" codeClient="411GISFN108">
@@ -1000,7 +990,7 @@
       <code>411GISFN108</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-5" prixUnitaire="4500.000000" montantHT="-22500.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-5" prixUnitaire="4500.000000" montantHT="-22500.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033111" dateFacture="2025-03-13T00:00:00" codeClient="411ALNFB007">
@@ -1010,7 +1000,7 @@
       <code>411ALNFB007</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-40" prixUnitaire="762.710000" montantHT="-30508.470000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-40" prixUnitaire="762.710000" montantHT="-30508.470000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033112" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMF768">
@@ -1020,7 +1010,7 @@
       <code>411ALNMF768</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-20" prixUnitaire="677.970000" montantHT="-13559.320000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-20" prixUnitaire="677.970000" montantHT="-13559.320000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033113" dateFacture="2025-03-13T00:00:00" codeClient="411ALNMM241">
@@ -1030,7 +1020,7 @@
       <code>411ALNMM241</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-1000" prixUnitaire="630.510000" montantHT="-630508.470000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-1000" prixUnitaire="630.510000" montantHT="-630508.470000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033114" dateFacture="2025-03-13T00:00:00" codeClient="411CHNBN106">
@@ -1040,8 +1030,8 @@
       <code>411CHNBN106</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-50" prixUnitaire="4500.000000" montantHT="-225000.000000" />
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-50" prixUnitaire="978.810000" montantHT="-48940.680000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-50" prixUnitaire="4500.000000" montantHT="-225000.000000" tva="0.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-50" prixUnitaire="978.810000" montantHT="-48940.680000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033115" dateFacture="2025-03-13T00:00:00" codeClient="411MLSCL019">
@@ -1051,8 +1041,8 @@
       <code>411MLSCL019</code>
     </client>
     <orders>
-      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-100" prixUnitaire="978.810000" montantHT="-97881.360000" />
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-100" prixUnitaire="4500.000000" montantHT="-450000.000000" />
+      <produit reference="CMGASEOBOUT20L" designation="EAU MINERALE SEO BOUTEILLE 1* 20L (19L+1L GRATUIT)" quantite="-100" prixUnitaire="978.810000" montantHT="-97881.360000" tva="0.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-100" prixUnitaire="4500.000000" montantHT="-450000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033116" dateFacture="2025-03-13T00:00:00" codeClient="411CHNPD066">
@@ -1062,7 +1052,7 @@
       <code>411CHNPD066</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-500" prixUnitaire="718.640000" montantHT="-359322.030000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-500" prixUnitaire="718.640000" montantHT="-359322.030000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033117" dateFacture="2025-03-13T00:00:00" codeClient="411FNSOL307">
@@ -1072,7 +1062,7 @@
       <code>411FNSOL307</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-500" prixUnitaire="630.510000" montantHT="-315254.240000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-500" prixUnitaire="630.510000" montantHT="-315254.240000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033118" dateFacture="2025-03-13T00:00:00" codeClient="411OUBPD113">
@@ -1082,7 +1072,7 @@
       <code>411OUBPD113</code>
     </client>
     <orders>
-      <produit reference="AUJABARBIAN330" designation="BARBICAN NRB ANANAS 24 * 330ML" quantite="-5" prixUnitaire="10169.490000" montantHT="-50847.460000" />
+      <produit reference="AUJABARBIAN330" designation="BARBICAN NRB ANANAS 24 * 330ML" quantite="-5" prixUnitaire="10169.490000" montantHT="-50847.460000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033119" dateFacture="2025-03-13T00:00:00" codeClient="411ASFHYP01">
@@ -1092,7 +1082,7 @@
       <code>411ASFHYP01</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-12" prixUnitaire="4500.000000" montantHT="-54000.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-12" prixUnitaire="4500.000000" montantHT="-54000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033120" dateFacture="2025-03-13T00:00:00" codeClient="411CHNPD023">
@@ -1102,8 +1092,8 @@
       <code>411CHNPD023</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-500" prixUnitaire="559.320000" montantHT="-279661.020000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L....GRATUITE" quantite="-5" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-500" prixUnitaire="559.320000" montantHT="-279661.020000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L....GRATUITE" quantite="-5" prixUnitaire="0.000000" montantHT="0.000000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033121" dateFacture="2025-03-13T00:00:00" codeClient="411ASFFSY059">
@@ -1113,7 +1103,7 @@
       <code>411ASFFSY059</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-3" prixUnitaire="4500.000000" montantHT="-13500.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-3" prixUnitaire="4500.000000" montantHT="-13500.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033122" dateFacture="2025-03-13T00:00:00" codeClient="411MOUSSA9">
@@ -1123,7 +1113,7 @@
       <code>411MOUSSA9</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-5" prixUnitaire="4500.000000" montantHT="-22500.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-5" prixUnitaire="4500.000000" montantHT="-22500.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033123" dateFacture="2025-03-13T00:00:00" codeClient="411NGAT139">
@@ -1133,9 +1123,9 @@
       <code>411NGAT139</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-70" prixUnitaire="559.320000" montantHT="-39152.540000" />
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-500" prixUnitaire="310.170000" montantHT="-155084.750000" />
-      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-1000" prixUnitaire="630.510000" montantHT="-630508.470000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-70" prixUnitaire="559.320000" montantHT="-39152.540000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-500" prixUnitaire="310.170000" montantHT="-155084.750000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOPQ12X350" designation="EAU MINERALE SEO PAQUET 12*350ML" quantite="-1000" prixUnitaire="630.510000" montantHT="-630508.470000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033124" dateFacture="2025-03-13T00:00:00" codeClient="411SDKND001">
@@ -1145,7 +1135,7 @@
       <code>411SDKND001</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-500" prixUnitaire="310.170000" montantHT="-155084.750000" />
+      <produit reference="CMGAEAUSEOBOUT4.5L" designation="EAU MINERALE SEO BOUTEILLE 4.5L" quantite="-500" prixUnitaire="310.170000" montantHT="-155084.750000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033125" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH030">
@@ -1155,8 +1145,8 @@
       <code>411ASFAUCH030</code>
     </client>
     <orders>
-      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-10" prixUnitaire="817.800000" montantHT="-8177.970000" />
-      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-5" prixUnitaire="635.590000" montantHT="-3177.970000" />
+      <produit reference="CMGAEAUSEOPQ6X1.5" designation="EAU MINERALE SEO PAQUET 6*1.5L" quantite="-10" prixUnitaire="817.800000" montantHT="-8177.970000" tva="18.000000" />
+      <produit reference="CMGAEAUSEOBOUT10L" designation="EAU MINERALE SEO BOUTEILLE  1*10L" quantite="-5" prixUnitaire="635.590000" montantHT="-3177.970000" tva="18.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033126" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH031">
@@ -1166,7 +1156,7 @@
       <code>411ASFAUCH031</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-10" prixUnitaire="4500.000000" montantHT="-45000.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-10" prixUnitaire="4500.000000" montantHT="-45000.000000" tva="0.000000" />
     </orders>
   </facture>
   <facture numeroFacture="FR0033127" dateFacture="2025-03-13T00:00:00" codeClient="411ASFAUCH025">
@@ -1176,8 +1166,8 @@
       <code>411ASFAUCH025</code>
     </client>
     <orders>
-      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-16" prixUnitaire="4500.000000" montantHT="-72000.000000" />
-      <produit designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" />
+      <produit reference="CMGACONSIBO20L" designation="EAU MINERALE SEO -------- VENTE BOUTEILLE VIDE  -- 20L" quantite="-16" prixUnitaire="4500.000000" montantHT="-72000.000000" tva="0.000000" />
+      <produit designation="" quantite="0" prixUnitaire="0.000000" montantHT="0.000000" tva="0.000000" />
     </orders>
   </facture>
 </factures>

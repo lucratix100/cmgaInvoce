@@ -14,6 +14,8 @@ export default class extends BaseSchema {
       table.jsonb('order').nullable()
       table.boolean('is_complete_delivery')
       table.integer('total_ttc')
+      table.timestamp('delivered_at')
+      table.boolean('is_paid').defaultTo(false)
       table.boolean('is_completed').notNullable().defaultTo(false)
       table.integer('depot_id').unsigned().references('depots.id')
       table.integer('customer_id').unsigned().references('customers.id')

@@ -10,9 +10,6 @@ export default class Bl extends BaseModel {
   declare id: number
 
   @column()
-  declare date: Date
-
-  @column()
   declare isDelivered: boolean
 
   @column()
@@ -21,6 +18,8 @@ export default class Bl extends BaseModel {
   @column()
   declare products: string
 
+  @column()
+  declare total: number
   @column()
   declare driverId: number
 

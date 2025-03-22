@@ -196,24 +196,7 @@ export default class InvoicesController {
                 })
                 .firstOrFail()
 
-            // const formattedBls = invoice.bls.map(bl => ({
-            //     id: bl.id,
-            //     createdAt: bl.createdAt,
-            //     status: bl.status,
-            //     driver: bl.driver ? {
-            //         firstname: bl.driver.firstname,
-            //         lastname: bl.driver.lastname,
-            //         phone: bl.driver.phone
-            //     } : null,
-            //     products: typeof bl.products === 'string'
-            //         ? JSON.parse(bl.products).map((product: any) => ({
-            //             reference: product.reference || '',
-            //             designation: product.name || '',
-            //             quantite: Number(product.quantite || 0),
-            //             remainingQty: Number(product.remainingQty || 0)
-            //         }))
-            //         : bl.products || []
-            // }))
+
 
             return response.json(invoice.bls)
         } catch (error) {
@@ -245,6 +228,57 @@ export default class InvoicesController {
         } catch (error) {
             console.log(error)
             return ctx.response.status(500).json({ message: 'Erreur lors de la récupération de la facture.' })
+        }
+    }
+    async get_invoice_statistics_by_month({ response }: HttpContext) {
+        try {
+            // Obtenir le mois et l'année courants
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0'); // +1 car les mois commencent à 0
+
+            // Calculer le premier et dernier jour du mois courant
+            const firstDayOfMonth = `${year}-${month}-01`;
+            const lastDayOfMonth = new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+            // Requêtes pour obtenir les statistiques
+            const totalResult = await Invoice.query()
+                .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
+                .count('* as total');
+
+            const enAttenteResult = await Invoice.query()
+                .where('status', InvoiceStatus.EN_ATTENTE)
+                .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
+                .count('* as total');
+
+            const livreeResult = await Invoice.query()
+                .where('status', InvoiceStatus.LIVREE)
+                .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
+                .count('* as total');
+
+            const enCoursResult = await Invoice.query()
+                .where('status', InvoiceStatus.EN_COURS)
+                .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
+                .count('* as total');
+
+            // Extraire les valeurs numériques des résultats
+            const total = Number(totalResult[0].$extras.total || 0);
+            const enAttente = Number(enAttenteResult[0].$extras.total || 0);
+            const livree = Number(livreeResult[0].$extras.total || 0);
+            const enCours = Number(enCoursResult[0].$extras.total || 0);
+
+            return response.json({
+                period: `${month}/${year}`,
+                total,
+                enAttente,
+                livree,
+                enCours
+            });
+        } catch (error) {
+            console.error('Erreur lors du calcul des statistiques:', error);
+            return response.status(500).json({
+                error: 'Erreur lors de la récupération des statistiques des factures'
+            });
         }
     }
 }

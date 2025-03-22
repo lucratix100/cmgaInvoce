@@ -35,8 +35,10 @@ export default class SageInvoicesController {
 
                 // Formater les produits
                 const formattedProducts = products.map((product: any) => {
-                    const prixUnitaire = Math.round(parseFloat(product._attributes.prixUnitaire) * 1.18)
-                    const quantite = parseInt(product._attributes.quantite, 10)
+                    const tva = Math.abs(parseInt(product._attributes.tva))
+                    const montantTva = (tva / 100) * Math.abs(Math.round(parseFloat(product._attributes.prixUnitaire)))
+                    const prixUnitaire = Math.abs(Math.round(parseFloat(product._attributes.prixUnitaire) + montantTva))
+                    const quantite = Math.abs(parseInt(product._attributes.quantite, 10))
 
                     return {
                         reference: product._attributes.reference,
