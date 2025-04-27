@@ -164,7 +164,7 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
   }
 
   return (
-    <DialogContent>
+    <DialogContent className="bg-white">
       <form onSubmit={handleSubmit}>
         <DialogHeader>
           <DialogTitle>
@@ -242,9 +242,9 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
               <SelectTrigger className={cn(errors.role && "border-red-500")}>
                 <SelectValue placeholder="Sélectionner un rôle" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {roles.map((role) => (
-                  <SelectItem key={role.value} value={role.value}>
+                  <SelectItem className="hover:bg-primary-50 cursor-pointer" key={role.value} value={role.value}>
                     {role.label}
                   </SelectItem>
                 ))}
@@ -264,9 +264,9 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un dépôt" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {depots.map((depot: any) => (
-                  <SelectItem key={depot.id} value={depot.id.toString()}>
+                  <SelectItem className="hover:bg-primary-50 cursor-pointer" key={depot.id} value={depot.id.toString()}>
                     {depot.name}
                   </SelectItem>
                 ))}
@@ -284,11 +284,11 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={handleClose} disabled={loading}>
+          <Button variant="destructive" type="button" onClick={handleClose} disabled={loading}>
             Annuler
           </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? (isEditing ? "Modification..." : "Création...") : (isEditing ? "Modifier" : "Créer")}
+          <Button variant="default" type="submit" disabled={loading}>
+            {loading ? (isEditing ? "Modification..." : "Création...") : (isEditing ? "Modifier" : "Ajouter")}
           </Button>
         </DialogFooter>
       </form>

@@ -19,15 +19,16 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
-    const result = await login({ phone, password })
-
-    if (result.error) {
-      setError(result.error)
-      return
-    }
-
-    if (result.success) {
-      router.push("/dashboard")
+    try {
+      const result = await login({ phone, password })
+      
+      if (result && result.success) {
+        router.push("/dashboard")
+      } else {
+        setError(result?.error || "Une erreur est survenue lors de la connexion")
+      }
+    } catch (err: any) {
+      setError(err?.error || "Une erreur est survenue lors de la connexion")
     }
   }
 

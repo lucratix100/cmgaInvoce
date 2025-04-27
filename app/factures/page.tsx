@@ -6,12 +6,11 @@ import { getInvoices } from "@/actions/invoice"
 
 async function getInitialData(searchParams: { [key: string]: string }) {
   const cookieStore = await cookies()
-  const token = cookieStore.get("token")
+  const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
 
   if (!token) {
     redirect("/")
   }
-
   try {
     const [user, invoices] = await Promise.all([
       getCurrentUser(),
@@ -34,7 +33,15 @@ export default async function FacturePage({
   searchParams: { [key: string]: string }
 }) {
   const initialData = await getInitialData(searchParams)
-  return <FactureClient initialData={initialData} />
+  console.log(initialData, "initialData");
+  const isRecouvrement = initialData.user?.role === "RECOUVREMENT"
+
+  return (
+    <FactureClient 
+      initialData={initialData} 
+      isRecouvrement={isRecouvrement} 
+    />
+  )
 }
 
 

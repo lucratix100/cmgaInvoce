@@ -60,11 +60,11 @@ export default function DriverDialog({ onClose, onSuccess, driver }: DriverDialo
       const result = isEditing 
         ? await updateDriver(driver.id, {
           ...formData,
-          is_active: formData.isActive
+          isActive: formData.isActive
         })
         : await createDriver({
           ...formData,
-          is_active: formData.isActive
+          isActive: formData.isActive
         })
 
       if (result.success) {
@@ -99,7 +99,7 @@ export default function DriverDialog({ onClose, onSuccess, driver }: DriverDialo
   }
 
   return (
-    <DialogContent>
+    <DialogContent className="bg-white">
       <form onSubmit={handleSubmit}>
         <DialogHeader>
           <DialogTitle>
@@ -156,11 +156,11 @@ export default function DriverDialog({ onClose, onSuccess, driver }: DriverDialo
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={handleClose} disabled={loading}>
+          <Button variant="destructive" type="button" onClick={handleClose} disabled={loading}>
             Annuler
           </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? (isEditing ? "Modification..." : "Création...") : (isEditing ? "Modifier" : "Créer")}
+          <Button variant="default" type="submit" disabled={loading}>
+            {loading ? (isEditing ? "Modification..." : "Création...") : (isEditing ? "Modifier" : "Ajouter")}
           </Button>
         </DialogFooter>
       </form>

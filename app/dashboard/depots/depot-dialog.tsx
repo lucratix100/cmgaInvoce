@@ -94,7 +94,7 @@ export default function DepotDialog({ onClose, onSuccess, depot }: DepotDialogPr
   }
 
   return (
-    <DialogContent>
+    <DialogContent className="bg-white">
       <form onSubmit={handleSubmit}>
         <DialogHeader>
           <DialogTitle>

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Building, Calendar, Filter, Search } from "lucide-react"
+import { Building, Calendar, DollarSign, Filter, Search } from "lucide-react"
 import { useState, useEffect } from "react"
 import { formatDate, getDefaultDates } from "@/lib/date-utils"
 import { InvoiceStatus } from "@/types/enums"
@@ -60,7 +60,7 @@ export default function Filtre({
     })
     const [searchField, setSearchField] = useState("invoiceNumber")
     const [user, setUser] = useState<any>(null)
-
+    const [statutPaiement, setStatutPaiement] = useState("")
     useEffect(() => {
         const loadUser = async () => {
             const data = await getCurrentUser()
@@ -156,6 +156,13 @@ export default function Filtre({
 
         // Supprimer l'appel à fetchInvoices ici car il est déjà géré dans setDateRange
     }
+
+    const paiementOptions = [
+        { value: "tous", label: "TOUS" },
+        { value: "PAYER", label: "PAYER" },
+        { value: "NON_PAYER", label: "NON PAYER" },
+        { value: "PAIEMENT_PARTIEL", label: "PAIEMENT PARTIEL" }
+    ]
 
     return (
         <Card className="border-none shadow-md overflow-hidden bg-white">
@@ -264,7 +271,29 @@ export default function Filtre({
                                 </SelectContent>
                             </Select>
                         </div>
+                        {user?.role === "RECOUVREMENT" && (
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2 text-primary-700">
+                                    <DollarSign className="h-4 w-4" />
+                  État paiement
+                </Label>
+                <Select value={statutPaiement} onValueChange={setStatutPaiement}>
+                  <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
+                    <SelectValue placeholder="Sélectionner un état" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white ">
+                    {paiementOptions.map((option) => (
+                      <SelectItem className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer" key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
+
+
 
                     {/* Section Droite: Recherche */}
                     <div className="space-y-2 w-64">

@@ -188,3 +188,27 @@ export const getCurrentUser = async () => {
         throw error
     }
 }
+
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+
+        const response = await axios.post(
+            `${process.env.API_URL}change-password`,
+            { currentPassword, newPassword },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            }
+        )
+        return { success: true, message: response.data.message }
+    } catch (error: any) {
+        return { 
+            success: false, 
+            message: error.response?.data?.message || "Erreur lors du changement de mot de passe" 
+        }
+    }
+}

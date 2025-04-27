@@ -27,8 +27,7 @@ export default function DepotTable({ onEdit }: DepotTableProps) {
 
   const fetchDepots = async () => {
     if (loading) return
-
-
+    
     try {
       setLoading(true)
       const data = await getDepots()

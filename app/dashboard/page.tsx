@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
-import { Clock } from "lucide-react"
+import { Check, Clock, Truck } from "lucide-react"
 import { BarChart3, FileText } from "lucide-react"
 
 
@@ -41,8 +41,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Tableau de bord</h1>
       <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card className="bg-gradient-to-br from-primary-50 to-white border-none shadow-md">
-          <CardHeader className="pb-2">
+        <Card className="bg-gradient-to-br from-primary-50 to-white border-none shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="pb-2 ">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total des factures
             </CardTitle>
@@ -61,7 +61,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md">
+        <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Factures livrées
@@ -71,7 +71,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div className="text-2xl font-bold">892</div>
               <div className="p-2 bg-green-100 rounded-full text-green-600">
-                <BarChart3 className="h-5 w-5" />
+                <Check className="h-5 w-5" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
@@ -81,10 +81,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-yellow-50 to-white border-none shadow-md">
+        <Card className="bg-gradient-to-br from-yellow-50 to-white border-none shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              En attente
+              En attente de livraison
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -96,6 +96,25 @@ export default function DashboardPage() {
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               <span className="text-red-500 font-medium">+2.8%</span> depuis le
+              mois dernier
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-red-50 to-white border-none shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              En cours de livraison
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">356</div>
+              <div className="p-2 bg-red-100 rounded-full text-red-600">
+                <Truck className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              <span className="text-blue-500 font-medium">+2.8%</span> depuis le
               mois dernier
             </p>
           </CardContent>

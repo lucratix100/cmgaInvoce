@@ -11,15 +11,12 @@ import { z } from 'zod'
 export const getDepots = async () => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get('token')?.value
+        const token = JSON.parse(cookieStore.get('accessToken')?.value || '{}').token
 
         if (!token) {
             console.log('No token found')
             throw new Error('Non authentifié')
         }
-
-        console.log('Token found:', token.substring(0, 10) + '...')
-        console.log('API URL:', process.env.API_URL)
         
         const response = await axios.get(`${process.env.API_URL}depots`, {
             headers: {
@@ -28,6 +25,7 @@ export const getDepots = async () => {
             }
         })
 
+        console.log('Réponse de l\'API:', response.data)
         return response.data
     } catch (error: any) {
         console.error('Erreur lors de la récupération des dépôts:', error.response?.data || error.message)
@@ -38,7 +36,7 @@ export const getDepots = async () => {
 export const createDepot = async (data: z.infer<typeof DepotSchema>) => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get("token")?.value
+        const token = JSON.parse(cookieStore.get('accessToken')?.value || '{}').token
         const validatedData = DepotSchema.parse(data)
         
         // Conversion des noms de champs pour correspondre au backend
@@ -75,7 +73,7 @@ export const createDepot = async (data: z.infer<typeof DepotSchema>) => {
 export const updateDepot = async (id: number, data: z.infer<typeof DepotSchema>) => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get("token")?.value
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || '{}').token
         const validatedData = DepotSchema.parse(data)
        
         const response = await axios.put(`${process.env.API_URL}depots/${id}`, validatedData, {
@@ -105,7 +103,7 @@ export const updateDepot = async (id: number, data: z.infer<typeof DepotSchema>)
 export const deleteDepot = async (id: number) => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get("token")?.value
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || '{}').token
         const response = await axios.delete(`${process.env.API_URL}depots/${id}`, {
             headers: {
                 Authorization: `Bearer ${token}`,

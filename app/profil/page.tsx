@@ -4,7 +4,7 @@ import ProfilClient from "./profilClient"
 
 async function getUser() {
   const cookieStore = await cookies()
-  const token = cookieStore.get("token")
+  const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
 
   if (!token) {
     redirect("/")
@@ -15,7 +15,6 @@ async function getUser() {
 
 export default async function ProfilePage() {
   await getUser()
-
   return <ProfilClient />
 }
 

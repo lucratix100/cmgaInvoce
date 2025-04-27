@@ -5,12 +5,15 @@ import { TabsContent } from "@radix-ui/react-tabs"
 import { Badge, FileText } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { Invoice, InvoiceProduct } from "@/lib/types"
+import Paiment from "./paiment"
 
 interface DetailProps {
-  invoice: Invoice
+  invoice: Invoice;
+  user: any;
+  userRole: string;
 }
 
-export default function Detail({ invoice }: DetailProps) {
+export default function Detail({ invoice, user, userRole }: DetailProps) {
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -22,8 +25,8 @@ export default function Detail({ invoice }: DetailProps) {
 
   // Calcul des totaux
   const totals = {
-    totalHT: invoice.order.reduce((sum, item) => sum + item.totalHT, 0),
-    tva: invoice.order.reduce((sum, item) => sum + (item.totalHT * 0.18), 0),
+    totalHT: invoice.order.reduce((sum, item) => sum + item.total, 0),
+    tva: invoice.order.reduce((sum, item) => sum + (item.total * 0.18), 0),
     get totalTTC() { return this.totalHT + this.tva }
   }
 
@@ -63,6 +66,10 @@ export default function Detail({ invoice }: DetailProps) {
       </Card>
 
       <div className="flex justify-end">
+        {userRole === "RECOUVREMENT" && (
+          <Paiment invoice={invoice} />
+        )}
+        <div className="w-1/6"></div>
         <Card className="border-none shadow-md bg-white w-1/2">
           <CardHeader className="bg-primary-50 pb-3">
             <CardTitle className="flex items-center gap-2 text-primary-700 text-sm">RÉCAPITULATIF</CardTitle>

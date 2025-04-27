@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache'
 export const getDrivers = async () => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get("token")?.value
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || '{}').token
         
         const response = await axios.get(`${process.env.API_URL}drivers`, {
             headers: {
@@ -27,7 +27,7 @@ export const getDrivers = async () => {
 export const createDriver = async (data: z.infer<typeof DriverSchema>) => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get("token")?.value
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || '{}').token
 
         const validatedData = DriverSchema.parse(data)
         
@@ -58,7 +58,7 @@ export const createDriver = async (data: z.infer<typeof DriverSchema>) => {
 export const updateDriver = async (id: number, data: z.infer<typeof DriverSchema>) => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get("token")?.value
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || '{}').token
         const validatedData = DriverSchema.parse(data)
 
         console.log('Données envoyées pour mise à jour:', validatedData)
@@ -89,7 +89,7 @@ export const updateDriver = async (id: number, data: z.infer<typeof DriverSchema
 export const deleteDriver = async (id: number) => {
     try {
         const cookieStore = await cookies()
-        const token = cookieStore.get("token")?.value
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || '{}').token
 
         const response = await axios.delete(`${process.env.API_URL}drivers/${id}`, {
             headers: {

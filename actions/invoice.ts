@@ -67,14 +67,14 @@ export const getInvoiceByDateRange = async (startDate: string, endDate: string) 
 
 }
 
-export const getInvoiceByNumber = async (number: string) => {
+export const getInvoiceByNumber = async (invoiceNumber: string) => {
     try {
 
         const cookieStore = await cookies()
 
         const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
 
-        const response = await axios.get(`${process.env.API_URL}invoices/${number}`, {
+        const response = await axios.get(`${process.env.API_URL}invoices/${invoiceNumber}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Accept': 'application/json'

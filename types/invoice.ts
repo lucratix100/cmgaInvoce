@@ -1,4 +1,5 @@
-import { InvoiceStatus } from "@/types/enums"
+import { InvoiceStatus, InvoicePaymentStatus } from "@/types/enums"
+import { InvoiceProduct } from "@/lib/types"
 
 export interface Invoice {
   id: number
@@ -6,19 +7,18 @@ export interface Invoice {
   accountNumber: string
   date: string | Date
   status: InvoiceStatus
-  order?: Array<{
-    reference: string
-    designation: string
-    quantity: number
-    unitPrice: number
-    totalHT: number
-  }>
+  isCompleted: boolean
+  isCompleteDelivery: boolean
+  order: InvoiceProduct[]
   customer: {
     id: number
     name: string
     phone: string
   } | null
-  depot: {
+  depotId: number
+  totalTtc: number
+  statusPayment: InvoicePaymentStatus
+  depot?: {
     id: number
     name: string
   } | null

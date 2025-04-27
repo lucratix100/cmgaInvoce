@@ -1,20 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { FileText } from "lucide-react"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card  } from "@/components/ui/card"
 import Header from "@/components/navbar/navbar"
 import Pagination from "@/components/facture/pagination"
 import InvoiceTable from "@/components/facture/invoiceTable"
+import RecouvrementTable from "@/components/recouvrement/recouvrement-table"
 
 interface FactureClientProps {
   initialData: {
     user: any;
     invoices: any[];
-  }
+  };
+  isRecouvrement: boolean;
 }
 
-export default function FactureClient({ initialData }: FactureClientProps) {
+export default function FactureClient({ initialData, isRecouvrement }: FactureClientProps) {
   const [currentPage, setCurrentPage] = useState(3)
   const totalPages = 13
 
@@ -23,10 +24,15 @@ export default function FactureClient({ initialData }: FactureClientProps) {
       <Header />
       <main className="px-4 md:px-6 py-8 space-y-6">
         <Card className="border-none shadow-md overflow-hidden bg-white">
-
-          <div className="overflow-x-auto">
-            <InvoiceTable initialData={initialData} />
-          </div>
+          {!isRecouvrement ? (
+            <div className="overflow-x-auto">
+              <InvoiceTable initialData={initialData} />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <RecouvrementTable factures = {initialData.invoices} />
+            </div>
+          )}
           <Pagination
             totalPages={totalPages}
             currentPage={currentPage}

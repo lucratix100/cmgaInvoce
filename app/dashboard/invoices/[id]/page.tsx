@@ -9,10 +9,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Header from "@/components/factureId/header"
 import Detail from "@/components/factureId/detail"
 import Delivery from "@/components/factureId/delivery"
-import History from "@/components/factureId/history"
-import { ArrowLeft, Download, Printer } from "lucide-react"
+import { ArrowLeft, FileText, Truck, CreditCard, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
 
 export default function DashboardInvoiceDetailPage() {
   const params = useParams()
@@ -54,27 +52,7 @@ export default function DashboardInvoiceDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           <span className="text-lg font-semibold">Retour aux factures</span>
         </Button>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="hover:bg-primary-100 hover:text-primary-700 transition-colors"
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimer
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="hover:bg-primary-100 hover:text-primary-700 transition-colors"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Télécharger
-          </Button>
-        </div>
       </div>
-
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* En-tête de la facture */}
         <Header invoice={invoice} />
@@ -85,24 +63,17 @@ export default function DashboardInvoiceDetailPage() {
               value="details"
               className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
             >
-              Détails
+              <FileText className="w-4 h-4 mr-2" />Détails
             </TabsTrigger>
             <TabsTrigger
               value="livraisons"
               className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
             >
-              Suivi des livraisons
-            </TabsTrigger>
-            {/* <TabsTrigger
-              value="history"
-              className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
-            >
-              Historique
-            </TabsTrigger> */}
-          </TabsList>
+              <Truck className="w-4 h-4 mr-2" />Suivi des livraisons
+            </TabsTrigger>       
+          </TabsList> 
           <Detail invoice={invoice} />
-          <Delivery invoice={invoice} />
-          {/* <History invoice={invoice} /> */}
+          <Delivery invoice={invoice} activeTab={activeTab} />
         </Tabs>
       </div>
     </div>

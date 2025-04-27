@@ -1,3 +1,5 @@
+import { InvoicePaymentStatus, InvoiceStatus } from "@/types/enums";
+
 export type User = {
     id: string;
     firstname: string;
@@ -28,17 +30,22 @@ export type BlProduct = {
 }
 
 export type Invoice = {
-    id: string;
+    id: number;
     invoiceNumber: string;
     accountNumber: string;
     date: string;
-    status: string;
+    status: InvoiceStatus;
     isCompleted: boolean;
     isCompleteDelivery: boolean;
     order: InvoiceProduct[];
     customer: Customer;
-    depotId: string;
+    depotId: number;
     totalTtc: number;
+    paymentStatus: InvoicePaymentStatus;
+    depot?: {
+        id: number;
+        name: string;
+    } | null;
 }
 export type Bl = {
     id: string;
