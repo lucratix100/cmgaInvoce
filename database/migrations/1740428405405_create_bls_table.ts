@@ -10,6 +10,7 @@ export default class extends BaseSchema {
       table.boolean('is_delivered').defaultTo(false)
       table.integer('invoice_id').unsigned().references('invoices.id')
       table.jsonb('products').notNullable()
+      table.integer('user_id').unsigned().references('users.id')
       table.integer('driver_id').unsigned().references('drivers.id')
       table.integer('total').notNullable()
       table.timestamp('created_at')

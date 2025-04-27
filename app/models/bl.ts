@@ -4,6 +4,7 @@ import Driver from '#models/driver'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Invoice from '#models/invoice'
 import Confirmation from './confirmation.js'
+import User from '#models/user'
 
 export default class Bl extends BaseModel {
   @column({ isPrimary: true })
@@ -16,7 +17,7 @@ export default class Bl extends BaseModel {
   declare status: 'validée' | 'en attente de confirmation'
 
   @column()
-  declare products: string
+  declare products: any
 
   @column()
   declare total: number
@@ -24,10 +25,16 @@ export default class Bl extends BaseModel {
   declare driverId: number
 
   @column()
+  declare userId: number
+
+  @column()
   declare invoiceId: number
 
   @belongsTo(() => Driver)
   declare driver: BelongsTo<typeof Driver>
+
+  @belongsTo(() => User)
+  declare user: BelongsTo<typeof User>
 
   @belongsTo(() => Invoice)
   declare invoice: BelongsTo<typeof Invoice>

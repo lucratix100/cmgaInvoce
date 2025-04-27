@@ -3,7 +3,6 @@ import { InvoiceStatus } from '../../app/enum/index.js'
 
 export default class extends BaseSchema {
   protected tableName = 'invoices'
-
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')

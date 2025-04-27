@@ -6,6 +6,15 @@ import Customer from './customer.js'
 import Bl from './bl.js'
 import { InvoiceStatus } from '../enum/index.js'
 
+// interface OrderData {
+//   items: Array<{
+//     id: number;
+//     quantity: number;
+//     price: number;
+//     // autres propriétés...
+//   }>;
+//   // autres propriétés...
+// }
 export default class Invoice extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
@@ -28,7 +37,8 @@ export default class Invoice extends BaseModel {
   @column()
   declare customerId: number
   @column()
-  declare order: string
+
+  declare order: any | null
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>
   @belongsTo(() => Customer)

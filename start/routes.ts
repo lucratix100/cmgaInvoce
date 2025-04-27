@@ -31,6 +31,8 @@ router.group(() => {
     router.post('/refresh', [AuthController, 'refresh'])
     router.post('/process-delivery', [ProcessDeliveriesController, 'processDeliveries'])
     router.post('/confirm-bl', [ProcessDeliveriesController, 'confirmBl'])
+    router.get('/bls/user/date', [BlController, 'getBlbyUserAndDate'])
+    router.get('/bls/max-quantite/:invoiceId/:blId', [BlController, 'getMaxQuantite'])
     router.get('/invoices/date', [InvoicesController, 'get_invoice_by_date'])
     router.get('/invoices/:invoice_number', [InvoicesController, 'get_invoice_by_invoice_number'])
     router.get('/invoices/:invoice_number/bls', [InvoicesController, 'getBls'])

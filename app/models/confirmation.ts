@@ -9,7 +9,7 @@ export default class Confirmation extends BaseModel {
   declare id: number
 
   @column()
-  declare userId: string
+  declare userId: number
 
   @column()
   declare blId: number

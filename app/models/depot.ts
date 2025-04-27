@@ -13,7 +13,7 @@ export default class Depot extends BaseModel {
   declare name: string
 
   @column()
-  declare needDoubleCheck: boolean | null
+  declare needDoubleCheck: boolean
 
   @column()
   declare isActive: boolean | null

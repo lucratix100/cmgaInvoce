@@ -1,12 +1,22 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import Invoice from '#models/invoice'
-import { InvoiceStatus } from '../enum/index.js'
+import { InvoiceStatus, Role } from '../enum/index.js'
 import Bl from '#models/bl'
+import Depot from '#models/depot'
+import auth from '@adonisjs/auth/services/main'
+
 
 
 export default class InvoicesController {
-    async index({ request, response }: HttpContext) {
+    async index({ request, response, auth }: HttpContext) {
+        const user = auth.getUserOrFail()
+
+
+        const depot = await Depot.find(user.depotId)
+        if (!depot) {
+            return response.status(401).json({ message: 'Unauthorized' })
+        }
         try {
             const { status, search, startDate, endDate } = request.qs()
             let query = Invoice.query()
@@ -14,6 +24,9 @@ export default class InvoicesController {
                 .orderBy('date', 'desc')
             if (status && Object.values(InvoiceStatus).includes(status)) {
                 query = query.where('status', status)
+            }
+            if (user.role !== Role.ADMIN && user.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', depot.id)
             }
             if (startDate) {
                 if (endDate) {
@@ -23,7 +36,7 @@ export default class InvoicesController {
                 } else {
                     query = query.whereRaw('DATE(date) = ?', [startDate])
                 }
-                console.log('Filtering by date:', { startDate, endDate: endDate || 'same day' })
+
             }
 
             if (search) {
@@ -40,8 +53,7 @@ export default class InvoicesController {
             }
 
             const invoices = await query
-            console.log(`Found ${invoices.length} invoices for date criteria:`,
-                startDate ? (endDate ? 'range' : 'single day') : 'no date filter')
+
 
             const formattedInvoices = invoices.map(invoice => ({
                 id: invoice.id,
@@ -105,7 +117,12 @@ export default class InvoicesController {
         return invoices
     }
 
-    async get_invoice_by_date({ request, response }: HttpContext) {
+    async get_invoice_by_date({ request, response, auth }: HttpContext) {
+        const user = auth.getUserOrFail()
+        const depot = await Depot.find(user.depotId)
+        if (!depot) {
+            return response.status(401).json({ message: 'Unauthorized' })
+        }
         try {
             const { startDate, endDate } = request.qs()
 
@@ -115,11 +132,15 @@ export default class InvoicesController {
                 })
             }
 
-            const invoices = await Invoice.query()
+            let query = Invoice.query()
                 .preload('customer')
                 .where('created_at', '>=', `${startDate} 00:00:00`)
                 .where('created_at', '<=', `${endDate} 23:59:59`)
                 .orderBy('created_at', 'desc')
+            if (user.role !== Role.ADMIN && user.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', depot.id)
+            }
+            const invoices = await query
 
             return response.json(invoices)
         } catch (error) {
@@ -135,15 +156,23 @@ export default class InvoicesController {
         return invoice
     }
 
-    async get_invoice_by_invoice_number({ params, response }: HttpContext) {
+    async get_invoice_by_invoice_number({ params, response, auth }: HttpContext) {
+        const user = auth.getUserOrFail()
+        const depot = await Depot.find(user.depotId)
+        if (!depot) {
+            return response.status(401).json({ message: 'Unauthorized' })
+        }
         try {
-            const invoice = await Invoice.query()
+            let query = Invoice.query()
                 .where('invoice_number', params.invoice_number)
                 .preload('customer')
                 .preload('depot')
-                .first()
+            if (user.role !== Role.ADMIN && user.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', depot.id)
+            }
+            const invoice = await query.firstOrFail()
 
-            console.log('1. Raw invoice order:', invoice?.order)
+
 
             if (!invoice) {
                 return response.status(404).json({
@@ -186,17 +215,25 @@ export default class InvoicesController {
         }
     }
 
-    async getBls({ params, response }: HttpContext) {
+    async getBls({ params, response, auth }: HttpContext) {
+        const user = auth.getUserOrFail()
+        const depot = await Depot.find(user.depotId)
+        if (!depot) {
+            return response.status(401).json({ message: 'Unauthorized' })
+        }
         try {
-            const invoice = await Invoice.query()
+            let query = Invoice.query()
                 .where('invoice_number', params.invoice_number)
-                .preload('bls', (query) => {
-                    query.preload('driver')
-                        .orderBy('created_at', 'desc')
-                })
-                .firstOrFail()
+            if (user.role !== Role.ADMIN && user.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', depot.id)
+            }
 
+            query = query.preload('bls', (query) => {
+                query.preload('driver')
+                    .orderBy('created_at', 'desc')
+            })
 
+            const invoice = await query.firstOrFail()
 
             return response.json(invoice.bls)
         } catch (error) {
@@ -206,17 +243,25 @@ export default class InvoicesController {
     }
 
     async getInvoiceByNumber(ctx: HttpContext) {
+        const user = ctx.auth.getUserOrFail()
+        const depot = await Depot.find(user.depotId)
+        if (!depot) {
+            return ctx.response.status(401).json({ message: 'Unauthorized' })
+        }
         const invoiceNumber = ctx.params.number
         try {
-            const invoice = await Invoice.query()
+            let query = Invoice.query()
                 .where('invoice_number', invoiceNumber)
-                .preload('customer')
-                .first()
+            if (user.role !== Role.ADMIN && user.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', depot.id)
+            }
+            query = query.preload('customer')
+            const invoice = await query.firstOrFail()
 
             if (!invoice) {
                 return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
             }
-            const bl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
+            const bl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').preload('driver').first()
             if (bl) {
                 return {
                     invoice,

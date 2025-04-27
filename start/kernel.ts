@@ -12,6 +12,11 @@ import router from '@adonisjs/core/services/router'
 import server from '@adonisjs/core/services/server'
 
 /**
+ * Import task for invoice CSV import
+ */
+import('../app/tasks/invoice_xml_importer.js')
+
+/**
  * The error handler is used to convert an exception
  * to a HTTP response.
  */
@@ -41,3 +46,4 @@ router.use([() => import('@adonisjs/core/bodyparser_middleware'), () => import('
 export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware')
 })
+

@@ -1,12 +1,13 @@
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import { Role } from '../enum/index.js'
 import Depot from './depot.js'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import Bl from '#models/bl'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['phone'],
@@ -20,10 +21,10 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare depotId: number | null
   @column()
-  declare firstname: string 
+  declare firstname: string
 
   @column()
-  declare lastname: string 
+  declare lastname: string
 
   @column()
   declare role: Role
@@ -36,6 +37,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @column()
   declare isActive: boolean
+
+  @hasMany(() => Bl)
+  declare bls: HasMany<typeof Bl>
 
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>

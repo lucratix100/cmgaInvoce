@@ -10,9 +10,7 @@ import { DateTime } from 'luxon'
 export default class ProcessDeliveriesController {
     async confirmBl({ request, response, auth }: HttpContext) {
         const { id: authUserId } = auth.getUserOrFail()
-        const { invoiceNumber, driverId } = request.body()
-        console.log("invoiceNumber", invoiceNumber)
-        // return console.log("driverId", driverId)
+        const { invoiceNumber } = request.body()
         const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
@@ -20,8 +18,10 @@ export default class ProcessDeliveriesController {
         if (invoice.isCompleted) {
             return response.status(400).json({ message: 'La facture a déjà été livrée.' })
         }
+
+        // const lastBlbeforeConfirmation = await Bl.query().where('invoice_id', invoice.id).where('is_delivered', true).orderBy('id', 'desc').first()
         const bl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
-        console.log(bl)
+        // return console.log(bl?.products, "bl", driverId);
         if (!bl) {
             return response.status(400).json({ message: 'en attente du 1 ere confirmation' })
         }
@@ -29,16 +29,16 @@ export default class ProcessDeliveriesController {
         if (bl.status === 'validée') {
             return response.status(400).json({ message: 'BL déjà validée.' })
         }
-
+        const newBlproducts = await this.calculateNewBlProducts(invoice, invoice.isCompleteDelivery, bl.products)
         if (!invoice.isCompleteDelivery) {
             await Confirmation.create({
                 userId: authUserId,
                 blId: bl.id,
             })
-            bl.merge({ status: 'validée', isDelivered: true, driverId: Number(driverId) })
+            bl.merge({ status: 'validée', isDelivered: true, products: JSON.stringify(newBlproducts) })
             await bl.save()
             // Vérifier si la facture doit être marquée comme complétée
-            const blProducts = bl.products
+            const blProducts = JSON.parse(bl.products)
             const remainingQty = blProducts.reduce((acc: number, curr: any) => acc + parseInt(curr.remainingQty || 0), 0)
             if (remainingQty === 0) {
                 invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
@@ -51,16 +51,16 @@ export default class ProcessDeliveriesController {
                 userId: authUserId,
                 blId: bl.id,
             })
-            bl.merge({ status: 'validée', isDelivered: true, driverId: Number(driverId) })
+            bl.merge({ status: 'validée', isDelivered: true, products: newBlproducts })
             await bl.save()
             invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
             await invoice.save()
             return response.status(200).json({ message: 'BL validée.' })
-
         }
     }
     async processDeliveries({ request, response, auth }: HttpContext) {
         const { invoiceNumber, products, isCompleteDelivery, driverId } = request.body()
+        // return console.log(products, isCompleteDelivery, "products", driverId)
         const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
@@ -68,7 +68,9 @@ export default class ProcessDeliveriesController {
         if (invoice.isCompleted) {
             return response.status(400).json({ message: 'La facture a déjà été livrée.' })
         }
-        const { depotId, id: userId } = auth.getUserOrFail()
+        const { depotId, id } = auth.getUserOrFail()
+        const userId = Number(id)
+
         const depot = await Depot.find(depotId)
         if (!depot) {
             return response.status(404).json({ message: 'Depot non trouvé.' })
@@ -76,7 +78,7 @@ export default class ProcessDeliveriesController {
         const { needDoubleCheck } = depot
         if (!needDoubleCheck) {
             const newBlproducts = await this.calculateNewBlProducts(invoice, isCompleteDelivery, products)
-            const bl = await this.createBl(isCompleteDelivery, invoice, newBlproducts, driverId, needDoubleCheck)
+            const bl = await this.createBl(isCompleteDelivery, invoice, newBlproducts, needDoubleCheck, userId, driverId)
             await Confirmation.create({
                 userId: userId,
                 blId: bl.id,
@@ -85,7 +87,6 @@ export default class ProcessDeliveriesController {
             bl.merge({ status: 'validée' })
             await bl.save()
             if (isCompleteDelivery) {
-
                 invoice.merge({ isCompleted: true })
                 await invoice.save()
                 return response.status(200).json({ message: 'Facture livrée.' })
@@ -101,11 +102,16 @@ export default class ProcessDeliveriesController {
             }
         } else {
             if (isCompleteDelivery) {
+                if (invoice.status === InvoiceStatus.LIVREE) {
+                    return response.status(200).json({ message: 'La facture a déjà été livrée.' })
+                }
                 if (invoice.status === InvoiceStatus.EN_COURS) {
                     const lastBl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
-                    // return console.log("lastBl", lastBl?.products)
                     if (lastBl) {
-                        const bl = await this.createBl(isCompleteDelivery, invoice, lastBl.products, driverId, needDoubleCheck)
+                        if (lastBl.status === 'en attente de confirmation') {
+                            return response.status(200).json({ message: 'En attente de la confirmation du bon de livraison.' })
+                        }
+                        const bl = await this.createBl(isCompleteDelivery, invoice, lastBl.products, needDoubleCheck, userId, driverId)
                         await Confirmation.create({
                             userId: userId,
                             blId: bl.id,
@@ -115,66 +121,76 @@ export default class ProcessDeliveriesController {
                         return response.status(200).json({ message: 'En attente de la confirmation du bon de livraison.' })
                     }
                 }
+                const bl = await this.createBl(isCompleteDelivery, invoice, invoice.order, needDoubleCheck, userId, driverId)
+                await Confirmation.create({
+                    userId: userId,
+                    blId: bl.id,
+                })
+
+                invoice.merge({ status: InvoiceStatus.EN_COURS })
+                await invoice.save()
+                return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
+
+
             }
-            const newBlproducts = await this.calculateNewBlProducts(invoice, isCompleteDelivery, products)
             const lastBl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
             if (lastBl && lastBl.status === 'en attente de confirmation') {
                 return response.status(200).json({ message: 'En attente de la 2 éme confirmation.' })
             }
-            const bl = await this.createBl(isCompleteDelivery, invoice, newBlproducts, driverId, needDoubleCheck)
+            const bl = await this.createBl(isCompleteDelivery, invoice, products, needDoubleCheck, userId, driverId)
             await Confirmation.create({
                 userId: userId,
                 blId: bl.id,
             })
 
-            if (!isCompleteDelivery) {
-                invoice.merge({ isCompleteDelivery: false, status: InvoiceStatus.EN_COURS })
-                await invoice.save()
-            } else {
-                invoice.merge({ isCompleteDelivery: true })
-                await invoice.save()
-            }
+            invoice.merge({ isCompleteDelivery: false, status: InvoiceStatus.EN_COURS })
+            await invoice.save()
             return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
+
         }
     }
 
-    private async createBl(isCompleteDelivery: boolean, invoice: any, products: string, driverId: number, needDoubleCheck: boolean) {
+    private async createBl(isCompleteDelivery: boolean, invoice: any, products: any, needDoubleCheck: boolean, userId: number, driverId: number) {
         if (isCompleteDelivery) {
-            if (invoice.status === InvoiceStatus.EN_COURS) {
-                console.log("products", products)
-                const formatedProducts = products.map((product: any) => ({
+            const formatedProducts = products.map((product: any) => {
+                return {
                     reference: product.reference,
                     designation: product.designation,
                     quantite: product.remainingQty,
                     prixUnitaire: product.prixUnitaire,
                     total: product.quantite * product.prixUnitaire,
                     remainingQty: 0,
-                }))
+                }
+            })
+            if (invoice.status === InvoiceStatus.EN_COURS) {
+                console.log("total", formatedProducts.reduce((acc: number, curr: any) => acc + curr.total, 0), driverId, userId)
                 return await Bl.create({
                     invoiceId: invoice.id,
+                    userId: userId,
                     products: JSON.stringify(formatedProducts),
-                    driverId,
                     total: formatedProducts.reduce((acc: number, curr: any) => acc + curr.total, 0),
                     isDelivered: !needDoubleCheck,
                     status: 'en attente de confirmation',
+                    driverId: driverId,
                 })
             }
         }
         const formatedProducts = products.map((product: any) => ({
             reference: product.reference,
             designation: product.designation,
-            quantite: product.remainingQty,
+            quantite: product.quantite,
             prixUnitaire: product.prixUnitaire,
             total: product.quantite * product.prixUnitaire,
-
         }))
+
         return await Bl.create({
             invoiceId: invoice.id,
+            userId,
             products: JSON.stringify(formatedProducts),
-            driverId,
             total: formatedProducts.reduce((acc: number, curr: any) => acc + curr.total, 0),
             isDelivered: !needDoubleCheck,
             status: 'en attente de confirmation',
+            driverId: driverId,
         })
     }
 
@@ -182,10 +198,10 @@ export default class ProcessDeliveriesController {
         if (isCompleteDelivery) {
             return JSON.stringify(invoice.order)
         } else {
-            const lastBl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
+            const lastBl = await Bl.query().where('invoice_id', invoice.id).where('is_delivered', true).orderBy('id', 'desc').first()
             return lastBl
-                ? JSON.stringify(calculateQuantityDifferences(true, lastBl.products, products))
-                : JSON.stringify(calculateQuantityDifferences(false, invoice.order, products))
+                ? calculateQuantityDifferences(true, lastBl.products, products)
+                : calculateQuantityDifferences(false, invoice.order, products)
         }
     }
 }
