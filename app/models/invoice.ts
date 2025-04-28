@@ -37,7 +37,6 @@ export default class Invoice extends BaseModel {
   @column()
   declare customerId: number
   @column()
-
   declare order: any | null
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>
