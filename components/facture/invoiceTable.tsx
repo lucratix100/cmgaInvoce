@@ -93,8 +93,8 @@ export default function InvoiceTable({ initialData }: InvoiceTableProps) {
                 currentStatus={status}
                 searchValue={search}
             />
-            <div className="h-[calc(80vh-220px)] overflow-auto">
-                <Table>
+            <div className="h-[calc(90vh-220px)] overflow-auto">
+                <Table >
                     <TableHeader className="sticky top-0 z-10">
                         <TableRow className="bg-primary-50/50">
                             <TableHead className="font-semibold text-primary-900">N° Facture</TableHead>

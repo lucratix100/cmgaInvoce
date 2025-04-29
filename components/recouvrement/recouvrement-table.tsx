@@ -36,13 +36,24 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
   };
 
   const getStatusColor = (status: string) => {
+    console.log("Status reçu:", status);
     const colors = {
-      en_cours: "bg-amber-100 text-amber-700 border-amber-200",
-      livre: "bg-green-100 text-green-700 border-green-200",
-      non_paye: "bg-red-100 text-red-700 border-red-200",
-      partiel: "bg-blue-100 text-blue-700 border-blue-200"
+      // Statuts de livraison
+      EN_COURS: "bg-amber-100 text-amber-700 border-amber-200",
+      LIVRE: "bg-green-100 text-green-700 border-green-200",
+      NON_LIVRE: "bg-red-100 text-red-700 border-red-200",
+      PARTIEL: "bg-blue-100 text-blue-700 border-blue-200",
+      // Statuts de paiement
+      PAYE: "bg-green-100 text-green-700 border-green-200",
+      NON_PAYE: "bg-red-100 text-red-700 border-red-200",
+      PAIEMENT_PARTIEL: "bg-blue-100 text-blue-700 border-blue-200",
+
+      // Statut par défaut
+      default: "bg-gray-100 text-gray-700 border-gray-200"
     };
-    return colors[status as keyof typeof colors] || "bg-gray-100 text-gray-700 border-gray-200";
+    const upperStatus = status.toUpperCase();
+    console.log("Status en majuscules:", upperStatus);
+    return colors[upperStatus as keyof typeof colors] || colors.default;
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -75,7 +86,7 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
       </div>
       <div className="overflow-x-auto border rounded-lg">
         <div className="space-y-5 flex justify-end p-4">
-          <div className="ml-1">
+          {/* <div className="ml-1">
             <Button 
               className="bg-[#007bff] text-white hover:bg-primary-800" 
               variant="outline"
@@ -85,16 +96,16 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
               <Check className="h-4 w-4 mr-2" />
               Marquer comme payé
             </Button>
-          </div>
+          </div> */}
         </div>
         <div className="max-h-[600px] overflow-y-auto">
           <Table>
             <TableHeader className="sticky top-0 bg-white z-10">
-              <TableRow className="bg-primary-50/50">
+              <TableRow className="bg-primary-50/50 ">
                 <TableHead className="w-[50px]">
-                  <Checkbox 
+                  {/* <Checkbox 
                     checked={selectedInvoices.size === factures.length}
-                    onCheckedChange={handleSelectAll} />
+                    onCheckedChange={handleSelectAll} /> */}
                 </TableHead>
                 <TableHead className="font-semibold text-primary-900">Numéro facture</TableHead>
                 <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
@@ -109,12 +120,12 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
             </TableHeader>
             <TableBody>
               {factures.map((facture) => (
-                <TableRow key={facture.id} className="hover:bg-primary-50/30">
+                <TableRow key={facture.id} className=" hover:bg-primary-50/30">
                   <TableCell>
-                    <Checkbox 
+                    {/* <Checkbox 
                       checked={selectedInvoices.has(facture.id.toString())}
                       onCheckedChange={(checked) => handleSelectInvoice(facture.id.toString(), checked as boolean)}
-                    />
+                    /> */}
                   </TableCell>
                   <TableCell className="font-medium">
                     <Link href={`/factures/${facture.id}`} className="hover:text-primary transition-colors">
@@ -127,12 +138,12 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
                   <TableCell>{formatDate(facture.date)}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(facture.status)}>
-                      {facture.status.replace("_", " ")}
+                      {facture.status.replace("_", " ").toUpperCase()}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(facture.paymentStatus || "non_paye")}>
-                      {facture.paymentStatus ? facture.paymentStatus.replace("_", " ") : "Non payé"}
+                    <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
+                      {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
                     </Badge>
                   </TableCell>
                   <TableCell>

@@ -16,9 +16,7 @@ interface FactureClientProps {
 }
 
 export default function FactureClient({ initialData, isRecouvrement }: FactureClientProps) {
-  const [currentPage, setCurrentPage] = useState(3)
-  const totalPages = 13
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50">
       <Header />
@@ -33,11 +31,11 @@ export default function FactureClient({ initialData, isRecouvrement }: FactureCl
               <RecouvrementTable factures = {initialData.invoices} />
             </div>
           )}
-          <Pagination
+          {/* <Pagination
             totalPages={totalPages}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-          />
+          /> */}
         </Card>
       </main>
     </div>

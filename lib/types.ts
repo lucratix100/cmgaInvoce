@@ -41,7 +41,7 @@ export type Invoice = {
     customer: Customer;
     depotId: number;
     totalTtc: number;
-    paymentStatus: InvoicePaymentStatus;
+    statusPayment: InvoicePaymentStatus;
     depot?: {
         id: number;
         name: string;

@@ -5,9 +5,9 @@ export enum InvoiceStatus {
 } 
 
 export enum InvoicePaymentStatus {
-    PAYE = 'payé',
     NON_PAYE = 'non payé',
-    PARTIELLEMENT_PAYE = 'paiement partiel'
+    PAIEMENT_PARTIEL = 'paiement partiel',
+    PAYE = 'payé',
 }
 
 export enum PaymentMethod {

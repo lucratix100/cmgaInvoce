@@ -82,7 +82,9 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
       toast.success("Paiement enregistré avec succès");
       resetForm();
       setIsOpen(false);
-      router.refresh();
+      
+      // Forcer une mise à jour complète de la page
+      window.location.reload();
     } catch (error: any) {
       console.error("Erreur lors de l'enregistrement du paiement:", error);
       toast.error(error.message || "Erreur lors de l'enregistrement du paiement");
