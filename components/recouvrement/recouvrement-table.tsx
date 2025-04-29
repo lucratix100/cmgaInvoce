@@ -36,23 +36,20 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
   };
 
   const getStatusColor = (status: string) => {
-    console.log("Status reçu:", status);
     const colors = {
       // Statuts de livraison
-      EN_COURS: "bg-amber-100 text-amber-700 border-amber-200",
-      LIVRE: "bg-green-100 text-green-700 border-green-200",
-      NON_LIVRE: "bg-red-100 text-red-700 border-red-200",
-      PARTIEL: "bg-blue-100 text-blue-700 border-blue-200",
+      "EN ATTENTE DE LIVRAISON": "bg-amber-100 text-amber-700 border-amber-200",
+      "LIVRE": " bg-green-100 text-green-700 border-green-200 ",
+      "EN COURS DE LIVRAISON": " bg-white text-blue-700 border-blue-200 ",
+      "LIVRAISON PARTIELLE": "bg-blue-100 text-blue-700 border-blue-200 ",
       // Statuts de paiement
-      PAYE: "bg-green-100 text-green-700 border-green-200",
-      NON_PAYE: "bg-red-100 text-red-700 border-red-200",
-      PAIEMENT_PARTIEL: "bg-blue-100 text-blue-700 border-blue-200",
-
+      "PAYÉ": " bg-green-100 w-[80px] items-center justify-center rounded-none text-green-700 border-green-200 ",
+      "NON PAYÉ": " bg-red-100 rounded-none text-red-700 border-red-200 ",
+      "PAIEMENT PARTIEL": "bg-white rounded-none text-blue-700 border-blue-200",
       // Statut par défaut
       default: "bg-gray-100 text-gray-700 border-gray-200"
     };
     const upperStatus = status.toUpperCase();
-    console.log("Status en majuscules:", upperStatus);
     return colors[upperStatus as keyof typeof colors] || colors.default;
   };
 
