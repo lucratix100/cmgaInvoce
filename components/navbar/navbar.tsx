@@ -111,7 +111,6 @@ function HeaderContent() {
       ];
 
       setNotifications(mockNotifications);
-
       // Remplacer par votre appel API réel
       // const loadNotifications = async () => {
       //   try {
@@ -142,6 +141,7 @@ function HeaderContent() {
 
       <div className="flex items-center gap-2 ml-auto mr-4">
         <div className="flex items-center gap-4 relative">
+          {user?.role !== "CONTROLEUR" && user?.role !== "MAGASINIER" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="relative hover:bg-primary-50 transition-colors">
@@ -152,7 +152,7 @@ function HeaderContent() {
                     </span>
                   )}
                 </Button>
-              </DropdownMenuTrigger>
+              </DropdownMenuTrigger>     
               <DropdownMenuContent align="end" className="bg-white border shadow-md w-80">
                 <div className="p-2 font-medium border-b">Notifications</div>
                 <div className="max-h-[300px] overflow-y-auto">
@@ -180,6 +180,7 @@ function HeaderContent() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
         </div>
         {/* select depot */}
         {/* {!isUserLoading && user?.role !== "ADMIN" && (
@@ -259,7 +260,6 @@ function HeaderContent() {
     </div>
   );
 }
-
 // Composant principal qui utilise Suspense
 export default function Header() {
   return (

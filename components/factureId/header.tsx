@@ -33,11 +33,11 @@ export default function Header({ invoice }: HeaderProps) {
 
   const getPaymentStatusBadge = (status: InvoicePaymentStatus) => {
     switch (status) {
-      case InvoicePaymentStatus.PAYE:
+      case InvoicePaymentStatus.PAYE :
         return <span className="text-lg font-semibold text-green-600 bg-white border border-green-600 rounded-md px-2 py-1">PAYÉE</span>
-      case InvoicePaymentStatus.PAIEMENT_PARTIEL:
+      case InvoicePaymentStatus.PAIEMENT_PARTIEL :
         return <span className="text-lg font-semibold text-yellow-600 bg-white border border-yellow-600 rounded-md px-2 py-1">PAIEMENT PARTIEL</span>
-      case InvoicePaymentStatus.NON_PAYE:
+      case InvoicePaymentStatus.NON_PAYE :
         return <span className="text-lg font-semibold text-red-600 bg-white border border-red-600 rounded-md px-2 py-1">NON PAYÉE</span>
       default:
         return <span className="text-lg font-semibold text-gray-600 bg-white border border-gray-600 rounded-md px-2 py-1">{status}</span>
@@ -64,6 +64,7 @@ export default function Header({ invoice }: HeaderProps) {
               <span className="text-primary-100">État de livraison :</span>
               {getLivraisonBadge(invoice.status)}
             </div>
+            
             <div>
               <span className="text-primary-100">État de paiement : </span> 
               {getPaymentStatusBadge(invoice.statusPayment)}

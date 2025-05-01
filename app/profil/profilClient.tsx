@@ -50,7 +50,7 @@ export default function ProfilClient() {
           <div className="flex items-center gap-4 mb-8">
             <Avatar className="h-20 w-20 border-2 border-primary/10">
               <AvatarFallback className="bg-primary text-white text-xl">
-                {user?.firstname?.[0]}{user?.lastname?.[0]}
+                {user?.firstname?.[0].toUpperCase()}{user?.lastname?.[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
