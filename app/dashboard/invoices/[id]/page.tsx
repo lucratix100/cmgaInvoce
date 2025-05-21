@@ -1,82 +1,117 @@
-"use client"
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft,
+  Bell,
+  CreditCard,
+  FileText,
+  Truck,
+} from "lucide-react";
+import PaimentDialog from "@/components/paiment-dialog";
+import Notification from "@/components/notification-dialog";
+import Paiment from "@/components/factureId/paiment";
+import Reminder from "@/components/factureId/reminder";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Invoice } from "@/lib/types";
+import Detail from "@/components/factureId/detail";
+import Delivery from "@/components/factureId/delivery";
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { getInvoiceByNumber } from "@/actions/invoice"
-import { InvoiceStatus } from "@/types/enums"
-import type { Invoice } from "@/types/invoice"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Header from "@/components/factureId/header"
-import Detail from "@/components/factureId/detail"
-import Delivery from "@/components/factureId/delivery"
-import { ArrowLeft, FileText, Truck, CreditCard, Bell } from "lucide-react"
-import { Button } from "@/components/ui/button"
+interface InvoiceClientProps {
+  invoice: Invoice;
+  user: any;
+}
 
-export default function DashboardInvoiceDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [invoice, setInvoice] = useState<Invoice | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("details")
+export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("details");
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchInvoice = async () => {
-      try {
-        const data = await getInvoiceByNumber(params.id as string)
-        console.log(data, 'data')
-
-        setInvoice({
-          ...data,
-          status: data.status as InvoiceStatus
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (params.id) fetchInvoice()
-  }, [params.id])
-
-  if (loading) return <div>Chargement...</div>
-  if (!invoice) return <div>Facture non trouvée</div>
-
-  const handleRoute = () => {
-    router.back()
-  }
+  const handleBack = () => {
+    router.back();
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50">
-      {/* Navbar */}
-      <div className="flex h-16 items-center px-4 md:px-6 justify-between">
-        <Button onClick={handleRoute} className="flex items-center gap-2 text-white hover:text-primary-600 hover:bg-transparent transition-all duration-600">
-          <ArrowLeft className="h-4 w-4" />
-          <span className="text-lg font-semibold">Retour aux factures</span>
-        </Button>
-      </div>
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* En-tête de la facture */}
-        <Header invoice={invoice} />
-        {/* Contenu de la facture */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-white border">
+    <div className="p-10 w-full px-4 sm:px-6 lg:px-8">
+      <div className="flex  flex-col space-y-6 mt-5">
+        <div className="flex items-center space-x-4">
+          <Button onClick={handleBack} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" /> Retour aux factures
+          </Button>
+          <div className="flex items-center w-full gap-2 justify-end">
+          {user.role === "RECOUVREMENT" && (
+            <>
+              <PaimentDialog invoiceNumber={invoice.invoiceNumber} />
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsNotificationOpen(true)}>
+                <Bell className="h-4 w-4" /> Ajouter une notification
+              </Button>
+              <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+                <DialogContent className="bg-white">
+                  <DialogTitle>Notification de suivi</DialogTitle>
+                  <DialogDescription>Créez un rappel pour la facture {invoice.invoiceNumber}</DialogDescription>
+                  <Notification invoiceId={invoice.invoiceNumber} />
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+          </div>
+        </div>
+        <Tabs
+          value={activeTab}    
+          onValueChange={setActiveTab}
+          className="w-full space-y-4"
+        >
+          <TabsList className="w-full bg-white border">
             <TabsTrigger
               value="details"
-              className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
+              className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
             >
-              <FileText className="w-4 h-4 mr-2" />Détails
+              <FileText className="w-4 h-4 mr-2" />
+              Détails
             </TabsTrigger>
             <TabsTrigger
               value="livraisons"
-              className="data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
+              className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
             >
-              <Truck className="w-4 h-4 mr-2" />Suivi des livraisons
-            </TabsTrigger>       
-          </TabsList> 
-          <Detail invoice={invoice} />
+              <Truck className="w-4 h-4 mr-2" />
+              Suivi des livraisons
+            </TabsTrigger>
+            {user.role === "RECOUVREMENT" && (
+              <TabsTrigger
+                value="paiements"
+                className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Suivi des paiements
+              </TabsTrigger>
+            )}
+            {user.role === "RECOUVREMENT" && (
+              <TabsTrigger
+                value="rappels"
+                className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
+              >
+                <Bell className="w-4 h-4 mr-2" />
+                Historique des rappels
+              </TabsTrigger>
+            )}
+          </TabsList>
+          <Detail invoice={invoice} user={user} userRole={user.role} />
           <Delivery invoice={invoice} activeTab={activeTab} />
+          {user.role === "RECOUVREMENT" || user.role === "ADMIN" && (
+            <Paiment invoice={invoice} />
+          )}
+          {user.role === "RECOUVREMENT" || user.role === "ADMIN" && (
+            <Reminder />
+          )}
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
-

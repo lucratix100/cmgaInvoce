@@ -42,6 +42,7 @@ export type Invoice = {
     depotId: number;
     totalTtc: number;
     statusPayment: InvoicePaymentStatus;
+    remainingAmount: number;
     depot?: {
         id: number;
         name: string;
@@ -77,4 +78,23 @@ export type Driver = {
     lastname: string;
     phone: string;
     isActive: boolean;
+}
+
+export interface InvoiceReminder {
+  id: number;
+  userId: number;
+  invoiceId: number;
+  remindAt: string;
+  comment: string;
+  read: boolean;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: number;
+    name: string;
+  };
+  invoice?: {
+    id: number;
+    invoiceNumber: string;
+  };
 }

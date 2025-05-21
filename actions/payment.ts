@@ -2,11 +2,11 @@
 
 import axios from 'axios'
 import { cookies } from 'next/headers'
-import { InvoicePaymentStatus } from '@/types/enums'
+import { InvoicePaymentStatus, PaymentMethod } from '@/types/enums'
 
 interface PaymentData {
     montant: number
-    modePaiement: string
+    modePaiement: PaymentMethod
     datePaiement: string
     commentaire?: string
 }

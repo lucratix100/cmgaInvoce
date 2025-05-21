@@ -20,6 +20,7 @@ interface FilterProps {
     currentStatus: string;
     searchValue: string;
     onDateChange: (startDate: string, endDate?: string) => void;
+    onPaymentStatusChange?: (status: string) => void;
 }
 
 interface FilterState {
@@ -35,7 +36,8 @@ export default function Filtre({
     onSearch,
     currentStatus,
     searchValue,
-    onDateChange
+    onDateChange,
+    onPaymentStatusChange
 }: FilterProps) {
 
     const router = useRouter()
@@ -55,12 +57,13 @@ export default function Filtre({
     const [filters, setFilters] = useState({
         startDate: searchParams.get('startDate') || today,
         endDate: searchParams.get('endDate') || undefined,
-        status: searchParams.get('status') || "tous",
-        searchInvoice: searchParams.get('search') || ""
+        status: searchParams.get('status') || "en cours de livraison",
+        searchInvoice: searchParams.get('search') || "",
+        paymentStatus: searchParams.get('paymentStatus') || "tous"
     })
     const [searchField, setSearchField] = useState("invoiceNumber")
     const [user, setUser] = useState<any>(null)
-    const [statutPaiement, setStatutPaiement] = useState("")
+    const [statutPaiement, setStatutPaiement] = useState(filters.paymentStatus)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     useEffect(() => {
@@ -70,7 +73,6 @@ export default function Filtre({
         }
         loadUser()
     }, [])
-
     useEffect(() => {
         let mounted = true
 
@@ -93,28 +95,36 @@ export default function Filtre({
                 }
             }
         }
-
         loadDepots()
-
         return () => {
             mounted = false
         }
     }, [])
 
     useEffect(() => {
-        // Mettre à jour les filtres depuis l'URL au chargement
+        // Initialiser les filtres depuis l'URL
         const params = new URLSearchParams(searchParams.toString())
-        onDateChange(
-            params.get('startDate') || today,
-            params.get('endDate') || ''
-        )
-        if (params.get('status')) {
-            onStatusChange(params.get('status')!)
+        
+        // Mettre à jour les dates
+        const startDate = params.get('startDate') || today
+        const endDate = params.get('endDate') || undefined
+        onDateChange(startDate, endDate || '')
+
+        // Mettre à jour le statut
+        const status = params.get('status') || "en cours de livraison"
+        onStatusChange(status)
+
+        // Mettre à jour la recherche
+        const search = params.get('search') || ""
+        onSearch(search)
+
+        // Mettre à jour le statut de paiement
+        const paymentStatus = params.get('paymentStatus') || "tous"
+        setStatutPaiement(paymentStatus)
+        if (onPaymentStatusChange) {
+            onPaymentStatusChange(paymentStatus)
         }
-        if (params.get('search')) {
-            onSearch(params.get('search')!)
-        }
-    }, [])
+    }, [searchParams])
 
     const updateURL = (newFilters: typeof filters) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -126,7 +136,7 @@ export default function Filtre({
         } else {
             params.delete('endDate')
         }
-        if (newFilters.status) {
+        if (newFilters.status && newFilters.status !== "tous") {
             params.set('status', newFilters.status)
         } else {
             params.delete('status')
@@ -136,13 +146,25 @@ export default function Filtre({
         } else {
             params.delete('search')
         }
+        if (newFilters.paymentStatus && newFilters.paymentStatus !== "tous") {
+            params.set('paymentStatus', newFilters.paymentStatus)
+        } else {
+            params.delete('paymentStatus')
+        }
 
-        // Mettre à jour l'URL
-        router.push(`?${params.toString()}`, { scroll: false })
+        // Mettre à jour l'URL sans recharger la page
+        router.replace(`?${params.toString()}`, { scroll: false })
     }
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onSearch(e.target.value)
+        const value = e.target.value
+        onSearch(value)
+        const newFilters = {
+            ...filters,
+            searchInvoice: value
+        }
+        setFilters(newFilters)
+        updateURL(newFilters)
     }
 
     const handleDateChange = (type: 'start' | 'end', value: string) => {
@@ -151,19 +173,38 @@ export default function Filtre({
             [type === 'start' ? 'startDate' : 'endDate']: value
         }
         setFilters(newFilters)
-
-        // Mettre à jour l'URL et le store en une seule fois
         updateURL(newFilters)
         onDateChange(newFilters.startDate, newFilters.endDate)
+    }
 
-        // Supprimer l'appel à fetchInvoices ici car il est déjà géré dans setDateRange
+    const handleStatusChange = (value: string) => {
+        const newFilters = {
+            ...filters,
+            status: value
+        }
+        setFilters(newFilters)
+        updateURL(newFilters)
+        onStatusChange(value)
+    }
+
+    const handlePaymentStatusChange = (value: string) => {
+        const newFilters = {
+            ...filters,
+            paymentStatus: value
+        }
+        setFilters(newFilters)
+        setStatutPaiement(value)
+        if (onPaymentStatusChange) {
+            onPaymentStatusChange(value)
+        }
+        updateURL(newFilters)
     }
 
     const paiementOptions = [
         { value: "tous", label: "TOUS" },
-        { value: "PAYER", label: "PAYER" },
-        { value: "NON_PAYER", label: "NON PAYER" },
-        { value: "PAIEMENT_PARTIEL", label: "PAIEMENT PARTIEL" }
+        { value: "payé", label: "PAYÉ" },
+        { value: "non payé", label: "NON PAYÉ" },
+        { value: "paiement partiel", label: "PAIEMENT PARTIEL" }
     ]
 
     return (
@@ -254,14 +295,13 @@ export default function Filtre({
                                 />
                             </div>
                         </div>
-
                         {/* État */}
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2 text-primary-700">
                                 <Filter className="h-4 w-4" />
                                 État
                             </Label>
-                            <Select value={currentStatus} onValueChange={onStatusChange}>
+                            <Select value={currentStatus} onValueChange={handleStatusChange}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Sélectionner un état" />
                                 </SelectTrigger>
@@ -274,7 +314,6 @@ export default function Filtre({
                                 </SelectContent>
                             </Select>
                         </div>
-
                         {/* État de paiement */}
                         {user?.role === "RECOUVREMENT" && (
                             <div className="space-y-2">
@@ -282,13 +321,17 @@ export default function Filtre({
                                     <DollarSign className="h-4 w-4" />
                                     État paiement
                                 </Label>
-                                <Select value={statutPaiement} onValueChange={setStatutPaiement}>
+                                <Select value={statutPaiement} onValueChange={handlePaymentStatusChange}>
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Sélectionner un état" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {paiementOptions.map((option) => (
-                                            <SelectItem key={option.value} value={option.value}>
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                                className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                            >
                                                 {option.label}
                                             </SelectItem>
                                         ))}
@@ -390,7 +433,7 @@ export default function Filtre({
                                     <Filter className="h-4 w-4" />
                                     État
                                 </Label>
-                                <Select value={currentStatus} onValueChange={onStatusChange}>
+                                <Select value={currentStatus} onValueChange={handleStatusChange}>
                                     <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
                                         <SelectValue placeholder="Sélectionner un état" />
                                     </SelectTrigger>
@@ -413,7 +456,7 @@ export default function Filtre({
                                         <DollarSign className="h-4 w-4" />
                                         État paiement
                                     </Label>
-                                    <Select value={statutPaiement} onValueChange={setStatutPaiement}>
+                                    <Select value={statutPaiement} onValueChange={handlePaymentStatusChange}>
                                         <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
                                             <SelectValue placeholder="Sélectionner un état" />
                                         </SelectTrigger>

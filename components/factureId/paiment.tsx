@@ -3,14 +3,14 @@ import { Badge, DollarSign } from "lucide-react";
 import { TabsContent } from "../ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Invoice } from "@/lib/types";
-import { InvoicePaymentStatus } from "@/types/enums";
+import { InvoicePaymentStatus, PaymentMethod } from "@/types/enums";
 import { getPaymentHistory } from "@/actions/payment";
 import { useEffect, useState } from "react";
 
 interface Payment {
   id: number;
   amount: number;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   paymentDate: string;
   comment: string | null;
 }
@@ -28,8 +28,8 @@ export default function Paiment({ invoice }: PaimentProps) {
   };
 
   // Déterminer si la facture est payée en fonction du statusPayment
-  const isPaid = invoice.paymentStatus === InvoicePaymentStatus.PAYE;
-  const isPartiallyPaid = invoice.paymentStatus === InvoicePaymentStatus.PARTIELLEMENT_PAYE;
+  const isPaid = invoice.statusPayment === InvoicePaymentStatus.PAYE;
+  const isPartiallyPaid = invoice.statusPayment === InvoicePaymentStatus.PAIEMENT_PARTIEL;
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -140,7 +140,7 @@ export default function Paiment({ invoice }: PaimentProps) {
                 <p className="text-sm text-muted-foreground">
                   Statut de paiement: 
                   <Badge className={isPaid ? "bg-green-100 text-green-700 ml-2" : (isPartiallyPaid ? "bg-amber-100 text-amber-700 ml-2" : "bg-red-100 text-red-700 ml-2")}>
-                    {invoice.paymentStatus}
+                    {invoice.statusPayment}
                   </Badge>
                 </p>
               </div>

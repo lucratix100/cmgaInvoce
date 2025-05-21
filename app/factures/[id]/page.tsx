@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/actions/user";
 import Navbar from "@/components/navbar/navbar";
 import Header from "@/components/factureId/header";
 import InvoiceClient from "./invoice-client";
-import { InvoiceStatus } from "@/types/enums";
+
 
 interface PageProps {
   params: {
@@ -16,11 +16,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
     getInvoiceByNumber(params.id),
     getCurrentUser()
   ]);
-
   if (!invoice) {
     return <div>Facture non trouvée</div>;
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50">
       <Navbar />

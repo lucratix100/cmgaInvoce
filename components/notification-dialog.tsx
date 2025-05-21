@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Calendar as CalendarIcon } from "lucide-react"
 import { AlertDialogFooter } from "./ui/alert-dialog"
-import { Checkbox } from "./ui/checkbox"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
@@ -15,25 +14,62 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { createReminder } from "@/actions/reminder"
+import { toast } from "sonner"
+import { useAuth } from "@/hooks/use-auth"
 
 interface NotificationDialogProps {
   invoiceId: string;
+  onSuccess?: () => void;
+  onClose?: () => void;
 }
 
-function NotificationDialogComponent({ invoiceId }: NotificationDialogProps) {
+function NotificationDialogComponent({ invoiceId, onSuccess, onClose }: NotificationDialogProps) {
+  const { user } = useAuth()
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [message, setMessage] = useState("")
-  const [autoReminder, setAutoReminder] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = () => {
-    // TODO: Implémenter la logique d'envoi de notification
-    console.log({
-      invoiceId,
-      date,
-      message,
-      autoReminder
-    })
+  const handleSubmit = async () => {
+    
+    if (!date || !message) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("Vous devez être connecté pour créer une notification");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await createReminder({
+        invoiceId,
+        remindAt: date,
+        comment: message,
+        userId: user.id
+      });
+
+      toast.success("Notification créée avec succès");
+      setDate(undefined);
+      setMessage("");
+      onSuccess?.();
+      onClose?.();
+    } catch (error) {
+      console.error("Erreur lors de la création:", error);
+      toast.error("Erreur lors de la création de la notification");
+    } finally {
+      setIsLoading(false);
+    }
   }
+
+  const handleCancel = () => {
+    setDate(undefined);
+    setMessage("");
+    onClose?.();
+  }
+
   return (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
@@ -52,7 +88,7 @@ function NotificationDialogComponent({ invoiceId }: NotificationDialogProps) {
               {date ? format(date, "dd/MM/yyyy") : <span>Sélectionner une date</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 bg-white" align="start">
             <Calendar
               mode="single"
               selected={date}
@@ -74,31 +110,21 @@ function NotificationDialogComponent({ invoiceId }: NotificationDialogProps) {
         />
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="auto-reminder" 
-          checked={autoReminder}
-          onCheckedChange={(checked) => setAutoReminder(checked as boolean)}
-        />
-        <Label htmlFor="auto-reminder">
-          Activer les rappels automatiques
-        </Label>
-      </div>
-
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <AlertCircle className="h-4 w-4" />
         <p>Cette notification sera visible pour tous les utilisateurs qui suivent cette facture.</p>
       </div>
 
       <AlertDialogFooter>
-        <Button variant="outline" type="button">
+        <Button variant="outline" type="button" onClick={handleCancel} disabled={isLoading}>
           Annuler
         </Button>
-        <Button onClick={handleSubmit}>
-          Créer la notification
+        <Button onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Création en cours..." : "Créer la notification"}
         </Button>
       </AlertDialogFooter>
     </div>
   )
 }
+
 export default memo(NotificationDialogComponent)

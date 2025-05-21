@@ -41,7 +41,6 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
   return (
     <div className="p-10 w-full px-4 sm:px-6 lg:px-8">
       <div className="flex  flex-col space-y-6 mt-5">
-
         <div className="flex items-center space-x-4">
           <Button onClick={handleBack} className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" /> Retour aux factures
@@ -57,7 +56,14 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
                 <DialogContent className="bg-white">
                   <DialogTitle>Notification de suivi</DialogTitle>
                   <DialogDescription>Créez un rappel pour la facture {invoice.invoiceNumber}</DialogDescription>
-                  <Notification invoiceId={invoice.invoiceNumber} />
+                  <Notification 
+                    invoiceId={invoice.invoiceNumber} 
+                    onClose={() => setIsNotificationOpen(false)}
+                    onSuccess={() => {
+                      setIsNotificationOpen(false);
+                      // Rafraîchir les données si nécessaire
+                    }}
+                  />
                 </DialogContent>
               </Dialog>
             </>

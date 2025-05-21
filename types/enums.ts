@@ -14,7 +14,7 @@ export enum PaymentMethod {
     ESPECE = 'Espece',
     CHEQUE = 'Cheque',
     VIREMENT = 'Virement',
-    ORANGE_MONEY = 'Orange Money',
-    WAVE = 'Wave',
-    AUTRE = 'Autre',
+    MOBILE_MONEY = 'Mobile Money',
+    RETOUR = 'Retour',
+    OD = 'OD',
 }

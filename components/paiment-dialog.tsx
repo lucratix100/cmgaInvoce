@@ -23,7 +23,7 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     montant: '',
-    modePaiement: 'especes',
+    modePaiement: 'Espece',
     datePaiement: new Date().toISOString().split('T')[0],
     commentaire: ''
   });
@@ -47,7 +47,7 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
   const resetForm = () => {
     setFormData({
       montant: '',
-      modePaiement: 'especes',
+      modePaiement: 'Espece',
       datePaiement: new Date().toISOString().split('T')[0],
       commentaire: ''
     });
@@ -73,7 +73,7 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
 
       const result = await addPayment(invoiceNumber, {
         montant: parseFloat(formData.montant),
-        modePaiement: formData.modePaiement,
+        modePaiement: formData.modePaiement as PaymentMethod,
         datePaiement: formData.datePaiement,
         commentaire: formData.commentaire
       });
@@ -92,7 +92,8 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
       setLoading(false);
     }
   };
-
+   
+    
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -106,7 +107,7 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
         <DialogHeader>
           <DialogTitle>Enregistrer un paiement</DialogTitle>
           <DialogDescription>
-            Enregistrez un paiement pour la facture {invoiceNumber}
+            Enregistrez un paiement pour la facture <span className="font-bold text-primary-500">{invoiceNumber}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -114,12 +115,20 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
           <div className="space-y-2">
             <Label htmlFor="montant">Montant du paiement (FCFA)</Label>
             <Input
-              id="montant"
+              id="montant" 
               name="montant"
-              type="number"
-              placeholder="Ex: 100000"
-              value={formData.montant}
-              onChange={handleChange}
+              type="text"
+              placeholder="Ex: 100.000"
+              value={formData.montant ? formData.montant.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ""}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\./g, "");
+                handleChange({
+                  target: {
+                    name: "montant",
+                    value: value
+                  }
+                });
+              }}
               disabled={loading}
               required
             />
@@ -142,17 +151,17 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
               value={formData.modePaiement} 
               onValueChange={handleSelectChange}
               disabled={loading}
-            >
+              >
               <SelectTrigger id="modePaiement">
                 <SelectValue placeholder="Sélectionnez un mode de paiement" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={PaymentMethod.ESPECE}>Espèces</SelectItem>
-                <SelectItem value={PaymentMethod.CHEQUE}>Chèque</SelectItem>
-                <SelectItem value={PaymentMethod.VIREMENT}>Virement</SelectItem>
-                <SelectItem value={PaymentMethod.ORANGE_MONEY}>Orange Money</SelectItem>
-                <SelectItem value={PaymentMethod.WAVE}>Wave</SelectItem>
-                <SelectItem value={PaymentMethod.AUTRE}>Autre</SelectItem>
+              <SelectContent className="bg-white cursor-pointer">
+                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.ESPECE}>Espèces</SelectItem>
+                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.CHEQUE}>Chèque</SelectItem>
+                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.VIREMENT}>Virement</SelectItem>
+                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.MOBILE_MONEY}>Mobile Money</SelectItem>
+                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.RETOUR}>Retour</SelectItem>
+                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.OD}>OD</SelectItem>
               </SelectContent>
             </Select>
           </div>

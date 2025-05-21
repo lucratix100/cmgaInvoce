@@ -11,17 +11,20 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } 
 import Notification from "../notification-dialog"
 import { useState } from "react"
 import { Invoice } from "@/lib/types"
-import { Checkbox } from "../ui/checkbox"
-
-
+import { useSearchParams } from "next/navigation"
 
 interface RecouvrementTableProps {
   factures: Invoice[];
+  user: any;
 }
 
-export default function RecouvrementTable({ factures }: RecouvrementTableProps) {
+export default function RecouvrementTable({ factures, user }: RecouvrementTableProps) {
+  const searchParams = useSearchParams()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [paymentStatus, setPaymentStatus] = useState(searchParams.get('paymentStatus') || "tous");
+  const [deliveryStatus, setDeliveryStatus] = useState(searchParams.get('status') || "tous");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
 
   const formatMontant = (montant: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(montant);
@@ -35,6 +38,7 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
     });
   };
 
+  console.log(user, "role")
   const getStatusColor = (status: string) => {
     const colors = {
       // Statuts de livraison
@@ -53,56 +57,55 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
     return colors[upperStatus as keyof typeof colors] || colors.default;
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedInvoices(new Set(factures.map(f => f.id.toString())));
-    } else {
-      setSelectedInvoices(new Set());
-    }
+  const handlePaymentStatusChange = (status: string) => {
+    setPaymentStatus(status);
   };
 
-  const handleSelectInvoice = (invoiceId: string, checked: boolean) => {
-    const newSelected = new Set(selectedInvoices);
-    if (checked) {
-      newSelected.add(invoiceId);
-    } else {
-      newSelected.delete(invoiceId);
-    }
-    setSelectedInvoices(newSelected);
+  const handleDeliveryStatusChange = (status: string) => {
+    setDeliveryStatus(status);
   };
 
-  const handleMarkAsPaid = () => {
-    // TODO: Implémenter la logique pour marquer comme payé
-    console.log("Factures à marquer comme payées:", Array.from(selectedInvoices));
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
+
+  const filteredFactures = factures.filter((facture) => {
+    const matchesSearch = 
+      facture.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      facture.accountNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      facture.customer?.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesPaymentStatus = 
+      paymentStatus === "tous" || 
+      facture.statusPayment === paymentStatus;
+
+    const matchesDeliveryStatus = 
+      deliveryStatus === "tous" || 
+      facture.status === deliveryStatus;
+
+    return matchesSearch && matchesPaymentStatus && matchesDeliveryStatus;
+  });
 
   return (
     <>
       <div>
-        <Filtre onStatusChange={() => {}} onSearch={() => {}} currentStatus={""} searchValue={""} onDateChange={() => {}} />
+        <Filtre 
+          onStatusChange={handleDeliveryStatusChange} 
+          onSearch={handleSearch} 
+          currentStatus={deliveryStatus} 
+          searchValue={searchQuery} 
+          onDateChange={() => {}} 
+          onPaymentStatusChange={handlePaymentStatusChange}
+        />
       </div>
       <div className="overflow-x-auto border rounded-lg">
         <div className="space-y-5 flex justify-end p-4">
-          {/* <div className="ml-1">
-            <Button 
-              className="bg-[#007bff] text-white hover:bg-primary-800" 
-              variant="outline"
-              onClick={handleMarkAsPaid}
-              disabled={selectedInvoices.size === 0}
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Marquer comme payé
-            </Button>
-          </div> */}
         </div>
         <div className="max-h-[600px] overflow-y-auto">
           <Table>
             <TableHeader className="sticky top-0 bg-white z-10">
               <TableRow className="bg-primary-50/50 ">
                 <TableHead className="w-[50px]">
-                  {/* <Checkbox 
-                    checked={selectedInvoices.size === factures.length}
-                    onCheckedChange={handleSelectAll} /> */}
                 </TableHead>
                 <TableHead className="font-semibold text-primary-900">Numéro facture</TableHead>
                 <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
@@ -111,18 +114,14 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
                 <TableHead className="font-semibold text-primary-900">Date échéance</TableHead>
                 <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
                 <TableHead className="font-semibold text-primary-900">État paiement</TableHead>
-                <TableHead className="font-semibold text-primary-900">Montant TTC</TableHead>
+                <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>
                 <TableHead className="font-semibold text-primary-900">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {factures.map((facture) => (
+              {filteredFactures.map((facture) => (
                 <TableRow key={facture.id} className=" hover:bg-primary-50/30">
                   <TableCell>
-                    {/* <Checkbox 
-                      checked={selectedInvoices.has(facture.id.toString())}
-                      onCheckedChange={(checked) => handleSelectInvoice(facture.id.toString(), checked as boolean)}
-                    /> */}
                   </TableCell>
                   <TableCell className="font-medium">
                     <Link href={`/factures/${facture.id}`} className="hover:text-primary transition-colors">
@@ -145,17 +144,17 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium">
-                        {formatMontant(facture.order?.reduce((acc, item) => acc + (item.total || 0), 0) || 0)}
+                      <span className="font-medium text-lg">
+                        {formatMontant(Number(facture.remainingAmount) || 0)}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flexe gap-2">
+                    <div className="flex gap-2">
                       <TooltipProvider>
                         <Tooltip>
-                          <Dialog >
-                            <DialogTrigger  asChild>
+                          <Dialog>
+                            <DialogTrigger asChild>
                               <Button variant="ghost" size="sm" className="hover:bg-amber-50">
                                 <Bell className="h-4 w-4 text-amber-600" />
                               </Button>
@@ -167,6 +166,18 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
                               </DialogDescription>
                               <Notification 
                                 invoiceId={facture.invoiceNumber}
+                                onClose={() => {
+                                  const closeButton = document.querySelector('[data-state="open"] button[aria-label="Close"]');
+                                  if (closeButton instanceof HTMLElement) {
+                                    closeButton.click();
+                                  }
+                                }}
+                                onSuccess={() => {
+                                  const closeButton = document.querySelector('[data-state="open"] button[aria-label="Close"]');
+                                  if (closeButton instanceof HTMLElement) {
+                                    closeButton.click();
+                                  }
+                                }}
                               />
                             </DialogContent>
                           </Dialog>
@@ -175,11 +186,11 @@ export default function RecouvrementTable({ factures }: RecouvrementTableProps) 
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/factures/${facture.invoiceNumber}`} className="flex items-center gap-2">
-                          <Eye className="h-4 w-4" />
-                          Détails
-                        </Link>
+                      <Button variant="ghost" size="sm" asChild>                      
+                          <Link href={`/factures/${facture.invoiceNumber}`} className="flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
+                            Détails
+                          </Link>           
                       </Button>
                     </div>
                   </TableCell>
