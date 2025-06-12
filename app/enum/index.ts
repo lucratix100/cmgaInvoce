@@ -11,3 +11,18 @@ export enum InvoiceStatus {
   EN_COURS = 'en cours de livraison',
   LIVREE = 'livrée',
 }
+export enum InvoicePaymentStatus {
+  NON_PAYE = 'non payé',
+  PAIEMENT_PARTIEL = 'paiement partiel',
+  PAYE = 'payé',
+  // ANNULE = 'annulé',    
+}
+
+export enum PaymentMethod {
+  ESPECE = 'Espece',
+  CHEQUE = 'Cheque',
+  VIREMENT = 'Virement',
+  MOBILE_MONEY = 'Mobile Money',
+  RETOUR = 'Retour',
+  OD = 'OD',
+}

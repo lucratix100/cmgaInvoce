@@ -4,17 +4,10 @@ import Depot from './depot.js'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Customer from './customer.js'
 import Bl from './bl.js'
-import { InvoiceStatus } from '../enum/index.js'
+import { InvoicePaymentStatus, InvoiceStatus } from '../enum/index.js'
+import Payment from './payment.js'
 
-// interface OrderData {
-//   items: Array<{
-//     id: number;
-//     quantity: number;
-//     price: number;
-//     // autres propriétés...
-//   }>;
-//   // autres propriétés...
-// }
+
 export default class Invoice extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
@@ -37,6 +30,8 @@ export default class Invoice extends BaseModel {
   @column()
   declare customerId: number
   @column()
+  declare statusPayment: InvoicePaymentStatus
+  @column()
   declare order: any | null
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>
@@ -44,9 +39,12 @@ export default class Invoice extends BaseModel {
   declare customer: BelongsTo<typeof Customer>
   @hasMany(() => Bl)
   declare bls: HasMany<typeof Bl>
+  @hasMany(() => Payment)
+  declare payments: HasMany<typeof Payment>
   @column.dateTime({ autoCreate: false })
   declare deliveredAt: DateTime
   @column.dateTime({ autoCreate: true })
+
   declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime

@@ -11,6 +11,7 @@ export default class SageInvoicesController {
         try {
             const invoiceXml = await readFile('database/sql-server/invoice-cmga.xml', 'utf8')
             const invoiceJson = xmljs.xml2js(invoiceXml, { compact: true })
+            console.log(invoiceJson, 'invoiceJson');
             const depots = await Depot.all()
 
             // Utiliser Promise.all pour traiter les factures en parallèle

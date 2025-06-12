@@ -3,24 +3,55 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Invoice from '#models/invoice'
 import { InvoiceStatus, Role } from '../enum/index.js'
 import Bl from '#models/bl'
+import Assignment from '#models/assignment'
 
 
 
 
 export default class InvoicesController {
+
     async index({ request, response, auth }: HttpContext) {
         const user = await auth.authenticate()
         try {
             const { status, search, startDate, endDate } = request.qs()
+            console.log(status, search, startDate, endDate, "status, search, startDate, endDate")
+            let patterns: string[] = []
+            // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+            if (user.$original.role === Role.RECOUVREMENT) {
+                const assignedInvoices = await Assignment
+                    .query()
+                    .where('user_id', user.$original.id)
+                patterns = assignedInvoices.map(a => a.pattern)
+
+                // Si l'utilisateur RECOUVREMENT n'a pas de patterns, retourner un tableau vide
+                if (patterns.length === 0) {
+                    return response.json([])
+                }
+            }
             let query = Invoice.query()
                 .preload('customer')
+                .preload('payments')
                 .orderBy('date', 'desc')
+            // Filtre sur le statut
             if (status && Object.values(InvoiceStatus).includes(status)) {
                 query = query.where('status', status)
             }
+            // Si pas ADMIN ou RECOUVREMENT, on filtre sur le dépôt
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
+            // Filtrage par préfixes uniquement pour RECOUVREMENT
+            if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+                query = query.where((builder) => {
+                    patterns.forEach((prefix, index) => {
+                        const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                        builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                    })
+                })
+            }
+
+
+            // Filtrage par date
             if (startDate) {
                 if (endDate) {
                     query = query
@@ -29,9 +60,9 @@ export default class InvoicesController {
                 } else {
                     query = query.whereRaw('DATE(date) = ?', [startDate])
                 }
-
             }
 
+            // Recherche texte
             if (search) {
                 query = query.where((builder) => {
                     builder
@@ -47,19 +78,37 @@ export default class InvoicesController {
 
             const invoices = await query
 
-
-            const formattedInvoices = invoices.map(invoice => ({
-                id: invoice.id,
-                invoiceNumber: invoice.invoiceNumber,
-                accountNumber: invoice.accountNumber,
-                date: invoice.date,
-                status: invoice.status,
-                customer: invoice.customer ? {
-                    name: invoice.customer.name,
-                    phone: invoice.customer.phone
-                } : null,
-                order: invoice.order
-            }))
+            // const formattedInvoices = invoices.map(invoice => ({
+            //     id: invoice.id,
+            //     invoiceNumber: invoice.invoiceNumber,
+            //     accountNumber: invoice.accountNumber,
+            //     date: invoice.date,
+            //     status: invoice.status,
+            //     customer: invoice.customer ? {
+            //         name: invoice.customer.name,
+            //         phone: invoice.customer.phone
+            //     } : null,
+            //     order: invoice.order
+            // }))
+            const formattedInvoices = invoices.map(invoice => {
+                const totalPaid = invoice.payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
+                const remainingAmount = Number(invoice.totalTTC) - totalPaid
+                return {
+                    id: invoice.id,
+                    invoiceNumber: invoice.invoiceNumber,
+                    accountNumber: invoice.accountNumber,
+                    date: invoice.date,
+                    status: invoice.status,
+                    customer: invoice.customer ? {
+                        name: invoice.customer.name,
+                        phone: invoice.customer.phone
+                    } : null,
+                    order: invoice.order,
+                    depotId: invoice.depotId,
+                    statusPayment: invoice.statusPayment,
+                    remainingAmount: remainingAmount
+                }
+            })
 
             return response.json(formattedInvoices)
         } catch (error) {
@@ -69,11 +118,32 @@ export default class InvoicesController {
             })
         }
     }
+
     async show(ctx: HttpContext) {
         const user = await ctx.auth.authenticate()
+        let patterns: string[] = []
+        // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+        if (user.$original.role === Role.RECOUVREMENT) {
+            const assignedInvoices = await Assignment
+                .query()
+                .where('user_id', user.$original.id)
+            patterns = assignedInvoices.map(a => a.pattern)
+            if (patterns.length === 0) {
+                return ctx.response.json([])
+            }
+        }
+
         let query = Invoice.query()
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
+        }
+        if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+            query = query.where((builder) => {
+                patterns.forEach((prefix, index) => {
+                    const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                    builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                })
+            })
         }
         const invoice = await query.where('id', ctx.params.id).first()
         if (!invoice) {
@@ -112,27 +182,97 @@ export default class InvoicesController {
     }
     async get_invoices_by_customer(ctx: HttpContext) {
         const user = await ctx.auth.authenticate()
+        let patterns: string[] = []
+
+        // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+        if (user.$original.role === Role.RECOUVREMENT) {
+            const assignedInvoices = await Assignment
+                .query()
+                .where('user_id', user.$original.id)
+
+            patterns = assignedInvoices.map(a => a.pattern)
+            if (patterns.length === 0) {
+                return ctx.response.json([])
+            }
+        }
         let query = Invoice.query()
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
+        if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+            query = query.where((builder) => {
+                patterns.forEach((prefix, index) => {
+                    const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                    builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                })
+            })
+        }
+
         const invoices = await query.where('customer_id', ctx.params.id)
         return invoices
     }
     async get_invoices_by_depot(ctx: HttpContext) {
         const user = await ctx.auth.authenticate()
+        let patterns: string[] = []
+
+
+        try {
+            // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+            if (user.$original.role === Role.RECOUVREMENT) {
+                const assignedInvoices = await Assignment
+                    .query()
+                    .where('user_id', user.$original.id)
+
+                patterns = assignedInvoices.map(a => a.pattern)
+                if (patterns.length === 0) {
+                    return ctx.response.json([])
+                }
+            }
+
+            let query = Invoice.query()
+            if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', user.$original.depotId)
+            }
+            if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+                query = query.where((builder) => {
+                    patterns.forEach((prefix, index) => {
+                        const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                        builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                    })
+                })
+            }
+            const invoices = await query.where('depot_id', ctx.params.id)
+            return invoices
+        } catch (error) {
+            console.error('Erreur détaillée:', error)
+            return ctx.response.status(500).json({
+                error: 'Erreur lors de la récupération des factures'
+            })
+        }
+    }
+    async get_invoices_by_status(ctx: HttpContext) {
+        const user = await ctx.auth.authenticate()
+        let patterns: string[] = []
+
+        // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+        if (user.$original.role === Role.RECOUVREMENT) {
+            const assignedInvoices = await Assignment
+                .query()
+                .where('user_id', user.$original.id)
+
+            patterns = assignedInvoices.map(a => a.pattern)
+        }
         let query = Invoice.query()
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
-        const invoices = await query.where('depot_id', ctx.params.id)
-        return invoices
-    }
-    async get_invoices_by_status(ctx: HttpContext) {
-        const user = await ctx.auth.authenticate()
-        let query = Invoice.query()
-        if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
-            query = query.where('depot_id', user.$original.depotId)
+        if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+            query = query.where((builder) => {
+                patterns.forEach((prefix, index) => {
+                    const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                    builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                })
+            })
         }
         const invoices = await query.where('status', ctx.params.status)
         return invoices
@@ -140,6 +280,20 @@ export default class InvoicesController {
 
     async get_invoice_by_date({ request, response, auth }: HttpContext) {
         const user = await auth.authenticate()
+        let patterns: string[] = []
+
+        // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+        if (user.$original.role === Role.RECOUVREMENT) {
+            const assignedInvoices = await Assignment
+                .query()
+                .where('user_id', user.$original.id)
+
+            patterns = assignedInvoices.map(a => a.pattern)
+            if (patterns.length === 0) {
+                return response.json([])
+            }
+        }
+
 
         try {
             const { startDate, endDate } = request.qs()
@@ -158,6 +312,14 @@ export default class InvoicesController {
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
+            if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+                query = query.where((builder) => {
+                    patterns.forEach((prefix, index) => {
+                        const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                        builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                    })
+                })
+            }
             const invoices = await query
 
             return response.json(invoices)
@@ -171,16 +333,52 @@ export default class InvoicesController {
 
     async get_invoice_by_invoice_number_and_depot(ctx: HttpContext) {
         const user = await ctx.auth.authenticate()
+        let patterns: string[] = []
+
+        // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+        if (user.$original.role === Role.RECOUVREMENT) {
+            const assignedInvoices = await Assignment
+                .query()
+                .where('user_id', user.$original.id)
+
+            patterns = assignedInvoices.map(a => a.pattern)
+            if (patterns.length === 0) {
+                return ctx.response.json([])
+            }
+        }
+
         let query = Invoice.query()
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
+        }
+        if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+            query = query.where((builder) => {
+                patterns.forEach((prefix, index) => {
+                    const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                    builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                })
+            })
         }
         const invoice = await query.where('invoice_number', ctx.params.invoice_number)
         return invoice
     }
 
     async get_invoice_by_invoice_number({ params, response, auth }: HttpContext) {
+        console.log(params.invoice_number, "get_invoice_by_invoice_number")
         const user = await auth.authenticate()
+        let patterns: string[] = []
+
+        // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+        if (user.$original.role === Role.RECOUVREMENT) {
+            const assignedInvoices = await Assignment
+                .query()
+                .where('user_id', user.$original.id)
+
+            patterns = assignedInvoices.map(a => a.pattern)
+            if (patterns.length === 0) {
+                return response.json([])
+            }
+        }
 
         try {
             let query = Invoice.query()
@@ -190,10 +388,15 @@ export default class InvoicesController {
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
+            if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+                query = query.where((builder) => {
+                    patterns.forEach((prefix, index) => {
+                        const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                        builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                    })
+                })
+            }
             const invoice = await query.firstOrFail()
-
-
-
             if (!invoice) {
                 return response.status(404).json({
                     error: 'Facture non trouvée'
@@ -236,16 +439,37 @@ export default class InvoicesController {
     }
 
     async getBls({ params, response, auth }: HttpContext) {
+        console.log(params.invoice_number, "getBls")
         const user = await auth.authenticate()
-        let query = Invoice.query()
-        if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
-            query = query.where('depot_id', user.$original.depotId)
+        let patterns: string[] = []
+
+        // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
+        if (user.$original.role === Role.RECOUVREMENT) {
+            const assignedInvoices = await Assignment
+                .query()
+                .where('user_id', user.$original.id)
+            patterns = assignedInvoices.map(a => a.pattern)
+
+            if (patterns.length === 0) {
+                return response.json([])
+            }
         }
+
         try {
             let query = Invoice.query()
                 .where('invoice_number', params.invoice_number)
+
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
+            }
+
+            if (user.$original.role === Role.RECOUVREMENT && patterns.length > 0) {
+                query = query.where((builder) => {
+                    patterns.forEach((prefix, index) => {
+                        const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
+                        builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
+                    })
+                })
             }
 
             query = query.preload('bls', (query) => {
@@ -254,11 +478,13 @@ export default class InvoicesController {
             })
 
             const invoice = await query.firstOrFail()
-
             return response.json(invoice.bls)
         } catch (error) {
             console.error('Erreur getBls:', error)
-            return response.status(404).json({ error: 'Facture non trouvée' })
+            if (error.code === 'E_ROW_NOT_FOUND') {
+                return response.status(404).json({ error: 'Facture non trouvée' })
+            }
+            return response.status(500).json({ error: 'Erreur lors de la récupération des BLs' })
         }
     }
 

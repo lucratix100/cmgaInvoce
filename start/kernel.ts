@@ -14,7 +14,7 @@ import server from '@adonisjs/core/services/server'
 /**
  * Import task for invoice CSV import
  */
-import('../app/tasks/invoice_xml_importer.js')
+// import('../app/tasks/invoice_xml_importer.js')
 
 /**
  * The error handler is used to convert an exception

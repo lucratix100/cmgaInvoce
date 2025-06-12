@@ -8,6 +8,7 @@ import { Role } from '../enum/index.js'
 import Depot from './depot.js'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Bl from '#models/bl'
+import Assignment from './assignment.js'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['phone'],
@@ -43,6 +44,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>
+
+  @hasMany(() => Assignment)
+  declare assignments: HasMany<typeof Assignment>
 
   @column({ serializeAs: null })
   declare password: string
