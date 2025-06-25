@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Check, ScanBarcode, Keyboard } from "lucide-react"
+import { Keyboard } from "lucide-react"
 import { getInvoiceByNumber, updateInvoiceStatus } from "@/actions/invoice"
 import InvoiceConfirmationDialog from "./invoice-scan-confirmation-dialog"
 import { InvoiceStatus } from '@/types/enums'
