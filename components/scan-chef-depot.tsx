@@ -14,10 +14,10 @@ import { InvoiceStatus } from '@/types/enums'
 interface ScanChefDepotProps {
     isOpen: boolean
     onClose: () => void
-    onScan?: (result: string) => void
+    onScan?: (result: string) => void  
 }
 
-export default function ScanChefDepot({ isOpen, onClose, onScan }: ScanChefDepotProps) {
+export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepotProps) {
     const [numeroFacture, setNumeroFacture] = useState("")
     const [loading, setLoading] = useState(false)
     const [isTestMode, setIsTestMode] = useState(false)
@@ -58,7 +58,7 @@ export default function ScanChefDepot({ isOpen, onClose, onScan }: ScanChefDepot
     }, [numeroFacture])
 
     // Effet pour remettre le focus quand le dialogue de confirmation se ferme
-    useEffect(() => {
+    useEffect(() => { 
         if (!showConfirmation && isOpen && !loading) {
             setTimeout(() => {
                 if (inputRef.current) {
