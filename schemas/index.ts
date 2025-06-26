@@ -26,8 +26,8 @@ export const UserSchema = z.object({
     phone: z.string()
         .min(9, "Le numéro doit contenir au moins 9 chiffres")
         .max(15, "Le numéro ne peut pas dépasser 15 chiffres"),
-    password: z.string(),
-    confirmPassword: z.string(),
+    password: z.string().optional(),
+    confirmPassword: z.string().optional(),
     role: z.enum(['ADMIN', 'MAGASINIER', 'CHEF DEPOT', 'RECOUVREMENT', 'CONTROLEUR'], {
         errorMap: () => ({ message: "Rôle invalide" })
     }),

@@ -119,10 +119,12 @@ export const createUser = async (data: z.infer<typeof UserSchema>): Promise<ApiR
 }
 
 export const updateUser = async (id: number, data: z.infer<typeof UserSchema>): Promise<ApiResponse> => {
+    console.log('data', data)
     try {
         const cookieStore = await cookies()
         const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
         const validatedData = UserSchema.parse(data)
+        console.log('validatedData', validatedData)
 
         const response = await axios.put(`${process.env.API_URL}users/${id}`, validatedData, {
             headers: {
@@ -134,6 +136,7 @@ export const updateUser = async (id: number, data: z.infer<typeof UserSchema>): 
         revalidatePath('/dashboard/users')
         return { success: true, data: response.data }
     } catch (error: any) {
+        console.log('error', error)
         if (error instanceof z.ZodError) {
             return { success: false, error: error.errors }
         }

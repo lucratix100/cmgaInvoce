@@ -109,6 +109,11 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
     onClose()
   }
 
+  // Fonction pour vérifier si un dépôt est requis selon le rôle
+  const isDepotRequired = (role: string) => {
+    return role && role !== Role.ADMIN && role !== Role.RECOUVREMENT
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -124,17 +129,46 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
       return
     }
 
+    // Vérification que le dépôt est sélectionné si requis
+    if (formData.role && isDepotRequired(formData.role) && (!formData.depotId || formData.depotId <= 0)) {
+      setErrors({
+        ...errors,
+        depotId: ["Un dépôt doit être sélectionné pour ce rôle"]
+      })
+      setLoading(false)
+      return
+    }
+
     try {
-      const apiData = {
-        firstname: formData.firstname,
-        lastname: formData.lastname,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        role: formData.role as Role,
-        depotId: formData.depotId || null,
+      // Créer un objet avec seulement les champs non vides
+      const apiData: any = {
         isActive: formData.isActive
+      }
+
+      // Ajouter seulement les champs qui ne sont pas vides
+      if (formData.firstname.trim()) {
+        apiData.firstname = formData.firstname.trim()
+      }
+      if (formData.lastname.trim()) {
+        apiData.lastname = formData.lastname.trim()
+      }
+      if (formData.email.trim()) {
+        apiData.email = formData.email.trim()
+      }
+      if (formData.phone.trim()) {
+        apiData.phone = formData.phone.trim()
+      }
+      if (formData.password.trim()) {
+        apiData.password = formData.password
+        apiData.confirmPassword = formData.confirmPassword
+      }
+      if (formData.role) {
+        apiData.role = formData.role as Role
+      }
+      if (formData.depotId && formData.depotId > 0) {
+        apiData.depotId = formData.depotId
+      } else {
+        apiData.depotId = null
       }
 
       console.log('Données envoyées:', apiData)
@@ -298,13 +332,18 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
             )}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="depot">Dépôt</Label>
+            <Label htmlFor="depot">
+              Dépôt
+              {formData.role && isDepotRequired(formData.role) && (
+                <span className="text-red-500 ml-1">*</span>
+              )}
+            </Label>
             <Select
               value={formData.depotId?.toString() || ""}
               onValueChange={(value) => setFormData({ ...formData, depotId: parseInt(value) })}
               disabled={loading}
             >
-              <SelectTrigger>
+              <SelectTrigger className={cn(errors.depotId && "border-red-500")}>
                 <SelectValue placeholder="Sélectionner un dépôt" />
               </SelectTrigger>
               <SelectContent className="bg-white">
@@ -315,6 +354,9 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
                 ))}
               </SelectContent>
             </Select>
+            {errors.depotId && (
+              <p className="text-sm text-red-500">{errors.depotId.join(', ')}</p>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
