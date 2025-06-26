@@ -39,6 +39,8 @@ interface FilterState {
 export default function Filtre({
     onStatusChange,
     onSearch,
+    currentStatus,
+    searchValue,
     onDateChange,
     onPaymentStatusChange,
     onDepotChange,

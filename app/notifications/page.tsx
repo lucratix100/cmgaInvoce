@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/actions/user"
+import Navbar from "../../components/navbar/navbar"
 import NotificationClient from "./notificationClient"
 import { Role } from "@/types/roles"
 
@@ -12,3 +13,8 @@ export default async function Notification() {
     )
 
 }
+    //         <Navbar />
+    //         {(user?.role === Role.ADMIN || user?.role === Role.RECOUVREMENT) && <NotificationClient user={user} />}
+    //     </div>
+    // )
+// }

@@ -4,13 +4,14 @@ import { getInvoices } from "@/actions/invoice"
 import { getDepots } from "@/actions/depot"
 import { Role } from "@/types/roles"
 
+
+
 export default async function FacturePage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string }>
 }) {
   const params = await searchParams
-  
   const [user, invoices, depots] = await Promise.all([
     getCurrentUser(),
     getInvoices({

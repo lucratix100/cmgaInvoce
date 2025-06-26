@@ -159,18 +159,18 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <TableCell>{facture.accountNumber}</TableCell>
                     <TableCell>{formatDate(facture.date)}</TableCell>
                     <TableCell>{facture.customer?.name}</TableCell>
-                    {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && <TableCell>{formatDate(facture.date)}</TableCell>}
+                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>{formatDate(facture.date)}</TableCell>}
                     <TableCell>
                       <Badge className={getStatusColor(facture.status)}>
                         {facture.status.replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>
-                    {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && <TableCell>
+                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
                         {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>}
-                    {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && <TableCell>
+                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium text-lg">
                           {formatMontant(Number(facture.remainingAmount) || 0)}

@@ -1,9 +1,5 @@
 "use client"
-
-import { useState } from "react"
 import { Card } from "@/components/ui/card"
-import Header from "@/components/navbar/navbar"
-import Pagination from "@/components/facture/pagination"
 import RecouvrementTable from "@/components/recouvrement/recouvrement-table"
 
 interface FactureClientProps {
