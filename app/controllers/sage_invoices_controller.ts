@@ -4,7 +4,7 @@ import Customer from '#models/customer'
 import Invoice from '#models/invoice'
 import { readFile } from 'node:fs/promises'
 import xmljs from 'xml-js'
-import { InvoiceStatus } from '../enum/invoice-status.js'
+import { InvoiceStatus } from '../enum/index.js'
 import Depot from '#models/depot'
 export default class SageInvoicesController {
     async invoice_xml_to_json() {
@@ -71,7 +71,7 @@ export default class SageInvoicesController {
                     date: invoice._attributes.dateFacture,
                     order: JSON.stringify(formattedProducts),
                     totalTTC: totalTTC,
-                    status: InvoiceStatus.PENDING,
+                    status: InvoiceStatus.NON_RECEPTIONNE,
                     isCompleteDelivery: true
                 })
             }))

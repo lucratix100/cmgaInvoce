@@ -9,16 +9,17 @@ import { DateTime } from 'luxon'
 
 export default class ProcessDeliveriesController {
     async confirmBl({ request, response, auth }: HttpContext) {
-        const { id: authUserId } = auth.getUserOrFail()
+        const { id } = auth.getUserOrFail()
+        const authUserId = Number(id)
         const { invoiceNumber } = request.body()
         const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
         }
+
         if (invoice.isCompleted) {
             return response.status(400).json({ message: 'La facture a déjà été livrée.' })
         }
-
         // const lastBlbeforeConfirmation = await Bl.query().where('invoice_id', invoice.id).where('is_delivered', true).orderBy('id', 'desc').first()
         const bl = await Bl.query().where('invoice_id', invoice.id).orderBy('id', 'desc').first()
         // return console.log(bl?.products, "bl", driverId);
@@ -64,6 +65,9 @@ export default class ProcessDeliveriesController {
         const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
+        }
+        if (invoice.status === InvoiceStatus.NON_RECEPTIONNE) {
+            return response.status(400).json({ message: 'La facture n\'a pas été réceptionnée.' })
         }
         if (invoice.isCompleted) {
             return response.status(400).json({ message: 'La facture a déjà été livrée.' })
@@ -193,7 +197,6 @@ export default class ProcessDeliveriesController {
             driverId: driverId,
         })
     }
-
     private async calculateNewBlProducts(invoice: any, isCompleteDelivery: boolean, products: any) {
         if (isCompleteDelivery) {
             return JSON.stringify(invoice.order)
