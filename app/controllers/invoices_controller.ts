@@ -1,9 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
 
 import Invoice from '#models/invoice'
 import { InvoiceStatus, Role } from '../enum/index.js'
 import Bl from '#models/bl'
 import Assignment from '#models/assignment'
+import User from '#models/user'
+import InvoiceReminder from '#models/invoice_reminder'
 
 
 
@@ -461,7 +464,9 @@ export default class InvoicesController {
             }
 
             query = query.preload('bls', (query) => {
-                query.preload('driver')
+                query.preload('driver').preload('user', (query) => {
+                    query.select('firstname', 'lastname')
+                })
                     .orderBy('created_at', 'desc')
             })
 
@@ -555,6 +560,75 @@ export default class InvoicesController {
             return response.status(500).json({
                 error: 'Erreur lors de la récupération des statistiques des factures'
             });
+        }
+    }
+
+    async get_invoice_by_scan(ctx: HttpContext) {
+        
+        const invoiceNumber = ctx.request.body().invoice_number
+        
+        const invoice = await Invoice.query().where('invoice_number', invoiceNumber).first()
+ 
+        if (!invoice) {
+            return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
+        }
+
+        return invoice
+    }
+
+    async updateInvoiceStatusByNumber(ctx: HttpContext) {
+        const user = await ctx.auth.authenticate()
+        const invoiceNumber = ctx.params.invoice_number
+        const { status } = ctx.request.body()
+
+        try {
+            let query = Invoice.query().where('invoice_number', invoiceNumber)
+            
+            if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', user.$original.depotId)
+            }
+            
+            const invoice = await query.first()
+            
+            if (!invoice) {
+                return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
+            }
+
+            // Sauvegarder l'ancien statut pour la comparaison
+            const oldStatus = invoice.status
+
+            invoice.status = status
+            await invoice.save()
+
+            // Si le statut change vers "en attente de livraison", créer des notifications pour les admins
+            if (status === "en attente de livraison" && oldStatus !== "en attente de livraison") {
+                try {
+                    // Récupérer tous les utilisateurs admin
+                    const adminUsers = await User.query().where('role', Role.ADMIN).where('isActive', true)
+                    
+                    // Créer une notification pour chaque admin
+                    const notificationPromises = adminUsers.map(adminUser => {
+                        return InvoiceReminder.create({
+                            userId: Number(adminUser.id),
+                            invoiceId: invoice.id,
+                            remindAt: DateTime.now(), // Notification immédiate
+                            comment: `Facture ${invoice.invoiceNumber} scannée et mise en attente de livraison par ${user.$original.firstname} ${user.$original.lastname}`,
+                            read: false
+                        })
+                    })
+
+                    await Promise.all(notificationPromises)
+                    console.log(`Notifications créées pour ${adminUsers.length} administrateurs`)
+                } catch (notificationError) {
+                    console.error('Erreur lors de la création des notifications:', notificationError)
+                    // Ne pas faire échouer la mise à jour du statut si les notifications échouent
+                }
+            }
+
+            return ctx.response.json({ message: 'Statut mis à jour avec succès', invoice })
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour du statut:', error)
+            return ctx.response.status(500).json({ message: 'Erreur lors de la mise à jour du statut.' })
         }
     }
 }

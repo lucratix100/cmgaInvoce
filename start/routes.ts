@@ -47,6 +47,7 @@ router.group(() => {
     router.get('/assignment/:id/root', [AssignmentsController, 'getAssignmentByRootId'])
     router.get('/users/recouvrement', [UsersController, 'getRecouvrementUsers'])
     router.get('/invoice/:number', [InvoicesController, 'getInvoiceByNumber'])
+    router.patch('/invoice/:invoice_number', [InvoicesController, 'updateInvoiceStatusByNumber'])
     router.post('/refresh', [AuthController, 'refresh'])
     router.post('/process-delivery', [ProcessDeliveriesController, 'processDeliveries'])
     router.post('/confirm-bl', [ProcessDeliveriesController, 'confirmBl'])

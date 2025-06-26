@@ -11,7 +11,6 @@ export default class extends BaseSchema {
       table.timestamp('remind_at')
       table.string('comment')
       table.boolean('read').defaultTo(false)
-
       table.timestamp('created_at')
       table.timestamp('updated_at')
     })
