@@ -47,8 +47,9 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
   const getStatusColor = (status: string) => {
     const colors = {
       // Statuts de livraison
+      "NON RÉCEPTIONNÉE": "bg-red-100 text-red-700 border-red-200",
       "EN ATTENTE DE LIVRAISON": "bg-amber-100 text-amber-700 border-amber-200",
-      "LIVRE": " bg-green-100 text-green-700 border-green-200 ",
+      "LIVRÉE": " bg-green-100 text-green-800 border-green-200 ",
       "EN COURS DE LIVRAISON": " bg-white text-blue-700 border-blue-200 ",
       "LIVRAISON PARTIELLE": "bg-blue-100 text-blue-700 border-blue-200 ",
       // Statuts de paiement
@@ -151,25 +152,25 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <TableCell>
                     </TableCell>
                     <TableCell className="font-medium">
-                      <Link href={`/factures/${facture.id}`} className="hover:text-primary transition-colors">
+                     
                         {facture.invoiceNumber}
-                      </Link>
+                    
                     </TableCell>
                     <TableCell>{facture.accountNumber}</TableCell>
                     <TableCell>{formatDate(facture.date)}</TableCell>
                     <TableCell>{facture.customer?.name}</TableCell>
-                    {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && <TableCell>{formatDate(facture.date)}</TableCell>}
+                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>{formatDate(facture.date)}</TableCell>}
                     <TableCell>
                       <Badge className={getStatusColor(facture.status)}>
                         {facture.status.replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>
-                    {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && <TableCell>
+                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
                         {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>}
-                    {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && <TableCell>
+                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium text-lg">
                           {formatMontant(Number(facture.remainingAmount) || 0)}
@@ -180,35 +181,6 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                       <div className="flex gap-2">
                         <TooltipProvider>
                           <Tooltip>
-                            {/* <Dialog> */}
-                            {/* <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="hover:bg-amber-50">
-                                  <Bell className="h-4 w-4 text-amber-600" />
-                                </Button>
-                              </DialogTrigger> */}
-                            {/* <DialogContent className="bg-white sm:max-w-[425px]">
-                                <DialogTitle>Notification de suivi</DialogTitle>
-                                <DialogDescription>
-                                  Créez un rappel pour la facture {facture.invoiceNumber}
-                                </DialogDescription>
-                                <Notification
-                                  invoiceId={Number(facture.id)}
-                                  user={user}
-                                  onClose={() => {
-                                    const closeButton = document.querySelector('[data-state="open"] button[aria-label="Close"]');
-                                    if (closeButton instanceof HTMLElement) {
-                                      closeButton.click();
-                                    }
-                                  }}
-                                  onSuccess={() => {
-                                    const closeButton = document.querySelector('[data-state="open"] button[aria-label="Close"]');
-                                    if (closeButton instanceof HTMLElement) {
-                                      closeButton.click();
-                                    }
-                                  }}
-                                />
-                              </DialogContent>
-                            </Dialog> */}
                             <TooltipContent>
                               <p>Ajouter une notification</p>
                             </TooltipContent>

@@ -57,6 +57,10 @@ export type Bl = {
     isDelivery: boolean;
     createdAt: string;
     driver: Driver;
+    user?: {
+        firstname: string;
+        lastname: string;
+    };
 }
 export type CreateBl = {
     invoiceNumber: string

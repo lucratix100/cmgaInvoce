@@ -44,6 +44,7 @@ export default async function RootLayout({
             </main>
           </div>
         </div>
+        <Toaster />
       </body>
     </html>
   )

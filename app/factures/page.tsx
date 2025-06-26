@@ -1,4 +1,3 @@
-
 import FactureClient from "./factureClient"
 import { getCurrentUser } from "@/actions/user"
 import { getInvoices } from "@/actions/invoice"
@@ -10,15 +9,16 @@ import { Role } from "@/types/roles"
 export default async function FacturePage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string }
+  searchParams: Promise<{ [key: string]: string }>
 }) {
+  const params = await searchParams
   const [user, invoices, depots] = await Promise.all([
     getCurrentUser(),
     getInvoices({
-      startDate: searchParams.startDate,
-      endDate: searchParams.endDate || undefined,
-      status: searchParams.status,
-      search: searchParams.search
+      startDate: params.startDate,
+      endDate: params.endDate || undefined,
+      status: params.status,
+      search: params.search
     }),
     getDepots()
   ])

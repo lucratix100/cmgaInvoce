@@ -90,13 +90,13 @@ export default function Notification({ user }: { user: user }) {
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                             Chargement des notifications...
                         </div>
-                    ) : notifications.length === 0 ? (
+                    ) : notifications.filter(notif => !notif.read).length === 0 ? (
                         <div className="p-6 text-center text-muted-foreground">
                             <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                            Aucune notification
+                            Aucune notification non lue
                         </div>
                     ) : (
-                        notifications.map((notification) => (
+                        notifications.filter(notif => !notif.read).map((notification) => (
                             <DropdownMenuItem
                                 key={notification.id}
                                 className="p-4 hover:bg-gray-50 cursor-pointer border-b last:border-0 transition-colors"

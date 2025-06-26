@@ -24,8 +24,8 @@ export default async function login(values: z.infer<typeof LoginSchema>) {
       password,
     });
 
-
     const { accessToken, user } = auth.data;
+    console.log(auth.data , "auth.data");
 
 
 

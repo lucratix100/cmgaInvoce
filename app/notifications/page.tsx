@@ -7,8 +7,14 @@ export default async function Notification() {
     const user = await getCurrentUser()
     return (
         <div className="w-full">
-            <Navbar />
+            {/* <Navbar user={user} /> */}
             {(user?.role === Role.ADMIN || user?.role === Role.RECOUVREMENT) && <NotificationClient user={user} />}
         </div>
     )
+
 }
+    //         <Navbar />
+    //         {(user?.role === Role.ADMIN || user?.role === Role.RECOUVREMENT) && <NotificationClient user={user} />}
+    //     </div>
+    // )
+// }

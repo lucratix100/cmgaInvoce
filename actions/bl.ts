@@ -13,6 +13,7 @@ export const getBls = async (invoiceNumber: string) => {
                 'Accept': 'application/json'
             }
         })
+        console.log(response.data, "response.data")
         return response.data
     } catch (error) {
         console.error('Erreur lors de la récupération des BLs:', error)

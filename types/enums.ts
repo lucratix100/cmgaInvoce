@@ -1,4 +1,5 @@
 export enum InvoiceStatus {
+    NON_RECEPTIONNEE = 'non réceptionnée',
     EN_ATTENTE = 'en attente de livraison',
     EN_COURS = 'en cours de livraison',
     LIVREE = 'livrée'

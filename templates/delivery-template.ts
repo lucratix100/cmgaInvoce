@@ -6,6 +6,7 @@ export const getDeliveryTemplate = (data: {
   driverName: string;
   driverPhone: string;
   products: any[];
+  hasPreviousBl?: boolean;
 }) => `
 <!DOCTYPE html>
 <html lang="fr">
@@ -197,6 +198,7 @@ export const getDeliveryTemplate = (data: {
       <thead>
         <tr>
           <th>Désignation</th>
+          ${data.hasPreviousBl ? '<th>Qté restant du BL précédent</th>' : ''}
           <th>Qté livrée</th>
           <th>Qté restante</th>
         </tr>
@@ -205,7 +207,8 @@ export const getDeliveryTemplate = (data: {
         ${data.products.map(product => `
           <tr>
             <td>${product.designation || 'N/A'}</td>
-            <td>${product.quantite}</td>
+            ${data.hasPreviousBl ? `<td>${product.quantiteCommandee || 0}</td>` : ''}
+            <td>${product.quantiteLivree}</td>
             <td>${product.remainingQty}</td>
           </tr>
         `).join('')}

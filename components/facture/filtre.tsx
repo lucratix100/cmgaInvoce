@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Building, Calendar, DollarSign, Filter, Search, Menu, X } from "lucide-react"
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { InvoiceStatus } from "@/types/enums"
+import { Building, Calendar, DollarSign, Filter, Search, Menu, X, ScanBarcode } from "lucide-react"
+import { useState, useCallback, useMemo } from "react"
 import { depot, user } from "@/types"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
+import ScanDialog from "@/components/scan-magasinier"
+import ScanChefDepot from "../scan-chef-depot"
+import ScanController from "../scan-controller"
 
 interface FilterProps {
     onStatusChange: (status: string) => void;
@@ -50,6 +52,7 @@ export default function Filtre({
     const router = useRouter()
     const searchParams = useSearchParams()
     const today = new Date().toISOString().split('T')[0]
+    const [isScanOpen, setIsScanOpen] = useState(false)
 
     const [state, setState] = useState<FilterState>(() => {
         const params = new URLSearchParams(searchParams.toString())
@@ -120,6 +123,7 @@ export default function Filtre({
 
     const statusOptions = useMemo(() => [
         { value: "tous", label: "TOUS" },
+        { value: "non réceptionnée", label: "NON RÉCEPTIONNÉE" },
         { value: "en attente de livraison", label: "EN ATTENTE DE LIVRAISON" },
         { value: "en cours de livraison", label: "EN COURS DE LIVRAISON" },
         { value: "livrée", label: "LIVREE" }
@@ -299,8 +303,7 @@ export default function Filtre({
                     </div>
 
                 </div>
-            </div>
-
+            </div>  
             {/* Version desktop */}
             <Card className="hidden md:block border-none shadow-md overflow-hidden bg-white">
                 <CardHeader className="bg-primary-50 pb-1">
@@ -486,8 +489,29 @@ export default function Filtre({
                                     </Select>
                                 </div>
                             )}
+                            <div className="space-y-2">
+                                {user?.role === Role.MAGASINIER ? (
+                                    <ScanDialog onScan={(result) => handleStateChange({ searchInvoice: result })} />
+                                ) : user?.role === Role.CHEF_DEPOT ? (
+                                    <>
+                                        <Button variant="outline" className="hover:bg-primary-700 hover:text-white bg-primary-500 text-white transition-all duration-300" onClick={() => setIsScanOpen(true)}>
+                                        <ScanBarcode className="h-4 w-4 mr-2" />
+                                        Scanner la facture
+                                        </Button>
+                                        <ScanChefDepot 
+                                            isOpen={isScanOpen} 
+                                            onClose={() => setIsScanOpen(false)} 
+                                            onScan={(result) => {
+                                                handleStateChange({ searchInvoice: result })
+                                                setIsScanOpen(false)
+                                            }} 
+                                        />
+                                    </>
+                                ) : user?.role === Role.CONTROLEUR ? (
+                                    <ScanController onScan={(result) => handleStateChange({ searchInvoice: result })} />
+                                ) : null}
+                            </div>
                         </div>
-
                         {/* Section Droite: Recherche */}
                         <div className="space-y-2 w-64">
                             <Label className="flex items-center gap-2 text-primary-700">
