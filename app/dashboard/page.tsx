@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { Check, Clock, Truck } from "lucide-react"
 import { BarChart3, FileText } from "lucide-react"
+import RecentActivities from "@/components/recent-activities"
 
 
 // Statistiques globales
@@ -169,47 +170,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Activités récentes</CardTitle>
-            <CardDescription>Dernières actions effectuées sur la plateforme</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <div key={item} className="flex items-start gap-4 pb-4 border-b last:border-0">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className={`bg-primary-${item * 100} text-white`}>
-                      {["MB", "FD", "OS", "AN", "ID"][item - 1]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {
-                        ["Mamadou Ba", "Fatou Diop", "Omar Sall", "Aissatou Ndiaye", "Ibrahima Diallo"][
-                        item - 1
-                        ]
-                      }{" "}
-                      a{" "}
-                      {
-                        [
-                          "créé une nouvelle facture",
-                          "modifié un dépôt",
-                          "ajouté un conducteur",
-                          "désactivé un utilisateur",
-                          "validé une livraison",
-                        ][item - 1]
-                      }
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Il y a {[5, 12, 45, 120, 180][item - 1]} minutes
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <RecentActivities />
       </div>
     </div>
   )

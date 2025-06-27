@@ -512,7 +512,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
                                 size="sm"
                             >
                                 <CheckCheck className="h-4 w-4 mr-1"/>
-                                Valider la livraison
+                                Livraison complète
                             </Button>
                     </div>
                     </div>
