@@ -6,12 +6,14 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { calculateQuantityDifferences } from '../utils/helpers.js'
 import { InvoiceStatus } from '../enum/index.js'
 import { DateTime } from 'luxon'
+import UserActivityService from '#services/user_activity_service'
+import NotificationService from '#services/notification_service'
 
 export default class ProcessDeliveriesController {
     async confirmBl({ request, response, auth }: HttpContext) {
-        const { id: authUserId } = auth.getUserOrFail()
+        const user = await auth.authenticate()
         const { invoiceNumber } = request.body()
-        const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
+        const invoice = await Invoice.query().where('invoice_number', invoiceNumber).preload('customer').first()
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
         }
@@ -32,7 +34,7 @@ export default class ProcessDeliveriesController {
         const newBlproducts = await this.calculateNewBlProducts(invoice, invoice.isCompleteDelivery, bl.products)
         if (!invoice.isCompleteDelivery) {
             await Confirmation.create({
-                userId: Number(authUserId),
+                userId: Number(user.id),
                 blId: bl.id,
             })
             bl.merge({ status: 'validée', isDelivered: true, products: JSON.stringify(newBlproducts) })
@@ -43,25 +45,104 @@ export default class ProcessDeliveriesController {
             if (remainingQty === 0) {
                 invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
                 await invoice.save()
+                
+                // Enregistrer l'activité de confirmation de livraison
+                await UserActivityService.logActivity(
+                    Number(user.id),
+                    UserActivityService.ACTIONS.CONFIRM_DELIVERY,
+                    user.role,
+                    invoice.id,
+                    {
+                        blId: bl.id,
+                        blNumber: `BL-${bl.id}`,
+                        invoiceNumber: invoice.invoiceNumber,
+                        status: 'livrée',
+                        isCompleteDelivery: false
+                    }
+                )
+                
+                // Notifier les admins que le BL a été validé et la facture livrée
+                await NotificationService.notifyBlValidation(
+                    `BL-${bl.id}`,
+                    invoice.invoiceNumber,
+                    invoice.customer?.name || 'Client inconnu',
+                    `${user.firstname} ${user.lastname}`,
+                    'livrée',
+                    invoice.id
+                )
+                
                 return response.status(200).json({ message: 'Facture livrée.' })
             }
+            
+            // Enregistrer l'activité de confirmation de livraison partielle
+            await UserActivityService.logActivity(
+                Number(user.id),
+                UserActivityService.ACTIONS.CONFIRM_DELIVERY,
+                user.role,
+                invoice.id,
+                {
+                    blId: bl.id,
+                    blNumber: `BL-${bl.id}`,
+                    invoiceNumber: invoice.invoiceNumber,
+                    status: 'livraison partielle',
+                    isCompleteDelivery: false
+                }
+            )
+            
+            // Notifier les admins que le BL a été validé (livraison partielle)
+            await NotificationService.notifyBlValidation(
+                `BL-${bl.id}`,
+                invoice.invoiceNumber,
+                invoice.customer?.name || 'Client inconnu',
+                `${user.firstname} ${user.lastname}`,
+                'livraison partielle',
+                invoice.id
+            )
+            
             return response.status(200).json({ message: 'BL validée.' })
         } else {
             await Confirmation.create({
-                userId: Number(authUserId),
+                userId: Number(user.id),
                 blId: bl.id,
             })
             bl.merge({ status: 'validée', isDelivered: true, products: newBlproducts })
             await bl.save()
             invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
             await invoice.save()
+            
+            // Enregistrer l'activité de confirmation de livraison complète
+            await UserActivityService.logActivity(
+                Number(user.id),
+                UserActivityService.ACTIONS.CONFIRM_DELIVERY,
+                user.role,
+                invoice.id,
+                {
+                    blId: bl.id,
+                    blNumber: `BL-${bl.id}`,
+                    invoiceNumber: invoice.invoiceNumber,
+                    status: 'livrée',
+                    isCompleteDelivery: true
+                }
+            )
+            
+            // Notifier les admins que le BL a été validé et la facture livrée (livraison complète)
+            await NotificationService.notifyBlValidation(
+                `BL-${bl.id}`,
+                invoice.invoiceNumber,
+                invoice.customer?.name || 'Client inconnu',
+                `${user.firstname} ${user.lastname}`,
+                'livrée',
+                invoice.id
+            )
+            
             return response.status(200).json({ message: 'BL validée.' })
         }
     }
     async processDeliveries({ request, response, auth }: HttpContext) {
+        const user = await auth.authenticate()
         const { invoiceNumber, products, isCompleteDelivery, driverId } = request.body()
         // return console.log(products, isCompleteDelivery, "products", driverId)
-        const invoice = await Invoice.findBy('invoice_number', invoiceNumber)
+        const invoice = await Invoice.query().where('invoice_number', invoiceNumber).preload('customer').first()
         if (!invoice) {
             return response.status(404).json({ message: 'Facture non trouvée.' })
         }
@@ -86,6 +167,32 @@ export default class ProcessDeliveriesController {
             //   une seule confirmation
             bl.merge({ status: 'validée' })
             await bl.save()
+            
+            // Enregistrer l'activité de traitement de livraison
+            await UserActivityService.logActivity(
+                userId,
+                UserActivityService.ACTIONS.PROCESS_DELIVERY,
+                user.role,
+                invoice.id,
+                {
+                    blId: bl.id,
+                    blNumber: `BL-${bl.id}`,
+                    invoiceNumber: invoice.invoiceNumber,
+                    isCompleteDelivery,
+                    needDoubleCheck: false
+                }
+            )
+            
+            // Notifier les admins que le BL a été créé et validé
+            await NotificationService.notifyBlValidation(
+                `BL-${bl.id}`,
+                invoice.invoiceNumber,
+                invoice.customer?.name || 'Client inconnu',
+                `${user.firstname} ${user.lastname}`,
+                'validée',
+                invoice.id
+            )
+            
             if (isCompleteDelivery) {
                 invoice.merge({ isCompleted: true })
                 await invoice.save()
@@ -118,6 +225,33 @@ export default class ProcessDeliveriesController {
                         })
                         bl.merge({ status: 'en attente de confirmation' })
                         await bl.save()
+                        
+                        // Enregistrer l'activité de traitement de livraison
+                        await UserActivityService.logActivity(
+                            userId,
+                            UserActivityService.ACTIONS.PROCESS_DELIVERY,
+                            user.role,
+                            invoice.id,
+                            {
+                                blId: bl.id,
+                                blNumber: `BL-${bl.id}`,
+                                invoiceNumber: invoice.invoiceNumber,
+                                isCompleteDelivery,
+                                needDoubleCheck: true,
+                                status: 'en attente de confirmation'
+                            }
+                        )
+                        
+                        // Notifier les admins que le BL a été créé et est en attente de confirmation
+                        await NotificationService.notifyBlValidation(
+                            `BL-${bl.id}`,
+                            invoice.invoiceNumber,
+                            invoice.customer?.name || 'Client inconnu',
+                            `${user.firstname} ${user.lastname}`,
+                            'en attente de confirmation',
+                            invoice.id
+                        )
+                        
                         return response.status(200).json({ message: 'En attente de la confirmation du bon de livraison.' })
                     }
                 }
@@ -129,6 +263,33 @@ export default class ProcessDeliveriesController {
 
                 invoice.merge({ status: InvoiceStatus.EN_COURS })
                 await invoice.save()
+                
+                // Enregistrer l'activité de traitement de livraison
+                await UserActivityService.logActivity(
+                    userId,
+                    UserActivityService.ACTIONS.PROCESS_DELIVERY,
+                    user.role,
+                    invoice.id,
+                    {
+                        blId: bl.id,
+                        blNumber: `BL-${bl.id}`,
+                        invoiceNumber: invoice.invoiceNumber,
+                        isCompleteDelivery,
+                        needDoubleCheck: true,
+                        status: 'en attente de confirmation'
+                    }
+                )
+                
+                // Notifier les admins que le BL a été créé et est en attente de confirmation
+                await NotificationService.notifyBlValidation(
+                    `BL-${bl.id}`,
+                    invoice.invoiceNumber,
+                    invoice.customer?.name || 'Client inconnu',
+                    `${user.firstname} ${user.lastname}`,
+                    'en attente de confirmation',
+                    invoice.id
+                )
+                
                 return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
 
 
@@ -145,6 +306,33 @@ export default class ProcessDeliveriesController {
 
             invoice.merge({ isCompleteDelivery: false, status: InvoiceStatus.EN_COURS })
             await invoice.save()
+            
+            // Enregistrer l'activité de traitement de livraison
+            await UserActivityService.logActivity(
+                userId,
+                UserActivityService.ACTIONS.PROCESS_DELIVERY,
+                user.role,
+                invoice.id,
+                {
+                    blId: bl.id,
+                    blNumber: `BL-${bl.id}`,
+                    invoiceNumber: invoice.invoiceNumber,
+                    isCompleteDelivery,
+                    needDoubleCheck: true,
+                    status: 'en attente de confirmation'
+                }
+            )
+            
+            // Notifier les admins que le BL a été créé et est en attente de confirmation
+            await NotificationService.notifyBlValidation(
+                `BL-${bl.id}`,
+                invoice.invoiceNumber,
+                invoice.customer?.name || 'Client inconnu',
+                `${user.firstname} ${user.lastname}`,
+                'en attente de confirmation',
+                invoice.id
+            )
+            
             return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
 
         }

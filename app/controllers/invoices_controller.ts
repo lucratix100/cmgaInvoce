@@ -7,6 +7,10 @@ import Bl from '#models/bl'
 import Assignment from '#models/assignment'
 import User from '#models/user'
 import InvoiceReminder from '#models/invoice_reminder'
+import Customer from '#models/customer'
+import Depot from '#models/depot'
+import UserActivityService from '#services/user_activity_service'
+import NotificationService from '#services/notification_service'
 
 
 
@@ -109,6 +113,7 @@ export default class InvoicesController {
                     order: invoice.order,
                     depotId: invoice.depotId,
                     statusPayment: invoice.statusPayment,
+                    totalTtc: invoice.totalTTC,
                     remainingAmount: remainingAmount
                 }
             })
@@ -600,44 +605,37 @@ export default class InvoicesController {
                 query = query.where('depot_id', user.$original.depotId)
             }
             
-            const invoice = await query.first()
+            const invoice = await query.preload('customer').first()
             
             if (!invoice) {
                 return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
             }
 
-            // Sauvegarder l'ancien statut pour la comparaison
             const oldStatus = invoice.status
-
             invoice.status = status
             await invoice.save()
 
-            // Si le statut change vers "en attente de livraison", créer des notifications pour les admins
-            if (status === "en attente de livraison" && oldStatus !== "en attente de livraison") {
-                try {
-                    // Récupérer tous les utilisateurs admin
-                    const adminUsers = await User.query().where('role', Role.ADMIN).where('isActive', true)
-                    
-                    // Créer une notification pour chaque admin
-                    const notificationPromises = adminUsers.map(adminUser => {
-                        return InvoiceReminder.create({
-                            userId: Number(adminUser.id),
-                            invoiceId: invoice.id,
-                            remindAt: DateTime.now(), // Notification immédiate
-                            comment: `Facture ${invoice.invoiceNumber} scannée et mise en attente de livraison par ${user.$original.firstname} ${user.$original.lastname}`,
-                            read: false
-                        })
-                    })
-
-                    await Promise.all(notificationPromises)
-                    console.log(`Notifications créées pour ${adminUsers.length} administrateurs`)
-                } catch (notificationError) {
-                    console.error('Erreur lors de la création des notifications:', notificationError)
-                    // Ne pas faire échouer la mise à jour du statut si les notifications échouent
-                }
+            // Enregistrer l'activité de mise à jour du statut
+            let action: string = UserActivityService.ACTIONS.UPDATE_INVOICE
+            if (status === InvoiceStatus.EN_ATTENTE) {
+                action = UserActivityService.ACTIONS.SCAN_INVOICE
+            } else if (status === InvoiceStatus.LIVREE) {
+                action = UserActivityService.ACTIONS.DELIVER_INVOICE
             }
 
-            return ctx.response.json({ message: 'Statut mis à jour avec succès', invoice })
+            await UserActivityService.logActivity(
+                Number(user.id),
+                action,
+                user.role,
+                invoice.id,
+                {
+                    invoiceNumber: invoice.invoiceNumber,
+                    oldStatus,
+                    newStatus: status
+                }
+            )
+
+            return ctx.response.json({ message: 'Statut de facture mis à jour avec succès' })
         } catch (error) {
             console.error('Erreur lors de la mise à jour du statut:', error)
             return ctx.response.status(500).json({ message: 'Erreur lors de la mise à jour du statut.' })

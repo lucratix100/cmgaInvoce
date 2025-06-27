@@ -6,6 +6,7 @@ import Customer from './customer.js'
 import Bl from './bl.js'
 import { InvoicePaymentStatus, InvoiceStatus } from '../enum/index.js'
 import Payment from './payment.js'
+import UserActivitie from './user_activitie.js'
 
 
 export default class Invoice extends BaseModel {
@@ -41,6 +42,8 @@ export default class Invoice extends BaseModel {
   declare bls: HasMany<typeof Bl>
   @hasMany(() => Payment)
   declare payments: HasMany<typeof Payment>
+  @hasMany(() => UserActivitie)
+  declare userActivities: HasMany<typeof UserActivitie>
   @column.dateTime({ autoCreate: false })
   declare deliveredAt: DateTime
   @column.dateTime({ autoCreate: true })
