@@ -4,7 +4,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
-import { Bell, Check, Eye, Loader2, FileX } from "lucide-react"
+import { Bell, Check, Eye, Loader2, FileX, Download } from "lucide-react"
 import Link from "next/link"
 import Filtre from "../facture/filtre"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "../ui/dialog"
@@ -14,6 +14,8 @@ import { Invoice } from "@/lib/types"
 import { useSearchParams } from "next/navigation"
 import { getCurrentUser } from "@/actions/user"
 import { Role } from "@/types/roles"
+import { exportFilteredToExcel } from "@/lib/excel-export"
+import { toast } from "@/components/ui/use-toast"
 
 interface RecouvrementTableProps {
   factures: Invoice[];
@@ -24,7 +26,6 @@ interface RecouvrementTableProps {
 
 export default function RecouvrementTable({ factures, user, isLoading = false, depots }: RecouvrementTableProps) {
 
-
   const searchParams = useSearchParams()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
@@ -32,6 +33,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
   const [deliveryStatus, setDeliveryStatus] = useState(searchParams.get('status') || "tous");
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
   const [selectedDepot, setSelectedDepot] = useState(searchParams.get('depot') || "tous");
+  const [isExporting, setIsExporting] = useState(false);
 
   const formatMontant = (montant: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(montant);
@@ -79,6 +81,35 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     setSelectedDepot(depotId);
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      await exportFilteredToExcel(
+        { factures, user },
+        {
+          searchQuery,
+          paymentStatus,
+          deliveryStatus,
+          selectedDepot
+        }
+      );
+      
+      toast({
+        title: "Export réussi",
+        description: "Le fichier Excel a été téléchargé avec succès.",
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      toast({
+        title: "Erreur d'export",
+        description: "Une erreur s'est produite lors de l'export. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const filteredFactures = factures.filter((facture) => {
     const matchesSearch =
       facture.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,6 +148,22 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
       </div>
       <div className="overflow-x-auto border rounded-lg">
         <div className="space-y-5 flex justify-end p-4">
+          {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+            <Button
+              onClick={handleExportExcel}
+              variant="outline"
+              size="sm"
+              className="hover:bg-primary-700 hover:text-white font-bold bg-white text-primary-700 transition-colors duration-300 transform hover:scale-105"
+              disabled={isLoading || filteredFactures.length === 0 || isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {isExporting ? 'Export en cours...' : 'Exporter Excel'}
+            </Button>
+          )}
         </div>
         <div className="max-h-[600px] overflow-y-auto">
           {isLoading ? (
