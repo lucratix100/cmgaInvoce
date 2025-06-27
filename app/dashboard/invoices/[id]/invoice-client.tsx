@@ -9,6 +9,7 @@ import {
   CreditCard,
   FileText,
   Truck,
+  Loader2,
 } from "lucide-react";
 import PaimentDialog from "@/components/paiment-dialog";
 import Notification from "@/components/notification-dialog";
@@ -20,18 +21,19 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Invoice } from "@/lib/types";
 import Detail from "@/components/factureId/detail";
 import Delivery from "@/components/factureId/delivery";
 import { Role } from "@/types/roles";
+import { useInvoice } from "@/hooks/useInvoice";
 
 interface InvoiceClientProps {
-  invoice: Invoice;
+  invoiceNumber: string;
   user: any;
 }
 
-export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
+export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProps) {
   const router = useRouter();
+  const { invoice, isLoading, error } = useInvoice(invoiceNumber);
 
   const [activeTab, setActiveTab] = useState("details");
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -39,6 +41,28 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
   const handleBack = () => {
     router.back();
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !invoice) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <h3 className="text-lg font-semibold mb-2">Erreur</h3>
+        <p className="text-muted-foreground">
+          Impossible de charger les détails de la facture.
+        </p>
+        <Button onClick={handleBack} className="mt-4">
+          Retour aux factures
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-10 w-full px-4 sm:px-6 lg:px-8">

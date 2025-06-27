@@ -97,10 +97,11 @@ export async function deleteCommercialInitial(id: number): Promise<void> {
             throw new Error("Non authentifié")
         }
         const response = await axios.delete(`${process.env.API_URL}commercial-initials/${id}`, {
-            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
         })
-
-
 
         revalidatePath('/dashboard/assignments')
     } catch (error) {

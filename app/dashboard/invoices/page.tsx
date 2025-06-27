@@ -2,10 +2,8 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import InvoiceClient from "./invoiceClient"
 import { getCurrentUser } from "@/actions/user"
-import { getInvoices } from "@/actions/invoice"
-import { getDepots } from "@/actions/depot"
 
-async function getInitialData(searchParams: { [key: string]: string }) {
+async function getInitialData() {
   const cookieStore = await cookies()
   const token = cookieStore.get("accessToken")
 
@@ -14,30 +12,15 @@ async function getInitialData(searchParams: { [key: string]: string }) {
   }
 
   try {
-    const [user, invoices, depots] = await Promise.all([
-      getCurrentUser(),
-      getInvoices({
-        startDate: searchParams.startDate,
-        endDate: searchParams.endDate || undefined,
-        status: searchParams.status,
-        search: searchParams.search
-      }),
-      getDepots()
-    ])
-    console.log(depots, "depots")
-
-    return { user, invoices, depots }
+    const user = await getCurrentUser()
+    return { user }
   } catch (error) {
     console.error("Erreur lors du chargement des données:", error)
-    return { user: null, invoices: [], depots: [] }
+    return { user: null }
   }
 }
 
-export default async function InvoicePage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string }
-}) {
-  const initialData = await getInitialData(searchParams)
+export default async function InvoicePage() {
+  const initialData = await getInitialData()
   return <InvoiceClient initialData={initialData} />
 }

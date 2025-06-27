@@ -3,18 +3,31 @@
 import { Card } from "@/components/ui/card"
 import RecouvrementTable from "@/components/recouvrement/recouvrement-table"
 import { Loader2, FileX } from "lucide-react"
+import { useInvoices } from "@/hooks/useInvoices"
+import { useDepots } from "@/hooks/useDepots"
+import { useSearchParams } from "next/navigation"
 
 interface InvoiceClientProps {
   initialData: {
     user: any;
-    invoices: any[];
-    depots: any[];
   }
 }
 
 export default function InvoiceClient({ initialData }: InvoiceClientProps) {
-  const isLoading = !initialData.invoices;
-  const isEmpty = !isLoading && initialData.invoices.length === 0;
+  const searchParams = useSearchParams()
+
+  // Utiliser les hooks TanStack Query
+  const { invoices, isLoading: invoicesLoading } = useInvoices({
+    startDate: searchParams.get('startDate') || undefined,
+    endDate: searchParams.get('endDate') || undefined,
+    status: searchParams.get('status') || undefined,
+    search: searchParams.get('search') || undefined,
+  })
+
+  const { depots, isLoading: depotsLoading } = useDepots()
+
+  const isLoading = invoicesLoading || depotsLoading
+  const isEmpty = !isLoading && invoices.length === 0
 
   if (isLoading) {
     return (
@@ -24,7 +37,17 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
     );
   }
 
-
+  // if (isEmpty) {
+  //   return (
+  //     <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+  //       <FileX className="h-12 w-12 text-muted-foreground mb-4" />
+  //       <h3 className="text-lg font-semibold mb-2">Aucune facture trouvée</h3>
+  //       <p className="text-muted-foreground">
+  //         Aucune facture ne correspond aux critères de recherche.
+  //       </p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div>
@@ -33,10 +56,10 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
           <Card className="border-none shadow-md overflow-hidden bg-white">
             <div className="overflow-x-auto">
               <RecouvrementTable
-                factures={initialData.invoices || []}
+                factures={invoices}
                 user={initialData.user}
                 isLoading={isLoading}
-                depots={initialData.depots || []}
+                depots={depots}
               />
             </div>
           </Card>

@@ -288,9 +288,19 @@ export function RootManagement({
                       <Separator className="mb-2" />
                       <div className="flex flex-wrap gap-2">
                         {root.suffixes.map((suffix) => (
-                          <Badge key={suffix.id} variant="secondary" className="text-sm">
-                            {suffix.value}
-                          </Badge>
+                          <div key={suffix.id} className="flex items-center gap-1">
+                            <Badge variant="secondary" className="text-sm">
+                              {suffix.value}
+                            </Badge>
+                            <Button
+                              onClick={() => handleDeleteSuffix(root.id, suffix.id)}
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         ))}
                       </div>
                     </div>

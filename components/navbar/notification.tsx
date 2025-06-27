@@ -1,64 +1,38 @@
 'use client'
-import { useState, useEffect } from "react";
-import { user } from "@/types"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import { Button } from "../ui/button";
-import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getUserReminders, markReminderAsRead } from "@/actions/reminder";
+import { user } from "@/types"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
+import { Button } from "../ui/button";
+import { Bell } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
+import { InvoiceReminder } from "@/lib/types";
 
-interface Notification {
-    id: number;
-    comment: string;
-    read: boolean;
-    remindAt: string;
-    invoiceId: number;
-    invoice?: {
-        id: number;
-        invoiceNumber: string;
-        status: string;
-        accountNumber: string;
-        customer?: {
-            id: number;
-            name: string;
-            email: string;
-            phone: string;
-        };
-    };
-}
 export default function Notification({ user }: { user: user }) {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
     const router = useRouter();
-    useEffect(() => {
-        if (user?.id) {
-            const loadNotifications = async () => {
-                try {
-                    setIsLoadingNotifications(true);
-                    const data = await getUserReminders(Number(user.id));
-                    console.log(data, "userReminders")
-                    setNotifications(data as Notification[]);
-                } catch (error) {
-                    console.error("Erreur lors du chargement des notifications:", error);
-                    toast.error("Erreur lors du chargement des notifications");
-                } finally {
-                    setIsLoadingNotifications(false);
-                }
-            };
-            loadNotifications();
-        }
-    }, [user]);
-    const handleNotificationClick = async (notification: Notification) => {
+
+    // Utiliser le hook TanStack Query pour gérer les notifications
+    const {
+        notifications,
+        isLoading: isLoadingNotifications,
+        unreadCount,
+        markNotificationAsRead,
+        error
+    } = useNotifications(Number(user?.id));
+
+    // Gérer les erreurs de chargement
+    if (error) {
+        console.error("Erreur lors du chargement des notifications:", error);
+        toast.error("Erreur lors du chargement des notifications");
+    }
+
+    const handleNotificationClick = async (notification: InvoiceReminder) => {
         try {
             if (!notification.read) {
-                await markReminderAsRead(notification.id.toString());
-                setNotifications(notifications.map(notif =>
-                    notif.id === notification.id ? { ...notif, read: true } : notif
-                ));
+                markNotificationAsRead(notification.id.toString());
             }
             if (notification.invoice?.invoiceNumber) {
                 router.push(`/dashboard/invoices/${notification.invoice.invoiceNumber}`);
@@ -68,16 +42,15 @@ export default function Notification({ user }: { user: user }) {
             toast.error("Erreur lors du traitement de la notification");
         }
     };
-    const totalNotificationsNonLues = notifications.filter(notif => !notif.read).length;
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="relative hover:bg-primary-50 transition-colors">
                     <Bell className="h-5 w-5 text-primary-500 hover:text-primary-700" />
-                    {totalNotificationsNonLues > 0 && (
+                    {unreadCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                            {totalNotificationsNonLues}
+                            {unreadCount}
                         </span>
                     )}
                 </Button>
@@ -90,7 +63,7 @@ export default function Notification({ user }: { user: user }) {
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                             Chargement des notifications...
                         </div>
-                    ) : notifications.filter(notif => !notif.read).length === 0 ? (
+                    ) : unreadCount === 0 ? (
                         <div className="p-6 text-center text-muted-foreground">
                             <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                             Aucune notification non lue
@@ -113,14 +86,9 @@ export default function Notification({ user }: { user: user }) {
                                                     <span className="h-2 w-2 rounded-full bg-red-500 flex-shrink-0 animate-pulse" />
                                                 )}
                                             </div>
-                                            {notification.invoice?.customer?.name && (
+                                            {notification.user?.name && (
                                                 <span className="text-sm font-medium text-gray-700 block">
-                                                    {notification.invoice.customer.name}
-                                                </span>
-                                            )}
-                                            {notification.invoice?.accountNumber && (
-                                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                                    Compte: {notification.invoice.accountNumber}
+                                                    {notification.user.name}
                                                 </span>
                                             )}
                                         </div>
