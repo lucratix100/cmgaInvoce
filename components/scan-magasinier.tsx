@@ -116,7 +116,7 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
         setShowActions(false)
         setShowGestion(false)
         setScannedValue("")
-        setIsTestMode(false)
+        setIsTestMode(false) // Ajouté pour réinitialiser le mode test
         setErrorMessage("")
         setLoading(false)
     }
