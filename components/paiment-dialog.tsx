@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { AlertDialogFooter } from "./ui/alert-dialog"
 import { CheckCircle2, Loader2 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { addPayment } from "@/actions/payment"
+import { getInvoiceDetails } from "@/actions/invoice-details"
+import { getInvoiceByNumber, getInvoiceWithPayments } from "@/actions/invoice"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { PaymentMethod } from "@/types/enums"
@@ -21,13 +23,63 @@ interface PaimentDialogProps {
 export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [remainingAmount, setRemainingAmount] = useState<number>(0);
   const [formData, setFormData] = useState({
     montant: '',
     modePaiement: 'Espece',
     datePaiement: new Date().toISOString().split('T')[0],
-    commentaire: ''
+    commentaire: '',
+    chequeInfo: ''
   });
   const router = useRouter();
+
+  // Fonction pour récupérer les informations de la facture et calculer le montant restant
+  const fetchInvoiceDetails = async () => {
+    if (!invoiceNumber) return;
+    
+    try {
+      setInvoiceLoading(true);
+      
+      // Utiliser la nouvelle fonction qui récupère tout en une fois
+      const result = await getInvoiceWithPayments(invoiceNumber);
+      console.log('Résultat complet:', result);
+      
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      
+      const { remainingAmount, totalTTC, totalPaid } = result;
+      
+      console.log('Total TTC:', totalTTC);
+      console.log('Total payé:', totalPaid);
+      console.log('Montant restant:', remainingAmount);
+      
+      setRemainingAmount(remainingAmount || 0);
+      
+      // Pré-remplir le montant avec le montant restant seulement s'il y en a un
+      if (remainingAmount && remainingAmount > 0) {
+        setFormData(prev => ({
+          ...prev,
+          montant: remainingAmount.toString()
+        }));
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la récupération des détails de la facture:', error);
+      toast.error('Erreur lors de la récupération des informations de la facture');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  // Récupérer les détails de la facture quand le dialogue s'ouvre
+  useEffect(() => {
+    if (isOpen && invoiceNumber) {
+      fetchInvoiceDetails();
+    }
+  }, [isOpen, invoiceNumber]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -49,8 +101,10 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
       montant: '',
       modePaiement: 'Espece',
       datePaiement: new Date().toISOString().split('T')[0],
-      commentaire: ''
+      commentaire: '',
+      chequeInfo: ''
     });
+    setRemainingAmount(0);
   };
 
   const handleSubmit = async () => {
@@ -71,11 +125,18 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
         return;
       }
 
+      // Validation pour les informations du chèque
+      if (formData.modePaiement === PaymentMethod.CHEQUE && !formData.chequeInfo.trim()) {
+        toast.error("Veuillez saisir les informations du chèque");
+        return;
+      }
+
       const result = await addPayment(invoiceNumber, {
         montant: parseFloat(formData.montant),
         modePaiement: formData.modePaiement as PaymentMethod,
         datePaiement: formData.datePaiement,
-        commentaire: formData.commentaire
+        commentaire: formData.commentaire,
+        chequeInfo: formData.chequeInfo
       });
 
       console.log("Paiement enregistré:", result);
@@ -109,6 +170,19 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
           <DialogDescription>
             Enregistrez un paiement pour la facture <span className="font-bold text-primary-500">{invoiceNumber}</span>
           </DialogDescription>
+          {!invoiceLoading && (
+            <div className="mt-2 text-sm">
+              {remainingAmount > 0 ? (
+                <span className="text-gray-600">
+                  Montant restant à payer : <span className="font-semibold text-green-600">{remainingAmount.toLocaleString('fr-FR')} FCFA</span>
+                </span>
+              ) : (
+                <span className="text-orange-600">
+                  ⚠️ Cette facture semble déjà entièrement payée (montant restant : 0 FCFA)
+                </span>
+              )}
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -122,16 +196,17 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
               value={formData.montant ? formData.montant.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ""}
               onChange={(e) => {
                 const value = e.target.value.replace(/\./g, "");
-                handleChange({
-                  target: {
-                    name: "montant",
-                    value: value
-                  }
-                });
+                setFormData(prev => ({
+                  ...prev,
+                  montant: value
+                }));
               }}
-              disabled={loading}
+              disabled={loading || invoiceLoading}
               required
             />
+            {invoiceLoading && (
+              <p className="text-xs text-blue-600">Calcul du montant restant...</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="datePaiement">Date du paiement</Label>
@@ -165,6 +240,27 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Champ supplémentaire pour les informations du chèque */}
+          {formData.modePaiement === PaymentMethod.CHEQUE && (
+            <div className="space-y-2">
+              <Label htmlFor="chequeInfo">Informations du chèque *</Label>
+              <Textarea 
+                id="chequeInfo"
+                name="chequeInfo"
+                placeholder="Numéro de chèque, banque émettrice, date d'émission, etc..."
+                value={formData.chequeInfo}
+                onChange={handleChange}
+                disabled={loading}
+                required
+                className="min-h-[80px]"
+              />
+              <p className="text-xs text-gray-500">
+                Ex: Chèque n°123456 - Banque BICIS - Émis le 15/12/2024
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
             <Textarea 
@@ -190,7 +286,7 @@ export default function PaimentDialog({ invoiceNumber }: PaimentDialogProps) {
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || invoiceLoading}
             className="bg-green-600 hover:bg-green-700"
           >
             {loading ? (

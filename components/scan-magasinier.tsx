@@ -125,6 +125,9 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
         setShowGestion(true)
     }
 
+   
+
+
     const handleSaveGestion = (produits: Array<{ reference: string, quantiteLivree: number }>) => {
         handleClose()
     }

@@ -191,3 +191,51 @@ export const getBlsByInvoice = async (invoiceNumber: string) => {
         return []
     }
 }
+
+export const getInvoiceWithPayments = async (invoiceNumber: string) => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+        
+        // Récupérer la facture avec les paiements
+        const response = await axios.get(`${process.env.API_URL}invoices?invoiceNumber=${invoiceNumber}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        })
+        
+        const invoices = response.data || []
+        const invoice = invoices.find((inv: any) => inv.invoiceNumber === invoiceNumber)
+        
+        if (!invoice) {
+            return { error: 'Facture non trouvée' }
+        }
+        
+        // Récupérer les paiements de la facture
+        const paymentsResponse = await axios.get(`${process.env.API_URL}payments?invoiceNumber=${invoiceNumber}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        })
+        
+        const payments = paymentsResponse.data || []
+        const totalPaid = payments.reduce((acc: number, payment: any) => acc + Number(payment.amount), 0)
+        const remainingAmount = Math.max(0, Number(invoice.totalTtc || invoice.totalTTC || 0) - totalPaid)
+        
+        return {
+            invoice,
+            payments,
+            totalPaid,
+            remainingAmount,
+            totalTTC: Number(invoice.totalTtc || invoice.totalTTC || 0)
+        }
+    } catch (error: any) {
+        console.log("Erreur lors de la récupération de la facture avec paiements:", error)
+        if (error.response?.status === 404) {
+            return { error: 'Facture non trouvée' }
+        }
+        return { error: 'Erreur lors de la récupération de la facture' }
+    }
+}

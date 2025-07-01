@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserReminders, markReminderAsRead } from '@/actions/reminder';
 import { toast } from 'sonner';
 import { InvoiceReminder } from '@/lib/types';
+import { filterTodayNotifications, filterTodayUnreadNotifications } from '@/lib/notification-utils';
 
 export function useNotifications(userId: number) {
     const queryClient = useQueryClient();
@@ -17,11 +18,14 @@ export function useNotifications(userId: number) {
         queryFn: () => getUserReminders(userId),
         enabled: !!userId,
         retry: false,
-        refetchInterval: 1 * 60 * 1000, // Refetch toutes les 5 minutes
+        refetchInterval: 30 * 1000, // Refetch toutes les 30 secondes
         refetchIntervalInBackground: true, // Continue le refetch même quand l'onglet n'est pas actif
-        staleTime: 2 * 60 * 1000, // Les données sont considérées comme fraîches pendant 2 minutes
-        gcTime: 10 * 60 * 1000, // Garde les données en cache pendant 10 minutes
+        staleTime: 15 * 1000, // Les données sont considérées comme fraîches pendant 2 minutes
+        gcTime: 5 * 1000, // Garde les données en cache pendant 5 minutes
     });
+
+    // Filtrer les notifications du jour
+    const todayNotifications = filterTodayNotifications(notifications);
 
     // Mutation pour marquer une notification comme lue
     const markAsReadMutation = useMutation({
@@ -51,14 +55,19 @@ export function useNotifications(userId: number) {
         markAsReadMutation.mutate(notificationId);
     };
 
-    // Calculer le nombre de notifications non lues
+    // Calculer le nombre de notifications non lues (toutes)
     const unreadCount = notifications.filter(notif => !notif.read).length;
+
+    // Calculer le nombre de notifications non lues pour aujourd'hui seulement
+    const todayUnreadCount = filterTodayUnreadNotifications(notifications).length;
 
     return {
         notifications,
+        todayNotifications,
         isLoading,
         error,
         unreadCount,
+        todayUnreadCount,
         markNotificationAsRead,
         refetch,
         isMarkingAsRead: markAsReadMutation.isPending

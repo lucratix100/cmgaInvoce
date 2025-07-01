@@ -126,7 +126,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
                 Suivi des paiements
               </TabsTrigger>
             )}
-            {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && (
+            {/* {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && (
               <TabsTrigger
                 value="rappels"
                 className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
@@ -134,7 +134,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
                 <Bell className="w-4 h-4 mr-2" />
                 Historique des rappels
               </TabsTrigger>
-            )}
+            )} */}
           </TabsList>
 
           <Detail invoice={invoice} userRole={user.role} />

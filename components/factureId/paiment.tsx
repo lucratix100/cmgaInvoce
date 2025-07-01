@@ -13,6 +13,7 @@ interface Payment {
   paymentMethod: PaymentMethod;
   paymentDate: string;
   comment: string | null;
+  chequeInfo: string | null;
 }
 
 interface PaimentProps {
@@ -48,6 +49,8 @@ export default function Paiment({ invoice }: PaimentProps) {
 
   // Calculer le montant total payé
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const resteAPayer = Math.max(0, invoice.totalTtc - totalPaid);
+  const surplus = totalPaid > invoice.totalTtc ? totalPaid - invoice.totalTtc : 0;
 
   return (
     <TabsContent value="paiements" className="space-y-6">
@@ -60,8 +63,8 @@ export default function Paiment({ invoice }: PaimentProps) {
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="bg-gradient-to-br from-primary-50 to-white border-none shadow-sm">
+            <div className="flex flex-row gap-4 w-full pb-2">
+              <Card className="flex-1 min-w-[180px] bg-gradient-to-br from-primary-50 to-white border-none shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Montant total</CardTitle>
                 </CardHeader>
@@ -71,7 +74,7 @@ export default function Paiment({ invoice }: PaimentProps) {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-green-50 to-white border-none shadow-sm">
+              <Card className="flex-1 min-w-[180px] bg-gradient-to-br from-green-50 to-white border-none shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Montant payé</CardTitle>
                 </CardHeader>
@@ -81,16 +84,28 @@ export default function Paiment({ invoice }: PaimentProps) {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-amber-50 to-white border-none shadow-sm">
+              <Card className="flex-1 min-w-[180px] bg-gradient-to-br from-amber-50 to-white border-none shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Reste à payer</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatAmount(invoice.totalTtc - totalPaid)}
+                    {formatAmount(resteAPayer)}
                   </div>
                 </CardContent>
               </Card>
+              {surplus > 0 && (
+                <Card className="flex-1 min-w-[180px] bg-gradient-to-br from-blue-50 to-white border-none shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-blue-700">Surplus</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-700">
+                      {formatAmount(surplus)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <div className="border rounded-lg overflow-hidden">
@@ -102,33 +117,69 @@ export default function Paiment({ invoice }: PaimentProps) {
                   <TableHeader>
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-medium">Date</TableHead>
-                      <TableHead className="font-medium">Montant</TableHead>
+                      <TableHead className="font-medium">Montant payé</TableHead>
+                      <TableHead className="font-medium">Reste à payer</TableHead>
+                      <TableHead className="font-medium">Surplus</TableHead>
                       <TableHead className="font-medium">Mode de paiement</TableHead>
+                      <TableHead className="font-medium">Infos chèque</TableHead>
                       <TableHead className="font-medium">Commentaire</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-4">
+                        <TableCell colSpan={7} className="text-center py-4">
                           Chargement des paiements...
                         </TableCell>
                       </TableRow>
                     ) : payments.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-4">
+                        <TableCell colSpan={7} className="text-center py-4">
                           Aucun paiement enregistré
                         </TableCell>
                       </TableRow>
                     ) : (
-                      payments.map((payment) => (
-                        <TableRow key={payment.id}>
-                          <TableCell>{new Date(payment.paymentDate).toLocaleDateString('fr-FR')}</TableCell>
-                          <TableCell className="font-medium">{formatAmount(payment.amount)}</TableCell>
-                          <TableCell>{payment.paymentMethod}</TableCell>
-                          <TableCell>{payment.comment || '-'}</TableCell>
-                        </TableRow>
-                      ))
+                      payments.map((payment, index) => {
+                        // Calculer le montant payé jusqu'à ce paiement inclus
+                        const paidUpToThisPayment = payments
+                          .slice(0, index + 1)
+                          .reduce((sum, p) => sum + p.amount, 0);
+                        
+                        // Calculer le reste à payer après ce paiement
+                        const remainingAfterThisPayment = Math.max(0, invoice.totalTtc - paidUpToThisPayment);
+                        
+                        // Calculer le surplus créé par ce paiement
+                        const surplusFromThisPayment = paidUpToThisPayment > invoice.totalTtc 
+                          ? paidUpToThisPayment - invoice.totalTtc 
+                          : 0;
+                        
+                        // Déterminer si c'est un paiement par chèque
+                        const isCheckPayment = payment.paymentMethod === PaymentMethod.CHEQUE;
+                        
+                        return (
+                          <TableRow key={payment.id}>
+                            <TableCell>{new Date(payment.paymentDate).toLocaleDateString('fr-FR')}</TableCell>
+                            <TableCell className="font-medium">{formatAmount(payment.amount)}</TableCell>
+                            <TableCell className={remainingAfterThisPayment === 0 ? "text-green-600 font-medium" : ""}>
+                              {remainingAfterThisPayment === 0 ? "Payé" : formatAmount(remainingAfterThisPayment)}
+                            </TableCell>
+                            <TableCell className={surplusFromThisPayment > 0 ? "text-blue-600 font-medium" : ""}>
+                              {surplusFromThisPayment > 0 ? formatAmount(surplusFromThisPayment) : "-"}
+                            </TableCell>
+                            <TableCell>{payment.paymentMethod}</TableCell>
+                            <TableCell>
+                              {isCheckPayment ? (
+                                <div className="text-xs">
+                                  <div>{payment.chequeInfo || 'N/A'}</div>
+                                </div>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {payment.comment || '-'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
