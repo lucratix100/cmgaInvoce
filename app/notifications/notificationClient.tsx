@@ -238,6 +238,7 @@ export default function NotificationClient({ user }: { user: User }) {
                         </select>
                     </div>
                 </div>
+                
                 {/* Période personnalisée */}
                 {dateFilter === 'custom' && (
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">

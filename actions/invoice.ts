@@ -121,7 +121,8 @@ export const processDelivery = async (
     invoiceNumber: string,
     products: { reference: string, quantiteLivree: number }[],
     isCompleteDelivery: boolean = false,
-    driverId?: number
+    driverId?: number,
+    magasinierId?: number
 ) => {
     try {
         const cookieStore = await cookies()
@@ -131,7 +132,8 @@ export const processDelivery = async (
             invoiceNumber,
             products,
             isCompleteDelivery,
-            driverId
+            driverId,
+            magasinierId
         }, {
             headers: {
                 Authorization: `Bearer ${token}`,

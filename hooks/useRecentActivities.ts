@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getRecentActivities } from '@/actions/user-activities';
+import { getRecentActivities, getRecouvrementActivities } from '@/actions/user-activities';
 import { UserActivity } from '@/actions/user-activities';
 
 export function useRecentActivities() {
@@ -50,5 +50,50 @@ export function useRecentActivities() {
             const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
             return activityDate > oneHourAgo;
         }).length
+    };
+}
+
+export function useRecouvrementActivities() {
+    const queryClient = useQueryClient();
+    
+    const {
+        data: activities = [],
+        isLoading,
+        error,
+        refetch,
+        isFetching
+    } = useQuery({
+        queryKey: ['recouvrement-activities'],
+        queryFn: getRecouvrementActivities,
+        retry: 2,
+        refetchInterval: 30 * 1000, // Refetch toutes les 30 secondes
+        refetchIntervalInBackground: true, // Continue le refetch même quand l'onglet n'est pas actif
+        staleTime: 15 * 1000, // Les données sont considérées comme fraîches pendant 15 secondes
+        gcTime: 5 * 1000, // Garde les données en cache pendant 5 minutes
+        refetchOnWindowFocus: true, // Refetch quand l'utilisateur revient sur l'onglet
+        refetchOnMount: true, // Refetch quand le composant est monté
+    });
+
+    // Fonction pour invalider le cache des activités de recouvrement
+    const invalidateActivities = () => {
+        queryClient.invalidateQueries({ queryKey: ['recouvrement-activities'] });
+    };
+
+    // Fonction pour optimistically ajouter une nouvelle activité
+    const addActivityOptimistically = (newActivity: UserActivity) => {
+        queryClient.setQueryData(['recouvrement-activities'], (oldData: UserActivity[] | undefined) => {
+            if (!oldData) return [newActivity];
+            return [newActivity, ...oldData.slice(0, 9)]; // Garder seulement les 10 plus récentes
+        });
+    };
+
+    return {
+        activities,
+        isLoading,
+        error,
+        refetch,
+        isFetching,
+        invalidateActivities,
+        addActivityOptimistically
     };
 } 

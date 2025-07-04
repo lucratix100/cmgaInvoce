@@ -21,6 +21,8 @@ import { getDeliveryTemplate } from "@/templates/delivery-template";
 import dynamic from "next/dynamic";
 import { toast } from "@/components/ui/use-toast";
 import { Separator } from "@radix-ui/react-select";
+import { getUsers } from "@/actions/user";
+import { Role } from "@/types/roles";
 
 interface DeliveryProps {
   invoice: Invoice;
@@ -36,6 +38,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
   console.log(invoice, "invoiceDelivery")
   const [bls, setBls] = useState<Bl[]>([]);
   const [loading, setLoading] = useState(true);
+  const [superviseurMagasin, setSuperviseurMagasin] = useState<{ firstname: string, lastname: string } | null>(null);
 
   useEffect(() => {
     const loadBls = async () => {
@@ -49,6 +52,25 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
     };
     loadBls();
   }, [invoice.invoiceNumber]);
+
+  useEffect(() => {
+    const fetchSuperviseur = async () => {
+      if (invoice?.depotId) {
+        try {
+          const users = await getUsers();
+          const superviseur = users.find((u: any) => u.role === Role.SUPERVISEUR_MAGASIN && u.depotId === invoice.depotId);
+          if (superviseur) {
+            setSuperviseurMagasin({ firstname: superviseur.firstname, lastname: superviseur.lastname });
+          } else {
+            setSuperviseurMagasin(null);
+          }
+        } catch (e) {
+          setSuperviseurMagasin(null);
+        }
+      }
+    };
+    fetchSuperviseur();
+  }, [invoice?.depotId]);
 
   const sortedBls = useMemo(
     () =>
@@ -111,18 +133,23 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
             <div className="p-1.5 bg-purple-100 rounded-md">
               <User className="h-4 w-4 text-purple-600" />
             </div>
-            <h5 className="font-medium text-gray-900 text-sm">Créé par</h5>
+            <h5 className="font-medium text-gray-900">Créé par</h5>
           </div>
+          
           <div className="space-y-2">
+            {superviseurMagasin && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-blue-700 font-semibold">Superviseur magasin :</span>
+                <span className="text-xs text-gray-900">{superviseurMagasin.firstname} {superviseurMagasin.lastname}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Magasinier:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {bl.user?.firstname || "N/A"} {bl.user?.lastname || ""}
+              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+              <span className="text-xs text-gray-700 font-semibold">
+                {bl.user?.role === 'SUPERVISEUR_MAGASIN' ? 'Superviseur' : 
+                 bl.user?.role === 'MAGASINIER' ? 'Magasinier' : 'Utilisateur'}
               </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-xs text-gray-500">Responsable de la création</span>
+              <span className="text-xs text-gray-900">{bl.user?.firstname} {bl.user?.lastname}</span>
             </div>
           </div>
         </div>

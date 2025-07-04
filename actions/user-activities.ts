@@ -40,4 +40,23 @@ export const getRecentActivities = async (): Promise<UserActivity[]> => {
     console.error("Erreur lors de la récupération des activités:", error)
     return []
   }
+}
+
+export const getRecouvrementActivities = async (): Promise<UserActivity[]> => {
+  try {
+    const cookieStore = await cookies()
+    const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+
+    const response = await axios.get(`${process.env.API_URL}user-activities/recouvrement`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    
+    return response.data
+  } catch (error) {
+    console.error("Erreur lors de la récupération des activités de recouvrement:", error)
+    return []
+  }
 } 

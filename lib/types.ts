@@ -60,6 +60,7 @@ export type Bl = {
     user?: {
         firstname: string;
         lastname: string;
+        role: string;
     };
 }
 export type CreateBl = {

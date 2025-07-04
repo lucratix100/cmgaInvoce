@@ -195,7 +195,8 @@ function getRoleName(role: string): string {
     'MAGASINIER': 'Magasinier',
     'CHEF DEPOT': 'Chef de dépôt',
     'RECOUVREMENT': 'Recouvrement',
-    'CONTROLEUR': 'Contrôleur'
+    'CONTROLEUR': 'Contrôleur',
+    'SUPERVISEUR_MAGASIN': 'Superviseur Magasin'
   }
   return roleMap[role] || role
 }

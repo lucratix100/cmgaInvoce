@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Building, BarChart3, FileText, Truck, Users, ArrowRightLeft } from "lucide-react"
+import { Building, BarChart3, FileText, Truck, Users, ArrowRightLeft, Info } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -90,6 +90,18 @@ export default function SideBar() {
                             Affectations
                         </Link>
                     </Button>
+
+                    <Button
+                        variant={isActive("/dashboard/assignments") ? "default" : "ghost"}
+                        className={isActive("/dashboard/assignments") ? "justify-start" : "justify-start hover:bg-primary-50"}
+                        asChild
+                    >
+                        <Link href="/dashboard/activities">
+                            <Info className="mr-2 h-4 w-4" />
+                            Info des activités
+                        </Link>
+                    </Button>
+                    
                 </div>
             </div>
         </div>

@@ -8,6 +8,9 @@ import { Role } from '@/types/roles'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import QueryProvider from '@/components/providers/query-provider'
+import { ChatProvider } from '@/components/chat/chat-provider'
+import ChatButton from '@/components/chat/chat-button'
+import { getChatUsers } from '@/actions/chatUsers'
 
 export const metadata: Metadata = {
   title: 'CMGA Delivery',
@@ -22,27 +25,52 @@ export default async function RootLayout({
 }) {
   const user = await getCurrentUser()
   const { token } = await getSession()
+  
+  // Charger les utilisateurs seulement si connecté
+  let users: any[] = []
+  if (token && user) {
+    try {
+      users = await getChatUsers()
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error)
+      users = []
+    }
+  }
+  
   console.log(token, "token layout")
 
   return (
     <html lang="fr">
       <body>
         <QueryProvider>
-          <div className="flex min-h-screen">
-            {/* Sidebar */}
-            {token && user && user.role === Role.ADMIN && <SideBar />}
-            {/* Main content */}
-            <div className="flex-1">
-              {/* Header */}
-              {token && user && <header className="border-b bg-white shadow-sm sticky top-0 z-40">
-                <Header user={user} />
-              </header>}
+          {token && user ? (
+            <ChatProvider user={user} accessToken={token} users={users}>
+              <div className="flex min-h-screen">
+                {/* Sidebar */}
+                {user && user.role === Role.ADMIN && <SideBar />}
+                {/* Main content */}
+                <div className="flex-1">
+                  {/* Header */}
+                  <header className="border-b bg-white shadow-sm sticky top-0 z-40">
+                    <Header user={user} />
+                  </header>
+                  <main className="p-4 md:p-6 bg-gray-50 min-h-[calc(100vh-64px)]">
+                    {children}
+                  </main>
+                </div>
+              </div>
+              {/* Chat Button - visible seulement si l'utilisateur est connecté */}
+              <ChatButton />
+              <Toaster richColors />
+            </ChatProvider>
+          ) : (
+            <>
               <main className="p-4 md:p-6 bg-gray-50 min-h-[calc(100vh-64px)]">
                 {children}
               </main>
-            </div>
-          </div>
-          <Toaster richColors />
+              <Toaster richColors />
+            </>
+          )}
         </QueryProvider>
       </body>
     </html>

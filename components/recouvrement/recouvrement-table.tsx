@@ -148,7 +148,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
       </div>
       <div className="overflow-x-auto border rounded-lg">
         <div className="space-y-5 flex justify-end p-4">
-          {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+          {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
             <Button
               onClick={handleExportExcel}
               variant="outline"
@@ -186,10 +186,10 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                   <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
                   <TableHead className="font-semibold text-primary-900">Date facture</TableHead>
                   <TableHead className="font-semibold text-primary-900">Client</TableHead>
-                  {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Date échéance</TableHead>}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Date échéance</TableHead>}
                   <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
-                  {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
-                  {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
                   <TableHead className="font-semibold text-primary-900">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -206,18 +206,18 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <TableCell>{facture.accountNumber}</TableCell>
                     <TableCell>{formatDate(facture.date)}</TableCell>
                     <TableCell>{facture.customer?.name}</TableCell>
-                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>{formatDate(facture.date)}</TableCell>}
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>{formatDate(facture.date)}</TableCell>}
                     <TableCell>
                       <Badge className={getStatusColor(facture.status)}>
                         {facture.status.replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>
-                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
                         {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>}
-                    {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium text-lg">
                           {formatMontant(Number(facture.remainingAmount) || 0)}
@@ -234,7 +234,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                           </Tooltip>
                         </TooltipProvider>
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={user.role !== Role.ADMIN ? `/factures/${facture.invoiceNumber}` : `/dashboard/invoices/${facture.invoiceNumber}`} className="flex items-center gap-2">
+                          <Link href={user && user.role !== Role.ADMIN ? `/factures/${facture.invoiceNumber}` : `/dashboard/invoices/${facture.invoiceNumber}`} className="flex items-center gap-2">
                             <Eye className="h-4 w-4" />
                             Détails
                           </Link>

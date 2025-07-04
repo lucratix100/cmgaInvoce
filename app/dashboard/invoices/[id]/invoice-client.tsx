@@ -72,7 +72,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
             <ArrowLeft className="h-4 w-4" /> Retour aux factures
           </Button>
           <div className="flex items-center w-full gap-2 justify-end">
-            {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && (
+            {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
               <>
                 <PaimentDialog invoiceNumber={invoice.invoiceNumber} />
                 <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsNotificationOpen(true)}>
@@ -117,7 +117,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
               <Truck className="w-4 h-4 mr-2" />
               Suivi des livraisons
             </TabsTrigger>
-            {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+            {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
               <TabsTrigger
                 value="paiements"
                 className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
@@ -126,7 +126,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
                 Suivi des paiements
               </TabsTrigger>
             )}
-            {/* {user.role === Role.RECOUVREMENT || user.role === Role.ADMIN && (
+            {/* {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
               <TabsTrigger
                 value="rappels"
                 className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
@@ -137,12 +137,12 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
             )} */}
           </TabsList>
 
-          <Detail invoice={invoice} userRole={user.role} />
+          <Detail invoice={invoice} userRole={user?.role} />
           <Delivery invoice={invoice} activeTab={activeTab} />
-          {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+          {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
             <Paiment invoice={invoice} />
           )}
-          {(user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+          {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
             <Reminder />
           )}
         </Tabs>

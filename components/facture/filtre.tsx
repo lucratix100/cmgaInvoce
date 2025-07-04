@@ -13,6 +13,7 @@ import { Role } from "@/types/roles"
 import ScanDialog from "@/components/scan-magasinier"
 import ScanChefDepot from "../scan-chef-depot"
 import ScanController from "../scan-controller"
+import ScanSuperviseurMagasin from "../scan-superviseur-magasin"
 
 interface FilterProps {
     onStatusChange: (status: string) => void;
@@ -533,6 +534,8 @@ export default function Filtre({
                                     </>
                                 ) : user?.role === Role.CONTROLEUR ? (
                                     <ScanController onScan={(result) => handleStateChange({ searchInvoice: result })} />
+                                ) : user?.role === Role.SUPERVISEUR_MAGASIN ? (
+                                    <ScanSuperviseurMagasin onScan={(result) => handleStateChange({ searchInvoice: result })} />
                                 ) : null}
                             </div>
                         </div>
