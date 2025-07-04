@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Payment from '../models/payment.js'
 import Invoice from '../models/invoice.js'
 import { InvoicePaymentStatus } from '../enum/index.js'
+import UserActivityService from '#services/user_activity_service'
+import NotificationService from '#services/notification_service'
 
 export default class PaymentsController {
   /**
@@ -64,8 +66,9 @@ export default class PaymentsController {
   /**
    * Crée un nouveau paiement et met à jour le statut de la facture
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
     try {
+      const currentUser = await auth.authenticate()
       const data = request.only(['invoiceNumber', 'amount', 'paymentMethod', 'paymentDate', 'comment'])
       data.amount = Number(data.amount)
 
@@ -73,7 +76,11 @@ export default class PaymentsController {
         return response.status(400).json({ error: 'Le numéro de facture est requis' })
       }
 
-      const invoice = await Invoice.findBy('invoice_number', data.invoiceNumber)
+      const invoice = await Invoice.query()
+        .where('invoice_number', data.invoiceNumber)
+        .preload('customer')
+        .first()
+        
       if (!invoice) {
         return response.status(404).json({ error: 'Facture non trouvée' })
       }
@@ -97,6 +104,32 @@ export default class PaymentsController {
 
       await this.updateInvoiceStatus(invoice.id)
       await invoice.refresh()
+
+      // Enregistrer l'activité de création de paiement
+      await UserActivityService.logActivity(
+        Number(currentUser.id),
+        UserActivityService.ACTIONS.CREATE_PAYMENT,
+        currentUser.role,
+        invoice.id,
+        {
+          paymentId: payment.id,
+          amount: data.amount,
+          paymentMethod: data.paymentMethod,
+          invoiceNumber: invoice.invoiceNumber
+        }
+      )
+
+      // Notifier les admins uniquement si c'est un utilisateur recouvrement
+      if (currentUser.role === 'RECOUVREMENT') {
+        await NotificationService.notifyRecouvrementPayment(
+          data.amount,
+          data.paymentMethod,
+          invoice.invoiceNumber,
+          invoice.customer?.name || 'Client inconnu',
+          `${currentUser.firstname} ${currentUser.lastname}`,
+          invoice.id
+        )
+      }
 
       return response.status(201).json({
         message: 'Paiement créé avec succès',

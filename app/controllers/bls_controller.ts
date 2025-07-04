@@ -1,5 +1,9 @@
 import { HttpContext } from "@adonisjs/core/http"
 import Bl from "#models/bl"
+import Invoice from "#models/invoice"
+import Driver from "#models/driver"
+import UserActivityService from '#services/user_activity_service'
+import NotificationService from '#services/notification_service'
 
 export default class BlsController {
     async index({ response }: HttpContext) {
@@ -10,10 +14,38 @@ export default class BlsController {
         const bl = await Bl.query().where('id', params.id).preload('invoice', (query) => query.preload('customer')).preload('driver').first()
         return response.status(200).json(bl)
     }
-    async store({ request, response }: HttpContext) {
+    async store({ request, response, auth }: HttpContext) {
+        try {
+            const currentUser = await auth.authenticate()
         const { invoiceId, products, driverId } = request.body()
+            
         const bl = await Bl.create({ invoiceId, products, driverId })
+            
+            // Récupérer les informations pour la notification
+            const invoice = await Invoice.query().where('id', invoiceId).preload('customer').first()
+            const driver = await Driver.find(driverId)
+            
+            if (invoice && driver) {
+                // Enregistrer l'activité de création de BL
+                await UserActivityService.logActivity(
+                    Number(currentUser.id),
+                    UserActivityService.ACTIONS.CREATE_BL,
+                    currentUser.role,
+                    invoiceId,
+                    {
+                        blId: bl.id,
+                        blNumber: `BL-${bl.id}`,
+                        driverName: driver.name,
+                        invoiceNumber: invoice.invoiceNumber
+                    }
+                )
+            }
+            
         return response.status(201).json(bl)
+        } catch (error) {
+            console.error('Erreur lors de la création de la BL:', error)
+            return response.status(500).json({ message: "Erreur lors de la création de la BL" })
+        }
     }
     async getBlbyUserAndDate({ response, auth }: HttpContext) {
         const { id: userId } = auth.getUserOrFail()

@@ -1,8 +1,7 @@
 import User from '#models/user'
 import { loginValidator } from '#validators/auth'
 import type { HttpContext } from '@adonisjs/core/http'
-
-
+import UserActivityService from '#services/user_activity_service'
 
 export default class AuthController {
 
@@ -14,6 +13,14 @@ export default class AuthController {
     }
     const accessToken = await User.accessTokens.create(user)
     const refreshToken = await User.refreshTokens.create(user)
+    
+    // Enregistrer l'activité de connexion
+    await UserActivityService.logActivity(
+      Number(user.id),
+      UserActivityService.ACTIONS.LOGIN,
+      user.role
+    )
+    
     return response.ok({
       user: user.serialize(),
       accessToken: accessToken,
@@ -49,8 +56,15 @@ export default class AuthController {
       return response.badRequest({ message: 'Token not found' })
     }
     await User.accessTokens.delete(user, token)
+    
+    // Enregistrer l'activité de déconnexion
+    await UserActivityService.logActivity(
+      Number(user.id),
+      UserActivityService.ACTIONS.LOGOUT,
+      user.role
+    )
+    
     return response.ok({ message: 'Logged out' })
- 
    }
    
 }

@@ -27,7 +27,7 @@ const CommercialInitialsController = () => import('#controllers/commercial_initi
 const BlController = () => import('#controllers/bls_controller')
 const PaymentsController = () => import('#controllers/payments_controller')
 const InvoiceRemindersController = () => import('#controllers/invoice_reminders_controller')
-
+const UserActivitiesController = () => import('#controllers/user_activities_controller')
 
 router.post('/login', [AuthController, 'login']).prefix('api')
 router.post('/logout', [AuthController, 'logout']).prefix('api').use([middleware.auth()])
@@ -61,6 +61,7 @@ router.group(() => {
     router.post('/invoices/:invoice_number/payment', [PaymentsController, 'store'])
     router.get('/user-invoice-reminders', [InvoiceRemindersController, 'getUserReminders'])
     router.patch('/invoice-reminders/:id/read', [InvoiceRemindersController, 'markAsRead'])
+    router.get('/user-activities', [UserActivitiesController, 'recent'])
 }).prefix('api')
     .use([middleware.auth()])
 

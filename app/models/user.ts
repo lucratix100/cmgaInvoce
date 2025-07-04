@@ -9,6 +9,7 @@ import Depot from './depot.js'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Bl from '#models/bl'
 import Assignment from './assignment.js'
+import UserActivitie from './user_activitie.js'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['phone'],
@@ -41,6 +42,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @hasMany(() => Bl)
   declare bls: HasMany<typeof Bl>
+
+  @hasMany(() => UserActivitie)
+  declare userActivities: HasMany<typeof UserActivitie>
 
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>
