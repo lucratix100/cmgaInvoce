@@ -3,7 +3,7 @@ import { userValidatorStore, userValidatorUpdate } from '#validators/user'
 import type { HttpContext } from '@adonisjs/core/http'
 import { Role } from '../enum/index.js'
 import UserActivityService from '#services/user_activity_service'
-import NotificationService from '#services/notification_service'
+// import NotificationService from '#services/notification_service'
 
 export default class UsersController {
 
@@ -109,7 +109,7 @@ export default class UsersController {
         try {
             const currentUser = await auth.authenticate()
             const data = await request.validateUsing(userValidatorUpdate)
-            // return console.log(data)
+            // return console.log('data', data)
             if (data.password !== data.confirmPassword) {
                 return response.status(400).json({
                     success: false,
@@ -141,7 +141,8 @@ export default class UsersController {
 
             return response.json(user)
         } catch (error) {
-            return response.status(400).json({ error: error.messages })
+            console.log('error', error)
+            return response.status(500).json({ error: error.messages })
         }
     }
 

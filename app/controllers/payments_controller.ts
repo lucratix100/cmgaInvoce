@@ -248,7 +248,7 @@ export default class PaymentsController {
       await invoice.merge({ statusPayment: InvoicePaymentStatus.PAIEMENT_PARTIEL }).save()
     } else {
       console.log('Aucun paiement effectué.')
-      await invoice.merge({ statusPayment: InvoicePaymentStatus.IMPAYE }).save()
+      await invoice.merge({ statusPayment: InvoicePaymentStatus.NON_PAYE }).save()
     }
   }
 }

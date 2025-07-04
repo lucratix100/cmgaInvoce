@@ -483,6 +483,7 @@ export default class InvoicesController {
             query = query.preload('bls', (query) => {
                 query.preload('driver').preload('user', (query) => {
                     query.select('firstname', 'lastname', 'role')
+                    query.select('firstname', 'lastname')
                 })
                     .orderBy('created_at', 'desc')
             })

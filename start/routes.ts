@@ -16,7 +16,7 @@ import swagger from "#config/swagger";
 
 const UsersController = () => import('#controllers/users_controller')
 const AuthController = () => import('#controllers/auth_controller')
-// const SageInvoicesController = () => import('#controllers/sage_invoices_controller')
+const SageInvoicesController = () => import('#controllers/sage_invoices_controller')
 const DepotsController = () => import('#controllers/depots_controller')
 const ProcessDeliveriesController = () => import('#controllers/process_deliveries_controller')
 const DriversController = () => import('#controllers/drivers_controller')
@@ -49,7 +49,7 @@ router.get("/docs", async () => {
 });
 
 router.group(() => {
-    // router.get('/invoice', [SageInvoicesController, 'invoice_xml_to_json'])
+    router.get('/invoice', [SageInvoicesController, 'invoice_xml_to_json'])
     router.get('/assignment/:id/root', [AssignmentsController, 'getAssignmentByRootId'])
     router.get('/users/recouvrement', [UsersController, 'getRecouvrementUsers'])
     router.get('/invoice/:number', [InvoicesController, 'getInvoiceByNumber'])
