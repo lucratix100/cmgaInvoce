@@ -13,6 +13,7 @@ import { Role } from "@/types/roles"
 import ScanDialog from "@/components/scan-magasinier"
 import ScanChefDepot from "../scan-chef-depot"
 import ScanController from "../scan-controller"
+import ScanSuperviseurMagasin from "../scan-superviseur-magasin"
 
 interface FilterProps {
     onStatusChange: (status: string) => void;
@@ -239,8 +240,14 @@ export default function Filtre({
                                     type="date"
                                     value={state.startDate}
                                     onChange={(e) => {
-                                        const newDate = e.target.value
-                                        handleStateChange({ startDate: newDate })
+                                        const newDate = e.target.value;
+                                        setState((prev) => ({ ...prev, startDate: newDate }));
+                                    }}
+                                    onBlur={(e) => {
+                                        const newDate = e.target.value;
+                                        if (newDate.length === 10) {
+                                            handleStateChange({ startDate: newDate });
+                                        }
                                     }}
                                     className="w-full"
                                     required
@@ -249,8 +256,14 @@ export default function Filtre({
                                     type="date"
                                     value={state.endDate || ''}
                                     onChange={(e) => {
-                                        const newDate = e.target.value
-                                        handleStateChange({ endDate: newDate })
+                                        const newDate = e.target.value;
+                                        setState((prev) => ({ ...prev, endDate: newDate }));
+                                    }}
+                                    onBlur={(e) => {
+                                        const newDate = e.target.value;
+                                        if (newDate.length === 10) {
+                                            handleStateChange({ endDate: newDate });
+                                        }
                                     }}
                                     className="w-full"
                                 />
@@ -370,8 +383,14 @@ export default function Filtre({
                                         type="date"
                                         value={state.startDate}
                                         onChange={(e) => {
-                                            const newDate = e.target.value
-                                            handleStateChange({ startDate: newDate })
+                                            const newDate = e.target.value;
+                                            setState((prev) => ({ ...prev, startDate: newDate }));
+                                        }}
+                                        onBlur={(e) => {
+                                            const newDate = e.target.value;
+                                            if (newDate.length === 10) {
+                                                handleStateChange({ startDate: newDate });
+                                            }
                                         }}
                                         className="border-primary-200 focus:border-primary-500 w-full"
                                         required
@@ -386,8 +405,14 @@ export default function Filtre({
                                         type="date"
                                         value={state.endDate || ''}
                                         onChange={(e) => {
-                                            const newDate = e.target.value
-                                            handleStateChange({ endDate: newDate })
+                                            const newDate = e.target.value;
+                                            setState((prev) => ({ ...prev, endDate: newDate }));
+                                        }}
+                                        onBlur={(e) => {
+                                            const newDate = e.target.value;
+                                            if (newDate.length === 10) {
+                                                handleStateChange({ endDate: newDate });
+                                            }
                                         }}
                                         className="border-primary-200 focus:border-primary-500 w-full"
                                     />
@@ -509,6 +534,8 @@ export default function Filtre({
                                     </>
                                 ) : user?.role === Role.CONTROLEUR ? (
                                     <ScanController onScan={(result) => handleStateChange({ searchInvoice: result })} />
+                                ) : user?.role === Role.SUPERVISEUR_MAGASIN ? (
+                                    <ScanSuperviseurMagasin onScan={(result) => handleStateChange({ searchInvoice: result })} />
                                 ) : null}
                             </div>
                         </div>

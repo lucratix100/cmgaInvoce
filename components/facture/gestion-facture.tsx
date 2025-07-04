@@ -7,17 +7,22 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
-import { Check, CheckCheck, Loader2 } from "lucide-react"
+import { Check, CheckCheck, Loader2, Truck, User } from "lucide-react"
 import { getInvoiceByNumber } from "@/actions/invoice"
 import { processDelivery, getBlsByInvoice } from "@/actions/invoice"
 import { getDrivers } from "@/actions/driver"
+import { getUsers } from "@/actions/user"
 import { InvoiceStatus } from "@/types/enums"
+import { Role } from "@/types/roles"
 
 interface GestionFactureProps {
     isOpen: boolean
     onClose: () => void
     numeroFacture: string
     onSave: (produits: Array<{ reference: string, quantiteLivree: number }>) => void
+    driverId?: number
+    magasinierId?: number
+    isSuperviseurMagasin?: boolean
 }
 
 interface InvoiceProduct {
@@ -47,7 +52,7 @@ interface Invoice {
     statusPayment: string
 }
 
-export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave }: GestionFactureProps) {
+export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave, driverId, magasinierId, isSuperviseurMagasin }: GestionFactureProps) {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [facture, setFacture] = useState<Invoice | null>(null)
@@ -56,6 +61,11 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
     const [selectedDriver, setSelectedDriver] = useState<string>("")
     const [hasPendingBl, setHasPendingBl] = useState(false)
     const [deliveredQuantities, setDeliveredQuantities] = useState<{ [reference: string]: number }>({})
+    const [magasiniers, setMagasiniers] = useState<Array<{ id: number, firstname: string, lastname: string, role: string, depotId: number }>>([])
+    const [selectedMagasinier, setSelectedMagasinier] = useState<string>("")
+    const [loadingDrivers, setLoadingDrivers] = useState(false)
+    const [loadingMagasiniers, setLoadingMagasiniers] = useState(false)
+    const [superviseurMagasin, setSuperviseurMagasin] = useState<{ id: number, firstname: string, lastname: string } | null>(null)
     const { toast } = useToast()
 
     const formatAmount = (amount: number) => {
@@ -68,9 +78,39 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
     useEffect(() => {
         if (isOpen) {
             fetchFacture()
-            fetchDrivers()
+            if (isSuperviseurMagasin) {
+                fetchDrivers()
+                fetchMagasiniers()
+            }
         }
-    }, [isOpen, numeroFacture])
+    }, [isOpen, numeroFacture, isSuperviseurMagasin])
+
+    // Initialiser le chauffeur sélectionné si driverId est fourni
+    useEffect(() => {
+        if (driverId && drivers.length > 0) {
+            setSelectedDriver(driverId.toString())
+        }
+    }, [driverId, drivers])
+
+    // Charger le superviseur magasin du dépôt
+    useEffect(() => {
+        const fetchSuperviseurMagasin = async () => {
+            if (facture?.depotId) {
+                try {
+                    const users = await getUsers();
+                    const superviseur = users.find((u: any) => u.role === Role.SUPERVISEUR_MAGASIN && u.depotId === facture.depotId);
+                    if (superviseur) {
+                        setSuperviseurMagasin({ id: superviseur.id, firstname: superviseur.firstname, lastname: superviseur.lastname });
+                    } else {
+                        setSuperviseurMagasin(null);
+                    }
+                } catch (e) {
+                    setSuperviseurMagasin(null);
+                }
+            }
+        };
+        fetchSuperviseurMagasin();
+    }, [facture?.depotId]);
 
     const fetchFacture = async () => {
         try {
@@ -156,6 +196,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
 
     const fetchDrivers = async () => {
         try {
+            setLoadingDrivers(true)
             const response = await getDrivers()
             const activeDrivers = response.filter((driver: { isActive: boolean }) => driver.isActive)
             setDrivers(activeDrivers)
@@ -166,6 +207,26 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
                 description: "Impossible de charger les chauffeurs",
                 variant: "destructive"
             })
+        } finally {
+            setLoadingDrivers(false)
+        }
+    }
+
+    const fetchMagasiniers = async () => {
+        try {
+            setLoadingMagasiniers(true)
+            const response = await getUsers()
+            const magasiniersList = response?.filter((user: any) => user.role === Role.MAGASINIER) || []
+            setMagasiniers(magasiniersList)
+        } catch (err) {
+            console.error('Erreur lors du chargement des magasiniers:', err)
+            toast({
+                title: "Erreur",
+                description: "Impossible de charger les magasiniers",
+                variant: "destructive"
+            })
+        } finally {
+            setLoadingMagasiniers(false)
         }
     }
 
@@ -205,15 +266,39 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
         try {
             setLoading(true)
             
-            // Vérifier qu'un chauffeur est sélectionné
-            if (!selectedDriver) {
-                console.log("Erreur: Aucun chauffeur sélectionné")
-                toast({
-                    title: "Erreur",
-                    description: "Veuillez sélectionner un chauffeur",
-                    variant: "destructive"
-                })
-                return
+            // Utiliser driverId s'il est fourni, sinon vérifier selectedDriver
+            let finalDriverId = driverId || (selectedDriver ? parseInt(selectedDriver) : undefined)
+            let finalMagasinierId = magasinierId || (selectedMagasinier ? parseInt(selectedMagasinier) : undefined)
+            
+            if (isSuperviseurMagasin) {
+                if (!selectedDriver) {
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un chauffeur",
+                        variant: "destructive"
+                    })
+                    return
+                }
+                if (!selectedMagasinier) {
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un magasinier",
+                        variant: "destructive"
+                    })
+                    return
+                }
+                finalDriverId = parseInt(selectedDriver)
+                finalMagasinierId = parseInt(selectedMagasinier)
+            } else {
+                if (!finalDriverId) {
+                    console.log("Erreur: Aucun chauffeur sélectionné")
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un chauffeur",
+                        variant: "destructive"
+                    })
+                    return
+                }
             }
             
             console.log("Début de la livraison partielle pour:", numeroFacture)
@@ -239,7 +324,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
                 numeroFacture,
                 productsForDelivery,
                 false, // isCompleteDelivery = false pour livraison partielle
-                selectedDriver ? parseInt(selectedDriver) : undefined
+                finalDriverId,
+                finalMagasinierId
             )
 
             console.log("Résultat de la livraison partielle:", result)
@@ -280,15 +366,39 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
         try {
             setLoading(true)
             
-            // Vérifier qu'un chauffeur est sélectionné
-            if (!selectedDriver) {
-                console.log("Erreur: Aucun chauffeur sélectionné")
-                toast({
-                    title: "Erreur",
-                    description: "Veuillez sélectionner un chauffeur",
-                    variant: "destructive"
-                })
-                return
+            // Utiliser driverId s'il est fourni, sinon vérifier selectedDriver
+            let finalDriverId = driverId || (selectedDriver ? parseInt(selectedDriver) : undefined)
+            let finalMagasinierId = magasinierId || (selectedMagasinier ? parseInt(selectedMagasinier) : undefined)
+            
+            if (isSuperviseurMagasin) {
+                if (!selectedDriver) {
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un chauffeur",
+                        variant: "destructive"
+                    })
+                    return
+                }
+                if (!selectedMagasinier) {
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un magasinier",
+                        variant: "destructive"
+                    })
+                    return
+                }
+                finalDriverId = parseInt(selectedDriver)
+                finalMagasinierId = parseInt(selectedMagasinier)
+            } else {
+                if (!finalDriverId) {
+                    console.log("Erreur: Aucun chauffeur sélectionné")
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un chauffeur",
+                        variant: "destructive"
+                    })
+                    return
+                }
             }
             
             console.log("Début de la livraison complète pour:", facture.invoiceNumber)
@@ -315,7 +425,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
                 facture.invoiceNumber,
                 productsForDelivery,
                 true, // isCompleteDelivery = true pour livraison complète
-                selectedDriver ? parseInt(selectedDriver) : undefined
+                finalDriverId,
+                finalMagasinierId
             )
 
             // console.log("result:", result)
@@ -436,88 +547,155 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave 
                                                     <p className="text-xs text-blue-600">Déjà livrée: {quantiteDejaLivree}</p>
                                                     <p className="text-xs text-green-600 font-bold">Restante: {quantiteRestante}</p>
                                                 </div>
-                                    </div>
+                                            </div>
                                             <div className="flex items-center gap-2 ml-4">
                                                 <Label htmlFor={`qty-${produit.reference}`} className="text-xs text-gray-600">
                                                     Qté à livrer:
                                                 </Label>
-                                        <Input
+                                                <Input
                                                     id={`qty-${produit.reference}`}
-                                            type="number"
-                                            min="0"
+                                                    type="number"
+                                                    min="0"
                                                     max={quantiteRestante}
                                                     value={quantitesLivrees[produit.reference] || 0}
                                                     onChange={e => handleQuantiteLivreeChange(produit.reference, e.target.value, quantiteRestante)}
                                                     className="w-20 h-8 text-center text-sm"
                                                     disabled={quantiteRestante <= 0 || hasPendingBl}
-                                        />
-                                    </div>
-                                </div>
+                                                />
+                                            </div>
+                                        </div>
                                     )
                                 })
                         ) : (
-                                <div className="text-center text-gray-500 p-4">Aucun produit</div>
+                            <div className="text-center text-gray-500 p-4">Aucun produit</div>
                         )}
                         </div>
                     </div>
                     
-                    {/* Section chauffeur et actions - Plus compacte */}
-                    <div className="space-y-3">
-                    {/* chauffeur */}
-                        <div className="flex items-center gap-3">
-                            <Label className="text-sm font-medium">Chauffeur:</Label>
-                            <Select value={selectedDriver} onValueChange={setSelectedDriver}>
-                                <SelectTrigger className="w-[250px] h-9">
-                                <SelectValue placeholder="Sélectionner un chauffeur" />
-                            </SelectTrigger>
-                                <SelectContent>
-                                {drivers.map((driver) => (
-                                    <SelectItem 
-                                        key={driver.id} 
-                                        value={driver.id.toString()}
-                                    >
-                                        {driver.firstname} {driver.lastname}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    {/* Section chauffeur et magasinier pour superviseur magasinier */}
+                    {isSuperviseurMagasin && (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Sélection du chauffeur */}
+                                <div className="flex items-center gap-3">
+                                    <Label className="text-sm font-medium">Chauffeur:</Label>
+                                    <Select value={selectedDriver} onValueChange={setSelectedDriver}>
+                                        <SelectTrigger className="w-full h-9">
+                                            <SelectValue placeholder="Sélectionner un chauffeur" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {loadingDrivers ? (
+                                                <SelectItem value="loading" disabled>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Chargement...
+                                                </SelectItem>
+                                            ) : (
+                                                drivers.map((driver) => (
+                                                    <SelectItem 
+                                                        key={driver.id} 
+                                                        value={driver.id.toString()}
+                                                    >
+                                                        <Truck className="h-4 w-4 mr-2" />
+                                                        {driver.firstname} {driver.lastname}
+                                                    </SelectItem>
+                                                ))
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Sélection du magasinier */}
+                                <div className="flex flex-col gap-1 flex-1">
+                                    <div className="flex items-center gap-3">
+                                        <Label className="text-sm font-medium">Magasinier:</Label>
+                                        <Select value={selectedMagasinier} onValueChange={setSelectedMagasinier}>
+                                            <SelectTrigger className="w-full h-9">
+                                                <SelectValue placeholder="Sélectionner un magasinier" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {loadingMagasiniers ? (
+                                                    <SelectItem value="loading" disabled>
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        Chargement...
+                                                    </SelectItem>
+                                                ) : (
+                                                    magasiniers.map((magasinier) => (
+                                                        <SelectItem 
+                                                            key={magasinier.id} 
+                                                            value={magasinier.id.toString()}
+                                                        >
+                                                            <User className="h-4 w-4 mr-2" />
+                                                            {magasinier.firstname} {magasinier.lastname}
+                                                        </SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                
+                                </div>
+                            </div>
                         </div>
-                        
-                        {/* Message d'information si BL en attente */}
-                        {hasPendingBl && (
-                            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                                <p className="text-yellow-800 text-xs">
-                                    <strong>Information :</strong> Un bon de livraison est déjà en attente de confirmation pour cette facture. 
-                                    Veuillez attendre sa validation avant de créer un nouveau BL.
-                                </p>
-                    </div>
-                        )}
-                        
+                    )}  
+                    {/* Section chauffeur pour les autres rôles */}
+                    {!isSuperviseurMagasin && (
+                        <div className="space-y-3">
+                            {/* chauffeur */}
+                            <div className="flex items-center gap-3">
+                                <Label className="text-sm font-medium">Chauffeur:</Label>
+                                <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={!!driverId}>
+                                    <SelectTrigger className="w-[250px] h-9">
+                                        <SelectValue placeholder="Sélectionner un chauffeur" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {drivers.map((driver) => (
+                                            <SelectItem 
+                                                key={driver.id} 
+                                                value={driver.id.toString()}
+                                            >
+                                                {driver.firstname} {driver.lastname}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Message d'information si BL en attente */}
+                    {hasPendingBl && (
+                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                            <p className="text-yellow-800 text-xs">
+                                <strong>Information :</strong> Un bon de livraison est déjà en attente de confirmation pour cette facture. 
+                                Veuillez attendre sa validation avant de créer un nouveau BL.
+                            </p>
+                        </div>
+                    )}
+                    
                     {/* Boutons d'action */}
-                        <div className="flex justify-end gap-3 pt-2">
-                            <Button 
-                                onClick={handleSave} 
-                                disabled={loading || hasPendingBl}
-                                title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
-                                size="sm"
-                            >
-                                <Check className="h-4 w-4 mr-1"/>
-                                Livraison partielle
-                            </Button>
-                            <Button 
-                                className="hover:bg-green-700 bg-green-600" 
-                                onClick={handleValiderLivraison} 
-                                disabled={loading || hasPendingBl}
-                                title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
-                                size="sm"
-                            >
-                                <CheckCheck className="h-4 w-4 mr-1"/>
-                                Livraison complète
-                            </Button>
-                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button 
+                            onClick={handleSave} 
+                            disabled={loading || hasPendingBl}
+                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                            size="sm"
+                        >
+                            <Check className="h-4 w-4 mr-1"/>
+                            Livraison partielle
+                        </Button>
+                        <Button 
+                            className="hover:bg-green-700 bg-green-600" 
+                            onClick={handleValiderLivraison} 
+                            disabled={loading || hasPendingBl}
+                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                            size="sm"
+                        >
+                            <CheckCheck className="h-4 w-4 mr-1"/>
+                            Livraison complète
+                        </Button>
                     </div>
                 </div>
             </DialogContent>
         </Dialog>
     )
-}   
+}

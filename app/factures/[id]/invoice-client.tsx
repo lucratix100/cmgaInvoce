@@ -46,7 +46,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
             <ArrowLeft className="h-4 w-4" /> Retour aux factures
           </Button>
           <div className="flex items-center w-full gap-2 justify-end">
-            {user.role === "RECOUVREMENT" && (
+            {user && user.role === "RECOUVREMENT" && (
               <>
                 <PaimentDialog invoiceNumber={invoice.invoiceNumber} />
                 <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsNotificationOpen(true)}>
@@ -91,7 +91,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
               <Truck className="w-4 h-4 mr-2" />
               Suivi des livraisons
             </TabsTrigger>
-            {user.role === "RECOUVREMENT" && (
+            {user && user.role === "RECOUVREMENT" && (
               <TabsTrigger
                 value="paiements"
                 className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
@@ -100,7 +100,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
                 Suivi des paiements
               </TabsTrigger>
             )}
-            {/* {user.role === "RECOUVREMENT" && (
+            {/* {user && user.role === "RECOUVREMENT" && (
               <TabsTrigger
                 value="rappels"
                 className="flex-1 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700"
@@ -110,12 +110,12 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
               </TabsTrigger>
             )} */}
           </TabsList>
-          <Detail invoice={invoice} user={user} userRole={user.role} />
+          <Detail invoice={invoice} user={user} userRole={user?.role} />
           <Delivery invoice={invoice} activeTab={activeTab} />
-          {user.role === "RECOUVREMENT" && (
+          {user && user.role === "RECOUVREMENT" && (
             <Paiment invoice={invoice} />
           )}
-          {user.role === "RECOUVREMENT" && (
+          {user && user.role === "RECOUVREMENT" && (
             <Reminder />
           )}
         </Tabs>

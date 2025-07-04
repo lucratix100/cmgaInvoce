@@ -57,7 +57,8 @@ const roles = [
   { value: Role.MAGASINIER, label: 'Magasinier' },
   { value: Role.CHEF_DEPOT, label: 'Chef de dépôt' },
   { value: Role.RECOUVREMENT, label: 'Recouvrement' },
-  { value: Role.CONTROLEUR, label: 'Contrôleur' }
+  { value: Role.CONTROLEUR, label: 'Contrôleur' },
+  { value: Role.SUPERVISEUR_MAGASIN, label: 'Superviseur Magasin' }
 ]
 
 export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps) {

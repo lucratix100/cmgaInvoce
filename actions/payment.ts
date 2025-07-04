@@ -9,6 +9,7 @@ interface PaymentData {
     modePaiement: PaymentMethod
     datePaiement: string
     commentaire?: string
+    chequeInfo?: string
 }
 
 export const markInvoiceAsPaid = async (invoiceId: string) => {
@@ -58,7 +59,8 @@ export const addPayment = async (invoiceNumber: string, paymentData: PaymentData
             amount: paymentData.montant,
             paymentMethod: paymentData.modePaiement,
             paymentDate: new Date(paymentData.datePaiement).toISOString().split('T')[0],
-            comment: paymentData.commentaire
+            comment: paymentData.commentaire,
+            chequeInfo: paymentData.chequeInfo
         }
 
         const response = await axios.post(

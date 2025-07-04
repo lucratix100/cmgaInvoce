@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Check, ScanBarcode, Keyboard, Package, User, Calendar, X } from "lucide-react"
 import { getInvoiceByNumber, getBlsByInvoice, confirmBl } from "@/actions/invoice"
 import { InvoiceStatus } from "@/types/enums"
+import { useActivityInvalidation } from "@/hooks/useActivityInvalidation"
 
 interface ScanControllerProps {
     onScan?: (result: string) => void;
@@ -65,6 +66,7 @@ export default function ScanController({ onScan }: ScanControllerProps) {
     const [confirmingBl, setConfirmingBl] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
     const { toast } = useToast()
+    const { invalidateAfterAction } = useActivityInvalidation()
 
     const formatAmount = (amount: number) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -165,6 +167,9 @@ export default function ScanController({ onScan }: ScanControllerProps) {
             setConfirmingBl(true)
             
             const result = await confirmBl(invoiceData.invoiceNumber)
+            
+            // Invalider automatiquement les activités récentes après une confirmation
+            invalidateAfterAction('confirmation_livraison')
             
             toast({ 
                 title: "Succès", 

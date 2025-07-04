@@ -2,23 +2,22 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { user } from "@/types"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { Bell } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { InvoiceReminder } from "@/lib/types";
+import { formatNotificationTime } from "@/lib/notification-utils";
 
 export default function Notification({ user }: { user: user }) {
     const router = useRouter();
 
     // Utiliser le hook TanStack Query pour gérer les notifications
     const {
-        notifications,
+        todayNotifications,
         isLoading: isLoadingNotifications,
-        unreadCount,
+        todayUnreadCount,
         markNotificationAsRead,
         error
     } = useNotifications(Number(user?.id));
@@ -48,28 +47,28 @@ export default function Notification({ user }: { user: user }) {
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="relative hover:bg-primary-50 transition-colors">
                     <Bell className="h-5 w-5 text-primary-500 hover:text-primary-700" />
-                    {unreadCount > 0 && (
+                    {todayUnreadCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                            {unreadCount}
+                            {todayUnreadCount}
                         </span>
                     )}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-white border shadow-lg w-96 rounded-lg">
-                <div className="p-4 font-semibold text-lg border-b bg-gray-50">Notifications</div>
+                <div className="p-4 font-semibold text-lg border-b bg-gray-50">Notifications du jour</div>
                 <div className="max-h-[400px] overflow-y-auto">
                     {isLoadingNotifications ? (
                         <div className="p-6 text-center text-muted-foreground">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                             Chargement des notifications...
                         </div>
-                    ) : unreadCount === 0 ? (
+                    ) : todayUnreadCount === 0 ? (
                         <div className="p-6 text-center text-muted-foreground">
                             <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                            Aucune notification non lue
+                            Aucune notification pour aujourd'hui
                         </div>
                     ) : (
-                        notifications.filter(notif => !notif.read).map((notification) => (
+                        todayNotifications.filter(notif => !notif.read).map((notification) => (
                             <DropdownMenuItem
                                 key={notification.id}
                                 className="p-4 hover:bg-gray-50 cursor-pointer border-b last:border-0 transition-colors"
@@ -93,7 +92,7 @@ export default function Notification({ user }: { user: user }) {
                                             )}
                                         </div>
                                         <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                            {format(new Date(notification.remindAt), "dd MMM yyyy", { locale: fr })}
+                                            {formatNotificationTime(notification.remindAt)}
                                         </span>
                                     </div>
                                     <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">

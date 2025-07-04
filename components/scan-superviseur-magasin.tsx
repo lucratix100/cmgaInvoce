@@ -2,69 +2,44 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {Settings, Keyboard, ScanBarcode } from "lucide-react"
+import { Keyboard, ScanBarcode } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
 import GestionFacture from "./facture/gestion-facture"
 import { getInvoiceByNumber } from "@/actions/invoice"
 import { InvoiceStatus } from "@/types/enums"
 
-interface ScanDialogProps {
+interface ScanSuperviseurMagasinProps {
     onScan: (result: string) => void;
 }
 
-export default function ScanDialog({ onScan }: ScanDialogProps) {
+export default function ScanSuperviseurMagasin({ onScan }: ScanSuperviseurMagasinProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [scannedValue, setScannedValue] = useState("")
     const [showActions, setShowActions] = useState(false)
     const [showGestion, setShowGestion] = useState(false)
     const [isTestMode, setIsTestMode] = useState(false)
-    const [dots, setDots] = useState('')
-    const [loading, setLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+    const [loading, setLoading] = useState(false)
+    const [dots, setDots] = useState("")
+    
     const inputRef = useRef<HTMLInputElement>(null)
     const { toast } = useToast()
 
     useEffect(() => {
-        if (isOpen && inputRef.current) {
-            inputRef.current.focus()
-        }
-    }, [isOpen])
+        const interval = setInterval(() => {
+            setDots(prev => prev.length >= 3 ? "" : prev + ".")
+        }, 500)
 
-    useEffect(() => {
-        if (!isTestMode && isOpen && !scannedValue) {
-            const interval = setInterval(() => {
-                setDots(d => d.length < 3 ? d + '.' : '');
-            }, 500);
-            return () => clearInterval(interval);
-        } else {
-            setDots('');
-        }
-    }, [isTestMode, isOpen, scannedValue]);
+        return () => clearInterval(interval)
+    }, [])
 
-    // Effet pour détecter automatiquement un scan complet
-    useEffect(() => {
-        if (scannedValue.trim() && !loading && !showGestion) {
-            // Attendre un court délai pour s'assurer que le scan est complet
-            const timer = setTimeout(() => {
-                if (scannedValue.trim()) {
-                    handleScan()
-                }
-            }, 100) // Délai de 100ms pour laisser le temps au scanner de terminer
-            
-            return () => clearTimeout(timer)
-        }
-    }, [scannedValue])
-
-    const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && scannedValue.trim()) {
             e.preventDefault()
-            if (scannedValue.trim()) {
-                await handleScan()
-            }
+            handleScan()
         }
     }
 
@@ -116,7 +91,7 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
         setShowActions(false)
         setShowGestion(false)
         setScannedValue("")
-        setIsTestMode(false) // Ajouté pour réinitialiser le mode test
+        setIsTestMode(false)
         setErrorMessage("")
         setLoading(false)
     }
@@ -124,9 +99,6 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
     const handleGestion = () => {
         setShowGestion(true)
     }
-
-   
-
 
     const handleSaveGestion = (produits: Array<{ reference: string, quantiteLivree: number }>) => {
         handleClose()
@@ -152,7 +124,7 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
                         Scanner la facture
                     </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>Scanner le numéro de facture</DialogTitle>
                     </DialogHeader>
@@ -165,7 +137,6 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
                                 value={scannedValue}
                                 onChange={(e) => setScannedValue(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                // readOnly={!isTestMode || loading}
                                 className="text-center text-lg font-medium"
                                 placeholder={isTestMode ? "Saisissez le numéro de facture..." : `En attente du scan${dots}`}
                             />
@@ -173,9 +144,11 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
                                 <p className="text-sm text-red-500 text-center">{errorMessage}</p>
                             )}
                         </div>
+
                         <div className="space-y-4">
                             <div className="text-sm text-gray-500 text-center">
                                 <p>Scannez le code-barres de la facture</p>
+                                <p className="text-xs mt-1">Le chauffeur et le magasinier seront sélectionnés après le scan</p>
                             </div>
                             <Button
                                 variant="outline"
@@ -196,7 +169,8 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
                 onClose={() => setShowGestion(false)}
                 numeroFacture={scannedValue}
                 onSave={handleSaveGestion}
+                isSuperviseurMagasin={true}
             />
         </>
     )
-}
+} 

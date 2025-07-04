@@ -1,30 +1,16 @@
 "use client"
 
-import { useEffect, useState } from 'react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { getRecentActivities, UserActivity } from '@/actions/user-activities'
+import { UserActivity } from '@/actions/user-activities'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { useRecentActivities } from '@/hooks/useRecentActivities'
+import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export default function RecentActivities() {
-  const [activities, setActivities] = useState<UserActivity[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const data = await getRecentActivities()
-        setActivities(data)
-      } catch (error) {
-        console.error('Erreur lors du chargement des activités:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchActivities()
-  }, [])
+  const { activities, isLoading, error, refetch, isFetching, recentCount } = useRecentActivities()
 
   const getActionIcon = (action: string) => {
     switch (action.toLowerCase()) {
@@ -220,7 +206,33 @@ export default function RecentActivities() {
     return `${firstname.charAt(0)}${lastname.charAt(0)}`.toUpperCase()
   }
 
-  if (loading) {
+  // Gestion des erreurs
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Activités récentes</CardTitle>
+          <CardDescription>Erreur lors du chargement des activités</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-red-600 mb-4">Impossible de charger les activités récentes</p>
+            <Button 
+              onClick={() => refetch()} 
+              variant="outline" 
+              size="sm"
+              disabled={isFetching}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+              Réessayer
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -247,8 +259,28 @@ export default function RecentActivities() {
   return (
     <Card>
       <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
         <CardTitle>Activités récentes</CardTitle>
-        <CardDescription>Dernières actions effectuées sur la plateforme</CardDescription>
+            <CardDescription>
+              Dernières actions effectuées sur la plateforme
+              {recentCount > 0 && (
+                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                  {recentCount} récentes
+                </span>
+              )}
+            </CardDescription>
+          </div>
+          <Button 
+            onClick={() => refetch()} 
+            variant="ghost" 
+            size="sm"
+            disabled={isFetching}
+            className="h-8 w-8 p-0"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

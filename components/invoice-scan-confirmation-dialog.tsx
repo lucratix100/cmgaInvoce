@@ -19,6 +19,12 @@ export default function InvoiceConfirmationDialog({
     invoiceData,
     loading
 }: InvoiceConfirmationDialogProps) {
+    // Fonction pour formater le montant TTC
+    const formatAmount = (amount: number | undefined) => {
+        if (!amount || isNaN(amount)) return "0 FCFA";
+        return `${amount.toLocaleString('fr-FR')} FCFA`;
+    };
+
     return (
         <Dialog open={isOpen}>
             <DialogContent className="sm:max-w-[800px] max-h-[100vh] overflow-y-auto">
@@ -31,7 +37,7 @@ export default function InvoiceConfirmationDialog({
                 <div className="py-4 space-y-6">
                     {invoiceData && (
                         <>
-                            {/* En-tête de la facture */}
+                           {/* En-tête de la facture */}
                             <div className="bg-blue-50 p-4 rounded-lg mb-4">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -44,7 +50,6 @@ export default function InvoiceConfirmationDialog({
                                     </div>
                                 </div>
                             </div>
-
                             {/* Informations client et détails facture */}
                             <div className="grid grid-cols-2 gap-4">
                                 {invoiceData.customer && (
@@ -57,19 +62,17 @@ export default function InvoiceConfirmationDialog({
                                             <div><span className="text-gray-600">Téléphone:</span> <span className="font-medium">{invoiceData.customer.phone}</span></div>
                                         </div>
                                     </div>
-                                )}
-
+                                )}                                
                                 <div className="bg-gray-50 p-4 rounded-lg">
                                     <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                                         <Calendar className="h-4 w-4" />Détails de la facture
                                     </h4>
                                     <div className="grid gap-1">
                                         <div><span className="text-gray-600">Date:</span> <span className="font-medium">{new Date(invoiceData.date).toLocaleDateString('fr-FR')}</span></div>
-                                        <div><span className="text-gray-600">Montant TTC:</span> <span className="font-medium">{invoiceData.totalTTC?.toLocaleString('fr-FR')} FCFA</span></div>
+                                        <div><span className="text-gray-600">Montant TTC:</span> <span className="font-medium">{formatAmount(invoiceData.totalTtc)}</span></div>
                                     </div>
                                 </div>
                             </div>
-
                             {/* Produits de la facture */}
                             {invoiceData.order && Array.isArray(invoiceData.order) && invoiceData.order.length > 0 && (
                                 <div className="bg-gray-50 p-4 rounded-lg">

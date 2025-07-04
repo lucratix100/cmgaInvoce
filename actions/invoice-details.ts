@@ -22,6 +22,7 @@ export interface PaymentDetails {
   paymentMethod: string;
   paymentDate: string;
   comment: string | null;
+  chequeInfo: string | null;
 }
 
 export interface InvoiceDetails {
