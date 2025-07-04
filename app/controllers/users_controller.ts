@@ -92,13 +92,14 @@ export default class UsersController {
     async update({ request, response, params }: HttpContext) {
         try {
             const data = await request.validateUsing(userValidatorUpdate)
-            // return console.log(data)
+            // return console.log('data', data)
             if (data.password !== data.confirmPassword) {
                 return response.status(400).json({
                     success: false,
                     error: 'Les mots de passe ne correspondent pas'
                 })
             }
+            // return console.log(data)
             const user = await User.find(params.id)
             if (!user) {
                 return response.status(404).json({ error: 'User not found' })
@@ -110,7 +111,8 @@ export default class UsersController {
             await user.save()
             return response.json(user)
         } catch (error) {
-            return response.status(400).json({ error: error.messages })
+            console.log('error', error)
+            return response.status(500).json({ error: error.messages })
         }
     }
 }
