@@ -10,6 +10,9 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Bl from '#models/bl'
 import Assignment from './assignment.js'
 import UserActivitie from './user_activitie.js'
+import Conversation from './conversation.js'
+import ConversationParticipant from './conversation_participant.js'
+import Message from './message.js'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['phone'],
@@ -51,6 +54,20 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @hasMany(() => Assignment)
   declare assignments: HasMany<typeof Assignment>
+
+  // Relations pour le chat
+  @hasMany(() => Conversation, {
+    foreignKey: 'createdBy',
+  })
+  declare createdConversations: HasMany<typeof Conversation>
+
+  @hasMany(() => ConversationParticipant)
+  declare conversationParticipants: HasMany<typeof ConversationParticipant>
+
+  @hasMany(() => Message, {
+    foreignKey: 'senderId',
+  })
+  declare sentMessages: HasMany<typeof Message>
 
   @column({ serializeAs: null })
   declare password: string

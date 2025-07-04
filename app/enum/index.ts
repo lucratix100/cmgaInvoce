@@ -4,6 +4,7 @@ export enum Role {
   CHEF_DEPOT = 'CHEF DEPOT',
   RECOUVREMENT = 'RECOUVREMENT',
   CONTROLEUR = 'CONTROLEUR',
+  SUPERVISEUR_MAGASIN = 'SUPERVISEUR_MAGASIN',
 }
 
 export enum InvoiceStatus {
@@ -19,7 +20,6 @@ export enum InvoicePaymentStatus {
   PAYE = 'payé',
   // ANNULE = 'annulé',    
 }
-
 export enum PaymentMethod {
   ESPECE = 'Espece',
   CHEQUE = 'Cheque',

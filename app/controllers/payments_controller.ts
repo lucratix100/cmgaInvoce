@@ -69,7 +69,7 @@ export default class PaymentsController {
   async store({ request, response, auth }: HttpContext) {
     try {
       const currentUser = await auth.authenticate()
-      const data = request.only(['invoiceNumber', 'amount', 'paymentMethod', 'paymentDate', 'comment'])
+      const data = request.only(['invoiceNumber', 'amount', 'paymentMethod', 'paymentDate', 'comment', 'chequeInfo'])
       data.amount = Number(data.amount)
 
       if (!data.invoiceNumber) {
@@ -88,18 +88,13 @@ export default class PaymentsController {
       const totalPaid = await this.getTotalPaid(invoice.id)
       const remainingAmount = Number(invoice.totalTTC) - totalPaid
 
-      if (data.amount > remainingAmount) {
-        return response.status(400).json({
-          error: `Le montant du paiement (${data.amount}) dépasse le montant restant (${remainingAmount})`
-        })
-      }
-
       const payment = await Payment.create({
         invoiceId: invoice.id,
         amount: data.amount,
         paymentMethod: data.paymentMethod,
         paymentDate: data.paymentDate,
-        comment: data.comment
+        comment: data.comment,
+        chequeInfo: data.chequeInfo
       })
 
       await this.updateInvoiceStatus(invoice.id)
@@ -148,7 +143,7 @@ export default class PaymentsController {
   async update({ params, request, response }: HttpContext) {
     try {
       const payment = await Payment.findOrFail(params.id)
-      const data = request.only(['amount', 'paymentMethod', 'paymentDate', 'comment'])
+      const data = request.only(['amount', 'paymentMethod', 'paymentDate', 'comment', 'chequeInfo'])
       data.amount = Number(data.amount)
 
       const invoice = await Invoice.findOrFail(payment.invoiceId)
@@ -245,12 +240,15 @@ export default class PaymentsController {
     console.log('totalPaid:', totalPaid)
     console.log('totalTTC:', totalTTC)
 
-    if (totalPaid === totalTTC) {
-      console.log('Facture entièrement payée.', totalPaid === totalTTC)
+    if (totalPaid >= totalTTC) {
+      console.log('Facture entièrement payée (avec surplus possible).')
       await invoice.merge({ statusPayment: InvoicePaymentStatus.PAYE }).save()
-    } else if (totalPaid < totalTTC) {
+    } else if (totalPaid > 0 && totalPaid < totalTTC) {
       console.log('Paiement partiel effectué.')
       await invoice.merge({ statusPayment: InvoicePaymentStatus.PAIEMENT_PARTIEL }).save()
+    } else {
+      console.log('Aucun paiement effectué.')
+      await invoice.merge({ statusPayment: InvoicePaymentStatus.IMPAYE }).save()
     }
   }
 }
