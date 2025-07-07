@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {Settings, Keyboard, ScanBarcode } from "lucide-react"
+import { Settings, Keyboard, ScanBarcode } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -54,7 +54,7 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
                     handleScan()
                 }
             }, 100) // Délai de 100ms pour laisser le temps au scanner de terminer
-            
+
             return () => clearTimeout(timer)
         }
     }, [scannedValue])
@@ -77,14 +77,14 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
         try {
             setLoading(true)
             setErrorMessage("")
-            
+
             const response = await getInvoiceByNumber(scannedValue)
-            
+
             if (response.error) {
                 setErrorMessage(response.error)
                 return
             }
-            
+
             if (!response || !response.invoice) {
                 setErrorMessage("Facture non trouvée")
                 return
@@ -98,7 +98,7 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
 
             // Facture valide, ouvrir directement le dialogue de gestion
             setShowGestion(true)
-            
+
         } catch (error: any) {
             console.error('Erreur lors du scan:', error)
             if (error.message) {
@@ -125,7 +125,7 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
         setShowGestion(true)
     }
 
-   
+
 
 
     const handleSaveGestion = (produits: Array<{ reference: string, quantiteLivree: number }>) => {
@@ -143,8 +143,8 @@ export default function ScanDialog({ onScan }: ScanDialogProps) {
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="hover:bg-primary-700 hover:text-white bg-primary-500 text-white transition-all duration-300"
                         onClick={() => setIsOpen(true)}
                     >

@@ -14,10 +14,10 @@ import { InvoiceStatus } from '@/types/enums'
 interface ScanChefDepotProps {
     isOpen: boolean
     onClose: () => void
-    onScan?: (result: string) => void  
+    onScan?: (result: string) => void
 }
 
-export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepotProps) {
+export default function ScanChefDepot({ isOpen, onClose, onScan }: ScanChefDepotProps) {
     const [numeroFacture, setNumeroFacture] = useState("")
     const [loading, setLoading] = useState(false)
     const [isTestMode, setIsTestMode] = useState(false)
@@ -52,13 +52,13 @@ export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepo
                     handleScan()
                 }
             }, 100) // Délai de 100ms pour laisser le temps au scanner de terminer
-            
+
             return () => clearTimeout(timer)
         }
     }, [numeroFacture])
 
     // Effet pour remettre le focus quand le dialogue de confirmation se ferme
-    useEffect(() => { 
+    useEffect(() => {
         if (!showConfirmation && isOpen && !loading) {
             setTimeout(() => {
                 if (inputRef.current) {
@@ -118,14 +118,14 @@ export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepo
             setLoading(true)
             setErrorMessage("")
             const response = await getInvoiceByNumber(numeroFacture)
-            
-            console.log(response , "response");
-            
+
+            console.log(response, "response");
+
             if (response.error) {
                 setErrorMessage(response.error)
                 return
             }
-            
+
             if (!response || !response.invoice) {
                 setErrorMessage("Facture non trouvée")
                 return
@@ -138,7 +138,7 @@ export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepo
 
             setInvoiceData(response.invoice)
             setShowConfirmation(true)
-            
+
         } catch (error: any) {
             console.error('Erreur lors du scan:', error)
             if (error.message) {
@@ -155,10 +155,10 @@ export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepo
         try {
             setLoading(true)
             console.log("Début de la validation de la facture:", numeroFacture)
-            
+
             const responseUpdate = await updateInvoiceStatus(numeroFacture, "en attente de livraison")
             console.log("Réponse de mise à jour:", responseUpdate)
-            
+
             toast({
                 title: "Succès",
                 description: "Facture scannée et mise à jour avec succès",
@@ -166,12 +166,12 @@ export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepo
 
             // Ne pas appeler onScan automatiquement pour éviter la redirection
             // onScan(numeroFacture)
-            
+
             console.log("Réinitialisation du dialogue...")
-            
+
             // Réinitialiser les états sans fermer le dialogue
             resetScanState()
-            
+
             // Remettre le focus sur le champ de saisie avec un délai plus long
             setTimeout(() => {
                 console.log("Remise du focus sur le champ de saisie")
@@ -180,7 +180,7 @@ export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepo
                     inputRef.current.select()
                 }
             }, 200)
-            
+
         } catch (error: any) {
             console.error('Erreur lors de la validation:', error)
             setLoading(false)
@@ -194,10 +194,10 @@ export default function ScanChefDepot({ isOpen, onClose, onScan } : ScanChefDepo
 
     const handleCancelInvoice = () => {
         console.log("Annulation de la facture:", numeroFacture)
-        
+
         // Réinitialiser les états sans fermer le dialogue
         resetScanState()
-        
+
         // Remettre le focus sur le champ de saisie
         setTimeout(() => {
             if (inputRef.current) {

@@ -48,7 +48,7 @@ export default function Filtre({
     user,
     depots
 }: FilterProps) {
-    console.log(depots, "depots")
+
     console.log(user, 'user')
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -99,10 +99,10 @@ export default function Filtre({
 
         // Mettre à jour l'URL avec tous les paramètres
         const params = new URLSearchParams(searchParams.toString())
-        
+
         // Si une recherche est spécifiée, ne pas inclure la date pour permettre une recherche globale
         const hasSearch = updates.search && updates.search.trim() !== ''
-        
+
         Object.entries(newState).forEach(([key, value]) => {
             if (value && value !== 'tous') {
                 // Ne pas inclure startDate si il y a une recherche
@@ -115,7 +115,7 @@ export default function Filtre({
                 params.delete(key)
             }
         })
-        
+
         router.replace(`?${params.toString()}`, { scroll: false })
 
         // Appeler les callbacks appropriés
@@ -326,7 +326,7 @@ export default function Filtre({
                     </div>
 
                 </div>
-            </div>  
+            </div>
             {/* Version desktop */}
             <Card className="hidden md:block border-none shadow-md overflow-hidden bg-white">
                 <CardHeader className="bg-primary-50 pb-1">
@@ -530,16 +530,16 @@ export default function Filtre({
                                 ) : user?.role === Role.CHEF_DEPOT ? (
                                     <>
                                         <Button variant="outline" className="hover:bg-primary-700 hover:text-white bg-primary-500 text-white transition-all duration-300" onClick={() => setIsScanOpen(true)}>
-                                        <ScanBarcode className="h-4 w-4 mr-2" />
-                                        Scanner la facture
+                                            <ScanBarcode className="h-4 w-4 mr-2" />
+                                            Scanner la facture
                                         </Button>
-                                        <ScanChefDepot 
-                                            isOpen={isScanOpen} 
-                                            onClose={() => setIsScanOpen(false)} 
+                                        <ScanChefDepot
+                                            isOpen={isScanOpen}
+                                            onClose={() => setIsScanOpen(false)}
                                             onScan={(result) => {
                                                 handleStateChange({ search: result })
                                                 setIsScanOpen(false)
-                                            }} 
+                                            }}
                                         />
                                     </>
                                 ) : user?.role === Role.CONTROLEUR ? (
