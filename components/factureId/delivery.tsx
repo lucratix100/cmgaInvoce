@@ -193,10 +193,6 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
       </TableHeader>
       <TableBody>
           {parsedProducts.map((product, index) => {
-            // Qté livrée dans CE BL
-            const quantiteLivree = Number(product.quantite ?? 0);
-            // Qté restante après CE BL
-            const quantiteRestante = Number(product.remainingQty ?? 0);
             // Qté restant du BL précédent
             let quantiteRestantBlPrecedent = 0;
             if (blIndex > 0) {
@@ -219,6 +215,8 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
                 ? Number(originalProduct.quantite)
                 : 0;
             }
+            const quantiteLivree = Number(product.quantite ?? 0);
+            const quantiteRestante = Math.max(quantiteRestantBlPrecedent - quantiteLivree, 0);
             return (
               <TableRow key={index} className="hover:bg-gray-50">
                 <TableCell className="font-medium">
@@ -283,7 +281,6 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
           // Utiliser la quantité effectivement livrée dans ce BL
           quantiteLivree = Number(product.quantite ?? 0);
         }
-
         return {
           ...product,
           quantiteLivree,
