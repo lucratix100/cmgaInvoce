@@ -17,7 +17,7 @@ export default class Bl extends BaseModel {
   declare status: 'validée' | 'en attente de confirmation'
 
   @column()
-  declare products: any
+  declare products: string
 
   @column()
   declare total: number
