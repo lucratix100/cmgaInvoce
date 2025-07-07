@@ -265,9 +265,6 @@ export default function Filtre({
                                     onChange={(e) => {
                                         const newDate = e.target.value;
                                         setState((prev) => ({ ...prev, startDate: newDate }));
-                                    }}
-                                    onBlur={(e) => {
-                                        const newDate = e.target.value;
                                         if (newDate.length === 10) {
                                             handleStateChange({ startDate: newDate });
                                         }
@@ -281,9 +278,6 @@ export default function Filtre({
                                     onChange={(e) => {
                                         const newDate = e.target.value;
                                         setState((prev) => ({ ...prev, endDate: newDate }));
-                                    }}
-                                    onBlur={(e) => {
-                                        const newDate = e.target.value;
                                         if (newDate.length === 10) {
                                             handleStateChange({ endDate: newDate });
                                         }
@@ -408,9 +402,6 @@ export default function Filtre({
                                         onChange={(e) => {
                                             const newDate = e.target.value;
                                             setState((prev) => ({ ...prev, startDate: newDate }));
-                                        }}
-                                        onBlur={(e) => {
-                                            const newDate = e.target.value;
                                             if (newDate.length === 10) {
                                                 handleStateChange({ startDate: newDate });
                                             }
@@ -430,9 +421,6 @@ export default function Filtre({
                                         onChange={(e) => {
                                             const newDate = e.target.value;
                                             setState((prev) => ({ ...prev, endDate: newDate }));
-                                        }}
-                                        onBlur={(e) => {
-                                            const newDate = e.target.value;
                                             if (newDate.length === 10) {
                                                 handleStateChange({ endDate: newDate });
                                             }

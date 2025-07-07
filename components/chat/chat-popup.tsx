@@ -75,7 +75,7 @@ interface ChatPopupProps {
 }
 
 export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, user, accessToken, users }: ChatPopupProps) {
-  const { unreadMessages, setUnreadMessages } = useChat()
+  const { unreadMessages, setUnreadMessages, maximizeChat } = useChat()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -189,6 +189,38 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
           return newUnread
         })
       }
+      // Rafraîchir la liste des conversations pour l'aperçu en temps réel
+      fetchConversations();
+    })
+
+    // Écouter les nouvelles invitations de conversation
+    socket.on('new_conversation_invitation', (data: {
+      conversationId: string
+      conversationName: string
+      conversationType: 'private' | 'group'
+      createdBy: {
+        id: string
+        firstname: string
+        lastname: string
+      }
+      participants: any[]
+    }) => {
+      console.log('🎉 Nouvelle invitation de conversation reçue:', data)
+      
+      // Afficher une notification native du navigateur
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Nouvelle conversation', {
+          body: `${data.createdBy.firstname} ${data.createdBy.lastname} vous a invité à rejoindre "${data.conversationName}"`,
+          icon: '/favicon.ico',
+          tag: `conversation-${data.conversationId}`
+        })
+      }
+      
+      // Mettre à jour la liste des conversations
+      fetchConversations()
+      
+      // Afficher un toast/notification dans l'interface
+      showNotificationToast(data)
     })
 
     return () => {
@@ -196,6 +228,43 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
       setSocket(null)
     }
   }, [accessToken, selectedConversation?.id])
+
+  // Fonction pour afficher une notification toast
+  const showNotificationToast = (data: any) => {
+    // Créer un élément toast temporaire
+    const toast = document.createElement('div')
+    toast.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-3 rounded-lg shadow-lg z-[9999] max-w-sm'
+    toast.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="flex-shrink-0">
+          <MessageCircle class="w-5 h-5" />
+        </div>
+        <div class="flex-1">
+          <h4 class="font-medium text-sm">Nouvelle conversation</h4>
+          <p class="text-xs mt-1">${data.createdBy.firstname} ${data.createdBy.lastname} vous a invité à rejoindre "${data.conversationName}"</p>
+        </div>
+        <button class="flex-shrink-0 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
+          <X class="w-4 h-4" />
+        </button>
+      </div>
+    `
+    
+    document.body.appendChild(toast)
+    
+    // Supprimer automatiquement après 5 secondes
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.remove()
+      }
+    }, 5000)
+  }
+
+  // Demander la permission pour les notifications au premier chargement
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
 
   const fetchConversations = async () => {
     try {
@@ -322,6 +391,23 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
     }
   }
 
+  // Aperçu du dernier message (contenu + heure)
+  const getLastMessagePreview = (conversation: Conversation) => {
+    if (!conversation.messages || conversation.messages.length === 0) {
+      return <span className="text-xs text-gray-400">Aucun message</span>
+    }
+    // Chercher le message le plus récent
+    const lastMsg = conversation.messages.reduce((a, b) =>
+      new Date(a.createdAt) > new Date(b.createdAt) ? a : b
+    )
+    return (
+      <span className="text-xs text-gray-500 flex items-center gap-2">
+        <span className="truncate max-w-[120px]">{lastMsg.content}</span>
+        <span className="text-[10px] text-gray-400">{format(new Date(lastMsg.createdAt), 'HH:mm')}</span>
+      </span>
+    )
+  }
+
   if (!isOpen) return null
 
   if (isMinimized) {
@@ -338,7 +424,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={onMinimize}
+                  onClick={maximizeChat}
                   className="h-6 w-6 p-0"
                 >
                   <Maximize2 className="w-4 h-4" />
@@ -405,8 +491,26 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
   )
 
   return (
-    <div className="fixed bottom-10 right-8 z-50 w-[380px] h-[500px] flex flex-col rounded-2xl shadow-2xl border border-gray-200 bg-white">
-      <Card className="flex-1 flex flex-col bg-transparent shadow-none border-none h-full">
+    <div className="fixed bottom-10 right-8 z-50 w-[380px] h-[500px] flex flex-col rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden">
+      {/* Motif SVG discret façon WhatsApp, plus visible */}
+      <svg
+        className="absolute inset-0 w-full h-full z-0"
+        style={{ opacity: 0.25 }}
+        width="100%"
+        height="100%"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <pattern id="whatsappPattern" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+            <circle cx="8" cy="8" r="1.5" fill="#a0a0a0" />
+            <rect x="18" y="18" width="2" height="2" rx="1" fill="#a0a0a0" />
+            <circle cx="24" cy="10" r="1" fill="#a0a0a0" />
+            <rect x="6" y="22" width="2" height="2" rx="1" fill="#a0a0a0" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#whatsappPattern)" />
+      </svg>
+      <Card className="flex-1 flex flex-col bg-transparent shadow-none border-none h-full relative z-10">
         <CardHeader className="pb-2 bg-blue-50 rounded-t-2xl border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -495,9 +599,9 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                             <h4 className="font-medium text-sm truncate">
                               {getConversationName(conversation)}
                             </h4>
-                            <p className="text-xs text-gray-500 truncate">
-                              {getLastMessage(conversation)}
-                            </p>
+                            <div className="flex items-center gap-1">
+                              {getLastMessagePreview(conversation)}
+                            </div>
                           </div>
                           {unreadMessages[conversation.id] && unreadMessages[conversation.id] > 0 && (
                             <Badge variant="destructive" className="text-xs px-1.5 py-0.5 min-w-[20px] h-5">
@@ -547,6 +651,14 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                       className={`flex ${message.sender.id === currentUser?.id ? 'justify-end' : 'justify-start'}`}
                     >
                       <div className={`max-w-xs ${message.sender.id === currentUser?.id ? 'order-2' : 'order-1'}`}>
+                        {/* Nom de l'expéditeur (seulement pour les autres utilisateurs) */}
+                        {message.sender.id !== currentUser?.id && (
+                          <div className="mb-1">
+                            <p className="text-xs font-medium text-gray-600">
+                              {message.sender.firstname} {message.sender.lastname}
+                            </p>
+                          </div>
+                        )}
                         <div className={`p-2 rounded-lg text-xs ${
                           message.sender.id === currentUser?.id
                             ? 'bg-blue-500 text-white'
