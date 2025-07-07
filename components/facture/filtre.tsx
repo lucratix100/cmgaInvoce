@@ -544,6 +544,7 @@ export default function Filtre({
                                     user?.role === Role.CONTROLEUR ||
                                     user?.role === Role.SUPERVISEUR_MAGASIN) && (
                                         <ScanUnified
+                                            depot={depotsData.find((depot) => depot.id === user?.depotId)}
                                             role={getScanRole(user.role)}
                                             onScan={(result) => {
                                                 handleStateChange({ search: result })

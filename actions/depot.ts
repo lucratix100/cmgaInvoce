@@ -25,6 +25,26 @@ export const getDepots = async () => {
     }
 }
 
+export const getDepotById = async (id: number) => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get('accessToken')?.value || '{}').token
+        const response = await axios.get(`${process.env.API_URL}depots/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        })
+        return { success: true, data: response.data }
+    } catch (error: any) {
+        console.log('Erreur lors de la récupération du dépôt:', error.response?.data || error.message)
+        return {
+            success: false,
+            error: error.response?.data?.message || "Erreur lors de la récupération du dépôt"
+        }
+    }
+}
+
 export const createDepot = async (data: z.infer<typeof DepotSchema>) => {
     try {
         const cookieStore = await cookies()

@@ -1,19 +1,21 @@
 'use client'
 
 import { useState, useRef, useCallback } from "react"
-import { useToast } from "@/components/ui/use-toast"
 import { getInvoiceByNumber, getBlsByInvoice, confirmBl, updateInvoiceStatus } from "@/actions/invoice"
 import { InvoiceStatus } from "@/types/enums"
 import { useActivityInvalidation } from "@/hooks/useActivityInvalidation"
 import GestionFacture from "./facture/gestion-facture"
 import InvoiceConfirmationDialog from "./invoice-scan-confirmation-dialog"
 import { ScanMainDialog, ControllerDialog } from "./scan-dialogs"
+import { depot } from "@/types"
+import { toast } from "sonner"
 
 interface ScanUnifiedProps {
     role: 'chef-depot' | 'magasinier' | 'superviseur-magasin' | 'controller'
     onScan?: (result: string) => void
     isOpen?: boolean
     onClose?: () => void
+    depot?: depot | null
 }
 
 interface InvoiceProduct {
@@ -55,7 +57,8 @@ interface Bl {
     }
 }
 
-export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onClose: externalOnClose }: ScanUnifiedProps) {
+export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onClose: externalOnClose, depot }: ScanUnifiedProps) {
+    console.log(depot, "depot");
     const [internalIsOpen, setInternalIsOpen] = useState(false)
     const [scannedValue, setScannedValue] = useState("")
     const [isTestMode, setIsTestMode] = useState(false)
@@ -66,9 +69,8 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
     const [confirmingBl, setConfirmingBl] = useState(false)
     const [showGestion, setShowGestion] = useState(false)
     const [showConfirmation, setShowConfirmation] = useState(false)
-    
+
     const inputRef = useRef<HTMLInputElement>(null)
-    const { toast } = useToast()
     const { invalidateAfterAction } = useActivityInvalidation()
 
     // Gestion de l'état ouvert/fermé
@@ -125,7 +127,7 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value
         setScannedValue(value)
-        
+
         // Détection automatique du scan complet (sans useEffect)
         if (value.trim() && !loading && !showGestion && !showConfirmation) {
             setTimeout(() => {
@@ -145,14 +147,14 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
         try {
             setLoading(true)
             setErrorMessage("")
-            
+
             const response = await getInvoiceByNumber(scannedValue)
-            
+
             if (response.error) {
                 setErrorMessage(response.error)
                 return
             }
-            
+
             if (!response || !response.invoice) {
                 setErrorMessage("Facture non trouvée")
                 return
@@ -163,13 +165,36 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
             // Validation selon le rôle
             switch (role) {
                 case 'chef-depot':
-                    if (invoice.status !== InvoiceStatus.NON_RECEPTIONNEE) {
-                        setErrorMessage("Cette facture a déjà été scannée")
-                        return
+                    {
+                        if (depot?.needDoubleCheck === true) {
+                            // Logique pour double check
+                            if (invoice.status !== InvoiceStatus.NON_RECEPTIONNEE) {
+                                setErrorMessage("Cette facture a déjà été scannée")
+                                return
+                            }
+                            setInvoiceData(invoice)
+                            setShowConfirmation(true)
+                        } else {
+                            // Logique pour pas de double check
+                            if (invoice.status === InvoiceStatus.NON_RECEPTIONNEE) {
+                                setInvoiceData(invoice)
+                                setShowConfirmation(true)
+                                return
+                            }
+                            setInvoiceData(invoice)
+                            setShowGestion(true)
+                        }
+                        break
                     }
-                    setInvoiceData(invoice)
-                    setShowConfirmation(true)
-                    break
+                // {
+                //     if (!depot?.needDoubleCheck && invoice.status !== InvoiceStatus.NON_RECEPTIONNEE) {
+                //         setErrorMessage("Cette facture a déjà été scannée")
+                //         return
+                //     }
+                //     setInvoiceData(invoice)
+                //     setShowGestion(true)
+                //     break
+                // }
 
                 case 'magasinier':
                 case 'superviseur-magasin':
@@ -186,14 +211,14 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
                         return
                     }
                     setInvoiceData(invoice)
-                    
+
                     // Récupérer les BLs de la facture
                     const bls = await getBlsByInvoice(scannedValue)
                     const pending = bls.filter((bl: Bl) => bl.status === 'en attente de confirmation')
                     setPendingBls(pending)
                     break
             }
-            
+
         } catch (error: any) {
             console.error('Erreur lors du scan:', error)
             if (error.message) {
@@ -208,19 +233,16 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
 
     const handleConfirmBl = useCallback(async (blId: number) => {
         if (!invoiceData) return
-        
+
         try {
             setConfirmingBl(true)
-            
+
             const result = await confirmBl(invoiceData.invoiceNumber)
-            
+
             invalidateAfterAction('confirmation_livraison')
-            
-            toast({ 
-                title: "Succès", 
-                description: result.message || "BL confirmé avec succès !" 
-            })
-            
+
+            toast.success(result.message || "BL confirmé avec succès !")
+
             if (
                 result.message &&
                 (result.message.includes("Facture livrée") ||
@@ -230,16 +252,12 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
                 if (onScan) onScan(invoiceData.invoiceNumber)
                 return
             }
-            
+
             await handleScan()
-            
+
         } catch (err: any) {
             console.error('Erreur lors de la confirmation:', err)
-            toast({ 
-                title: "Erreur", 
-                description: err.message || "Impossible de confirmer le BL", 
-                variant: "destructive" 
-            })
+            toast.error(err.message || "Impossible de confirmer le BL")
         } finally {
             setConfirmingBl(false)
         }
@@ -248,23 +266,20 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
     const handleConfirmInvoice = useCallback(async () => {
         try {
             setLoading(true)
-            
+
             const responseUpdate = await updateInvoiceStatus(scannedValue, "en attente de livraison")
-            
-            toast({
-                title: "Succès",
-                description: "Facture scannée et mise à jour avec succès",
-            })
+
+            toast.success("Facture scannée et mise à jour avec succès")
 
             resetState()
-            
+
             setTimeout(() => {
                 if (inputRef.current) {
                     inputRef.current.focus()
                     inputRef.current.select()
                 }
             }, 200)
-            
+
         } catch (error: any) {
             console.error('Erreur lors de la validation:', error)
             setLoading(false)
@@ -278,7 +293,7 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
 
     const handleCancelInvoice = useCallback(() => {
         resetState()
-        
+
         setTimeout(() => {
             if (inputRef.current) {
                 inputRef.current.focus()
@@ -372,7 +387,7 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
             />
 
             {/* Composants conditionnels selon le rôle */}
-            {(role === 'magasinier' || role === 'superviseur-magasin') && (
+            {(role === 'magasinier' || role === 'superviseur-magasin' || role === 'chef-depot') && (
                 <GestionFacture
                     isOpen={showGestion}
                     onClose={() => setShowGestion(false)}

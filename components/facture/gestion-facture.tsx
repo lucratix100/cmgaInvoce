@@ -6,13 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
-import { useToast } from "@/components/ui/use-toast"
 import { Check, CheckCheck, Loader2, Truck, User, Edit } from "lucide-react"
 import { getInvoiceByNumber } from "@/actions/invoice"
 import { processDelivery, getBlsByInvoice, updateBl, getBlEditInfo } from "@/actions/invoice"
 import { getDrivers } from "@/actions/driver"
 import { getUsers } from "@/actions/user"
-import { InvoiceStatus } from "@/types/enums"
+import { toast } from "sonner"
 import { Role } from "@/types/roles"
 import { getCurrentUser } from "@/actions/user"
 
@@ -72,7 +71,6 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
     const [isEditMode, setIsEditMode] = useState(false)
     const [maxQuantitesEdit, setMaxQuantitesEdit] = useState<{ [reference: string]: number }>({})
     const [allBls, setAllBls] = useState<any[]>([])
-    const { toast } = useToast()
 
     const formatAmount = (amount: number) => {
         return new Intl.NumberFormat('fr-FR', {
@@ -86,8 +84,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             fetchFacture()
             fetchCurrentUser()
             // Charger les chauffeurs pour les superviseurs magasin ET les magasiniers
-            if (isSuperviseurMagasin || currentUser?.role === Role.MAGASINIER) {
-            fetchDrivers()
+            if (isSuperviseurMagasin || currentUser?.role === Role.MAGASINIER || currentUser?.role === Role.CHEF_DEPOT) {
+                fetchDrivers()
             }
             if (isSuperviseurMagasin) {
                 fetchMagasiniers()
@@ -140,7 +138,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             setLoading(true)
             setError(null)
             const response = await getInvoiceByNumber(numeroFacture)
-            
+
             if (!response || !response.invoice) {
                 throw new Error('Facture non trouvée')
             }
@@ -153,16 +151,16 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             const validatedBls = bls
                 .filter((bl: any) => bl.status === 'validée' || bl.status === 'livrée')
                 .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            
+
             const lastValidatedBl = validatedBls.length > 0 ? validatedBls[0] : null;
 
             // 2. Initialiser les quantités restantes
             const remainingQuantities: { [ref: string]: number } = {};
-            
+
             if (lastValidatedBl) {
                 // Utiliser les remainingQty du dernier BL validé
-                const products = typeof lastValidatedBl.products === 'string' 
-                    ? JSON.parse(lastValidatedBl.products) 
+                const products = typeof lastValidatedBl.products === 'string'
+                    ? JSON.parse(lastValidatedBl.products)
                     : lastValidatedBl.products;
 
                 products.forEach((p: any) => {
@@ -177,7 +175,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
 
             // 3. Soustraire les quantités des BLs en attente de confirmation
             const pendingBls = bls.filter((bl: any) => bl.status === 'en attente de confirmation');
-            
+
             pendingBls.forEach((bl: any) => {
                 const products = typeof bl.products === 'string' ? JSON.parse(bl.products) : bl.products;
                 products.forEach((p: any) => {
@@ -201,17 +199,13 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             // 5. Mettre à jour les états
             setDeliveredQuantities(deliveredQuantitiesForDisplay);
             setQuantitesLivrees(remainingQuantities);
-            
+
             await checkPendingBls(numeroFacture);
-            
+
         } catch (err) {
             console.error('Erreur lors du chargement de la facture:', err)
             setError(err instanceof Error ? err.message : 'Une erreur est survenue')
-            toast({
-                title: "Erreur",
-                description: "Impossible de charger les données de la facture",
-                variant: "destructive"
-            })
+            toast.error("Impossible de charger les données de la facture")
         } finally {
             setLoading(false)
         }
@@ -221,15 +215,12 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
         try {
             setLoadingDrivers(true)
             const response = await getDrivers()
+            console.log(response, "response drivers");
             const activeDrivers = response.filter((driver: { isActive: boolean }) => driver.isActive)
             setDrivers(activeDrivers)
         } catch (err) {
             console.error('Erreur lors du chargement des chauffeurs:', err)
-            toast({
-                title: "Erreur",
-                description: "Impossible de charger les chauffeurs",
-                variant: "destructive"
-            })
+            toast.error("Impossible de charger les chauffeurs")
         } finally {
             setLoadingDrivers(false)
         }
@@ -243,11 +234,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             setMagasiniers(magasiniersList)
         } catch (err) {
             console.error('Erreur lors du chargement des magasiniers:', err)
-            toast({
-                title: "Erreur",
-                description: "Impossible de charger les magasiniers",
-                variant: "destructive"
-            })
+            toast.error("Impossible de charger les magasiniers")
         } finally {
             setLoadingMagasiniers(false)
         }
@@ -268,13 +255,9 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             const pendingBl = bls.find((bl: any) => bl.status === 'en attente de confirmation')
             setHasPendingBl(!!pendingBl)
             setPendingBl(pendingBl || null)
-            
+
             if (pendingBl) {
-                toast({
-                    title: "Information",
-                    description: "Un BL est déjà en attente de confirmation pour cette facture. Veuillez attendre sa validation avant de créer un nouveau BL.",
-                    variant: "default"
-                })
+                toast.info("Un BL est déjà en attente de confirmation pour cette facture. Veuillez attendre sa validation avant de créer un nouveau BL.")
             }
         } catch (err) {
             console.error('Erreur lors de la vérification des BLs:', err)
@@ -292,44 +275,32 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
     const handleSave = async () => {
         try {
             setLoading(true)
-            
+
             // Utiliser driverId s'il est fourni, sinon vérifier selectedDriver
             let finalDriverId = driverId || (selectedDriver ? parseInt(selectedDriver) : undefined)
             let finalMagasinierId = magasinierId || (selectedMagasinier ? parseInt(selectedMagasinier) : undefined)
-            
+
             if (isSuperviseurMagasin) {
                 if (!selectedDriver) {
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un chauffeur",
-                        variant: "destructive"
-                    })
+                    toast.error("Veuillez sélectionner un chauffeur")
                     return
                 }
                 if (!selectedMagasinier) {
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un magasinier",
-                        variant: "destructive"
-                    })
+                    toast.error("Veuillez sélectionner un magasinier")
                     return
                 }
                 finalDriverId = parseInt(selectedDriver)
                 finalMagasinierId = parseInt(selectedMagasinier)
             } else {
-            if (!finalDriverId) {
-                console.log("Erreur: Aucun chauffeur sélectionné")
-                toast({
-                    title: "Erreur",
-                    description: "Veuillez sélectionner un chauffeur",
-                    variant: "destructive"
-                })
-                return
+                if (!finalDriverId) {
+                    console.log("Erreur: Aucun chauffeur sélectionné")
+                    toast.error("Veuillez sélectionner un chauffeur")
+                    return
                 }
             }
-            
+
             console.log("Début de la livraison partielle pour:", numeroFacture)
-            
+
             // Préparer les produits pour la livraison partielle
             const productsForDelivery = Object.entries(quantitesLivrees).map(([reference, quantiteLivree]) => {
                 // Trouver le produit correspondant dans la facture
@@ -359,30 +330,19 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
 
             // Vérifier si le message indique qu'il faut attendre une confirmation
             if (result.message && result.message.includes('En attente de la confirmation')) {
-                toast({ 
-                    title: "Information", 
-                    description: result.message,
-                    variant: "default"
-                })
+                toast.info(result.message)
                 // Fermer le dialogue car la confirmation sera faite par un autre rôle
                 onClose()
                 return
             }
 
-            toast({
-                title: "Succès",
-                description: result.message || "Livraison partielle enregistrée avec succès",
-            })
-            
+            toast.success(result.message || "Livraison partielle enregistrée avec succès")
+
             onSave(productsForDelivery)
             onClose()
         } catch (err: any) {
             console.error('Erreur lors de la sauvegarde:', err)
-            toast({
-                title: "Erreur",
-                description: err.message || "Impossible de sauvegarder les quantités livrées",
-                variant: "destructive"
-            })
+            toast.error(err.message || "Impossible de sauvegarder les quantités livrées")
         } finally {
             setLoading(false)
         }
@@ -392,51 +352,39 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
         if (!facture) return;
         try {
             setLoading(true)
-            
+
             // Utiliser driverId s'il est fourni, sinon vérifier selectedDriver
             let finalDriverId = driverId || (selectedDriver ? parseInt(selectedDriver) : undefined)
             let finalMagasinierId = magasinierId || (selectedMagasinier ? parseInt(selectedMagasinier) : undefined)
-            
+
             if (isSuperviseurMagasin) {
                 if (!selectedDriver) {
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un chauffeur",
-                        variant: "destructive"
-                    })
+                    toast.error("Veuillez sélectionner un chauffeur")
                     return
                 }
                 if (!selectedMagasinier) {
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un magasinier",
-                        variant: "destructive"
-                    })
+                    toast.error("Veuillez sélectionner un magasinier")
                     return
                 }
                 finalDriverId = parseInt(selectedDriver)
                 finalMagasinierId = parseInt(selectedMagasinier)
             } else {
-            if (!finalDriverId) {
-                console.log("Erreur: Aucun chauffeur sélectionné")
-                toast({
-                    title: "Erreur",
-                    description: "Veuillez sélectionner un chauffeur",
-                    variant: "destructive"
-                })
-                return
+                if (!finalDriverId) {
+                    console.log("Erreur: Aucun chauffeur sélectionné")
+                    toast.error("Veuillez sélectionner un chauffeur")
+                    return
                 }
             }
-            
+
             console.log("Début de la livraison complète pour:", facture.invoiceNumber)
-            
+
             // Préparer les produits pour la livraison complète
             const productsForDelivery = facture.order.map((product: any) => {
                 const quantiteCommandee = Number(product.quantite) || 0;
                 const quantiteDejaLivree = Number(deliveredQuantities[product.reference]) || 0;
                 const quantiteRestante = Math.max(0, quantiteCommandee - quantiteDejaLivree);
-           
-                return {  
+
+                return {
                     reference: product.reference,
                     quantiteLivree: quantiteRestante,
                     designation: product.designation,
@@ -460,30 +408,19 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
 
             // Si le message indique qu'il faut attendre une confirmation, on ferme le dialogue
             if (result.message && result.message.includes('En attente de la confirmation')) {
-                toast({ 
-                    title: "Information", 
-                    description: result.message,
-                    variant: "default"
-                })
+                toast.info(result.message)
                 // Fermer le dialogue car la confirmation sera faite par un autre rôle
                 onClose()
                 return
             }
 
-            toast({ 
-                title: "Succès", 
-                description: result.message || "Livraison complète validée avec succès !" 
-            })
+            toast.success(result.message || "Livraison complète validée avec succès !")
             await fetchFacture()
             setIsEditMode(false)
             onClose()
         } catch (err: any) {
             console.error('Erreur lors de la validation:', err)
-            toast({ 
-                title: "Erreur", 
-                description: err.message || "Impossible de valider la livraison", 
-                variant: "destructive" 
-            })
+            toast.error(err.message || "Impossible de valider la livraison")
         } finally {
             setLoading(false)
         }
@@ -493,43 +430,31 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
         if (!pendingBl) return;
         try {
             setLoading(true)
-            
+
             // Utiliser driverId s'il est fourni, sinon vérifier selectedDriver
             let finalDriverId = driverId || (selectedDriver ? parseInt(selectedDriver) : undefined)
             let finalMagasinierId = magasinierId || (selectedMagasinier ? parseInt(selectedMagasinier) : undefined)
-            
+
             if (isSuperviseurMagasin) {
                 if (!selectedDriver) {
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un chauffeur",
-                        variant: "destructive"
-                    })
+                    toast.error("Veuillez sélectionner un chauffeur")
                     return
                 }
                 if (!selectedMagasinier) {
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un magasinier",
-                        variant: "destructive"
-                    })
+                    toast.error("Veuillez sélectionner un magasinier")
                     return
                 }
                 finalDriverId = parseInt(selectedDriver)
                 finalMagasinierId = parseInt(selectedMagasinier)
             } else {
                 if (!finalDriverId) {
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un chauffeur",
-                        variant: "destructive"
-                    })
+                    toast.error("Veuillez sélectionner un chauffeur")
                     return
                 }
             }
-            
+
             console.log("Début de la modification du BL:", pendingBl.id)
-            
+
             // Préparer les produits pour la modification
             const productsForUpdate = produitsAffiches.map((produit: any) => {
                 const quantiteLivree = quantitesLivrees[produit.reference] !== undefined
@@ -557,11 +482,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
 
             console.log("Résultat de la modification:", result)
 
-            toast({
-                title: "Succès",
-                description: result.message || "BL modifié avec succès",
-            })
-            
+            toast.success(result.message || "BL modifié avec succès")
+
             // Recharger les données
             await fetchFacture()
             setIsEditMode(false)
@@ -571,11 +493,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             }
         } catch (err: any) {
             console.error('Erreur lors de la modification:', err)
-            toast({
-                title: "Erreur",
-                description: err.message || "Impossible de modifier le BL",
-                variant: "destructive"
-            })
+            toast.error(err.message || "Impossible de modifier le BL")
         } finally {
             setLoading(false)
         }
@@ -583,25 +501,25 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
 
     const canEditBl = () => {
         if (!pendingBl || !currentUser) return false;
-        
+
         // Le BL doit être en attente de confirmation
         if (pendingBl.status !== 'en attente de confirmation') return false;
-        
+
         // Vérifier que l'utilisateur est le créateur du BL
         if (pendingBl.userId === currentUser.id) return true;
-        
+
         // Ou que l'utilisateur est un superviseur magasin du même dépôt
         if (currentUser.role === Role.SUPERVISEUR_MAGASIN && facture?.depotId) {
             return currentUser.depotId === facture.depotId;
         }
-        
+
         return false;
     }
 
     // Détermination de la liste des produits à afficher
     const produitsAffiches = isEditMode && pendingBl
-      ? (typeof pendingBl.products === 'string' ? JSON.parse(pendingBl.products) : pendingBl.products)
-      : (facture && facture.order ? facture.order : []);
+        ? (typeof pendingBl.products === 'string' ? JSON.parse(pendingBl.products) : pendingBl.products)
+        : (facture && facture.order ? facture.order : []);
 
     // Fonction pour activer le mode édition et initialiser les quantités
     const activerEditionBl = async () => {
@@ -626,21 +544,21 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
     // Calcul des quantités déjà livrées (hors BL en attente)
     const quantitesLivreesValidees: { [reference: string]: number } = {};
     if (facture && facture.order && Array.isArray(facture.order)) {
-      const blsValides = allBls.filter((bl: any) => bl.status === 'validée' || bl.status === 'livrée');
-      console.log('--- BLs validés pour la facture ---', blsValides);
-      facture.order.forEach((p: any) => {
-        let totalLivree = 0;
-        blsValides.forEach((bl: any) => {
-          const produitsBl = typeof bl.products === 'string' ? JSON.parse(bl.products) : bl.products;
-          console.log('Produits du BL', bl.id, produitsBl);
-          const prod = produitsBl.find((bp: any) => bp.reference === p.reference);
-          console.log('Produit trouvé pour référence', p.reference, ':', prod);
-          if (prod) totalLivree += Number(prod.quantiteLivree !== undefined ? prod.quantiteLivree : (prod.quantite !== undefined ? prod.quantite : 0));
+        const blsValides = allBls.filter((bl: any) => bl.status === 'validée' || bl.status === 'livrée');
+        console.log('--- BLs validés pour la facture ---', blsValides);
+        facture.order.forEach((p: any) => {
+            let totalLivree = 0;
+            blsValides.forEach((bl: any) => {
+                const produitsBl = typeof bl.products === 'string' ? JSON.parse(bl.products) : bl.products;
+                console.log('Produits du BL', bl.id, produitsBl);
+                const prod = produitsBl.find((bp: any) => bp.reference === p.reference);
+                console.log('Produit trouvé pour référence', p.reference, ':', prod);
+                if (prod) totalLivree += Number(prod.quantiteLivree !== undefined ? prod.quantiteLivree : (prod.quantite !== undefined ? prod.quantite : 0));
+            });
+            console.log('Total livré pour', p.reference, ':', totalLivree);
+            quantitesLivreesValidees[p.reference] = totalLivree;
         });
-        console.log('Total livré pour', p.reference, ':', totalLivree);
-        quantitesLivreesValidees[p.reference] = totalLivree;
-      });
-      console.log('=== Résumé quantités livrées validées ===', quantitesLivreesValidees);
+        console.log('=== Résumé quantités livrées validées ===', quantitesLivreesValidees);
     }
 
     if (loading) {
@@ -714,7 +632,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                     <div className="space-y-2">
                         <h4 className="font-medium text-gray-900">Produits commandés</h4>
                         <div className="max-h-[300px] overflow-y-auto border rounded-lg">
-                        {produitsAffiches && produitsAffiches.length > 0 ? (
+                            {produitsAffiches && produitsAffiches.length > 0 ? (
                                 produitsAffiches.map((produit: any, index: number) => {
                                     // Toujours prendre la quantité commandée de la facture
                                     const produitFacture = facture.order.find((p: any) => p.reference === produit.reference);
@@ -767,12 +685,12 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                                         </div>
                                     )
                                 })
-                        ) : (
-                            <div className="text-center text-gray-500 p-4">Aucun produit</div>
-                        )}
+                            ) : (
+                                <div className="text-center text-gray-500 p-4">Aucun produit</div>
+                            )}
                         </div>
                     </div>
-                    
+
                     {/* Section chauffeur et magasinier pour superviseur magasinier */}
                     {isSuperviseurMagasin && (
                         <div className="space-y-3">
@@ -792,8 +710,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                                                 </SelectItem>
                                             ) : (
                                                 drivers.map((driver) => (
-                                                    <SelectItem 
-                                                        key={driver.id} 
+                                                    <SelectItem
+                                                        key={driver.id}
                                                         value={driver.id.toString()}
                                                     >
                                                         <Truck className="h-4 w-4 mr-2" />
@@ -821,8 +739,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                                                     </SelectItem>
                                                 ) : (
                                                     magasiniers.map((magasinier) => (
-                                                        <SelectItem 
-                                                            key={magasinier.id} 
+                                                        <SelectItem
+                                                            key={magasinier.id}
                                                             value={magasinier.id.toString()}
                                                         >
                                                             <User className="h-4 w-4 mr-2" />
@@ -833,92 +751,92 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                
+
                                 </div>
                             </div>
                         </div>
-                    )}  
+                    )}
                     {/* Section chauffeur pour les autres rôles */}
                     {!isSuperviseurMagasin && (
-                    <div className="space-y-3">
-                        {/* chauffeur */}
-                        <div className="flex items-center gap-3">
-                            <Label className="text-sm font-medium">Chauffeur:</Label>
-                            <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={!!driverId}>
-                                <SelectTrigger className="w-[250px] h-9">
-                                    <SelectValue placeholder="Sélectionner un chauffeur" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {drivers.map((driver) => (
-                                        <SelectItem 
-                                            key={driver.id} 
-                                            value={driver.id.toString()}
-                                        >
-                                            {driver.firstname} {driver.lastname}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <div className="space-y-3">
+                            {/* chauffeur */}
+                            <div className="flex items-center gap-3">
+                                <Label className="text-sm font-medium">Chauffeur:</Label>
+                                <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={!!driverId}>
+                                    <SelectTrigger className="w-[250px] h-9">
+                                        <SelectValue placeholder="Sélectionner un chauffeur" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {drivers.map((driver) => (
+                                            <SelectItem
+                                                key={driver.id}
+                                                value={driver.id.toString()}
+                                            >
+                                                {driver.firstname} {driver.lastname}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     )}
-                        
-                        {/* Message d'information si BL en attente */}
-                        {hasPendingBl && (
-                            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                                <p className="text-yellow-800 text-xs">
-                                    <strong>Information :</strong> Un bon de livraison est déjà en attente de confirmation pour cette facture. 
-                                    Veuillez attendre sa validation avant de créer un nouveau BL.
-                                </p>
-                            </div>
-                        )}
-                        
-                        {/* Boutons d'action */}
-                        <div className="flex justify-end gap-3 pt-2">
+
+                    {/* Message d'information si BL en attente */}
+                    {hasPendingBl && (
+                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                            <p className="text-yellow-800 text-xs">
+                                <strong>Information :</strong> Un bon de livraison est déjà en attente de confirmation pour cette facture.
+                                Veuillez attendre sa validation avant de créer un nouveau BL.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Boutons d'action */}
+                    <div className="flex justify-end gap-3 pt-2">
                         {/* Bouton de modification du BL en attente */}
                         {pendingBl && canEditBl() && !isEditMode && (
-                            <Button 
-                                onClick={activerEditionBl} 
+                            <Button
+                                onClick={activerEditionBl}
                                 disabled={loading}
                                 variant="outline"
                                 size="sm"
                                 className="border-blue-500 text-blue-600 hover:bg-blue-50"
                             >
-                                <Edit className="h-4 w-4 mr-1"/>
+                                <Edit className="h-4 w-4 mr-1" />
                                 Modifier le BL
                             </Button>
                         )}
                         {pendingBl && canEditBl() && isEditMode && (
-                            <Button 
-                                onClick={handleUpdateBl} 
+                            <Button
+                                onClick={handleUpdateBl}
                                 disabled={loading}
                                 variant="outline"
                                 size="sm"
                                 className="border-green-500 text-green-600 hover:bg-green-50"
                             >
-                                <Check className="h-4 w-4 mr-1"/>
+                                <Check className="h-4 w-4 mr-1" />
                                 Enregistrer les modifications
                             </Button>
                         )}
-                            <Button 
-                                onClick={handleSave} 
-                                disabled={loading || hasPendingBl}
-                                title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
-                                size="sm"
-                            >
-                                <Check className="h-4 w-4 mr-1"/>
-                                Livraison partielle
-                            </Button>
-                            <Button 
-                                className="hover:bg-green-700 bg-green-600" 
-                                onClick={handleValiderLivraison} 
-                                disabled={loading || hasPendingBl}
-                                title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
-                                size="sm"
-                            >
-                                <CheckCheck className="h-4 w-4 mr-1"/>
-                                Livraison complète
-                            </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={loading || hasPendingBl}
+                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                            size="sm"
+                        >
+                            <Check className="h-4 w-4 mr-1" />
+                            Livraison partielle
+                        </Button>
+                        <Button
+                            className="hover:bg-green-700 bg-green-600"
+                            onClick={handleValiderLivraison}
+                            disabled={loading || hasPendingBl}
+                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                            size="sm"
+                        >
+                            <CheckCheck className="h-4 w-4 mr-1" />
+                            Livraison complète
+                        </Button>
                     </div>
                 </div>
             </DialogContent>
