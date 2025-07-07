@@ -17,17 +17,40 @@ export const getInvoices = async (params?: SearchParams) => {
         // Obtenir la date courante au format YYYY-MM-DD
         const today = new Date().toISOString().split('T')[0]
 
+        // Si une recherche est spécifiée, ne pas appliquer de contrainte de date par défaut
+        // pour permettre une recherche globale
+        const hasSearch = params?.search && params.search.trim() !== ''
+        
+        // Construire les paramètres de requête
+        const queryParams: any = {
+            status: (params?.status || 'tous') !== 'tous' ? (params?.status || 'tous') : undefined,
+        }
+        
+        // Ajouter la recherche si elle existe
+        if (params?.search) {
+            queryParams.search = params.search
+        }
+        
+        // Gérer les dates : ne pas appliquer de date par défaut si il y a une recherche
+        if (params?.startDate) {
+            queryParams.startDate = params.startDate
+        } else if (!hasSearch) {
+            // Seulement appliquer la date par défaut s'il n'y a pas de recherche
+            queryParams.startDate = today
+        }
+        
+        if (params?.endDate) {
+            queryParams.endDate = params.endDate
+        }
+        
+        console.log('getInvoices params:', { params, hasSearch, queryParams })
+        
         const response = await axios.get(`${process.env.API_URL}invoices`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Accept': 'application/json'
             },
-            params: {
-                status: (params?.status || 'tous') !== 'tous' ? (params?.status || 'tous') : undefined,
-                ...(params?.search ? { search: params.search } : {}),
-                ...(params?.startDate || today ? { startDate: params?.startDate || today } : {}),
-                ...(params?.endDate ? { endDate: params.endDate } : {})
-            }
+            params: queryParams
         })
 
         return response.data || []
@@ -239,5 +262,61 @@ export const getInvoiceWithPayments = async (invoiceNumber: string) => {
             return { error: 'Facture non trouvée' }
         }
         return { error: 'Erreur lors de la récupération de la facture' }
+    }
+}
+
+export const updateBl = async (
+    blId: number,
+    products: Array<{ reference: string, quantiteLivree: number, designation: string, quantite: number, prixUnitaire: number }>,
+    isCompleteDelivery: boolean,
+    driverId: number,
+    magasinierId?: number
+) => {
+    try {
+        const cookieStore = await cookies()
+        const accessToken = cookieStore.get("accessToken")
+        const userCookie = cookieStore.get("user")
+
+        if (!accessToken || !userCookie) {
+            throw new Error("Cookies manquants")
+        }
+
+        const token = JSON.parse(accessToken.value || "{}").token
+        const user = JSON.parse(userCookie.value || "{}")
+
+        const response = await axios.patch(`${process.env.API_URL}bls/${blId}`, {
+            products,
+            isCompleteDelivery,
+            driverId,
+            magasinierId: magasinierId || user.id
+        }, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+
+        return response.data
+    } catch (error: any) {
+        console.error('Erreur lors de la mise à jour du BL:', error)
+        throw new Error(error.response?.data?.message || "Erreur lors de la mise à jour du BL")
+    }
+}
+
+export const getBlEditInfo = async (blId: number) => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+        const response = await axios.get(`${process.env.API_URL}bls/${blId}/edit-info`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        })
+        return response.data
+    } catch (error: any) {
+        console.error("Erreur lors de la récupération des infos d'édition du BL:", error)
+        return []
     }
 }
