@@ -92,13 +92,13 @@ export default function SideBar() {
                     </Button>
 
                     <Button
-                        variant={isActive("/dashboard/assignments") ? "default" : "ghost"}
-                        className={isActive("/dashboard/assignments") ? "justify-start" : "justify-start hover:bg-primary-50"}
+                        variant={isActive("/dashboard/activities") ? "default" : "ghost"}
+                        className={isActive("/dashboard/activities") ? "justify-start" : "justify-start hover:bg-primary-50"}
                         asChild
                     >
                         <Link href="/dashboard/activities">
                             <Info className="mr-2 h-4 w-4" />
-                            Info des activités
+                            Info activités
                         </Link>
                     </Button>
                     

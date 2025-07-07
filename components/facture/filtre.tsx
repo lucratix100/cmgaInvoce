@@ -31,7 +31,7 @@ interface FilterState {
     startDate: string;
     endDate?: string;
     status: string;
-    searchInvoice: string;
+    search: string;
     paymentStatus: string;
     depot: string;
     searchField: string;
@@ -61,7 +61,7 @@ export default function Filtre({
             startDate: params.get('startDate') || today,
             endDate: params.get('endDate') || '',
             status: params.get('status') || 'tous',
-            searchInvoice: params.get('search') || "",
+            search: params.get('search') || "",
             paymentStatus: params.get('paymentStatus') || "tous",
             depot: params.get('depot') || "tous",
             searchField: "invoiceNumber"
@@ -99,18 +99,28 @@ export default function Filtre({
 
         // Mettre à jour l'URL avec tous les paramètres
         const params = new URLSearchParams(searchParams.toString())
+        
+        // Si une recherche est spécifiée, ne pas inclure la date pour permettre une recherche globale
+        const hasSearch = updates.search && updates.search.trim() !== ''
+        
         Object.entries(newState).forEach(([key, value]) => {
             if (value && value !== 'tous') {
-                params.set(key, value)
+                // Ne pas inclure startDate si il y a une recherche
+                if (hasSearch && key === 'startDate') {
+                    params.delete(key)
+                } else {
+                    params.set(key, value)
+                }
             } else {
                 params.delete(key)
             }
         })
+        
         router.replace(`?${params.toString()}`, { scroll: false })
 
         // Appeler les callbacks appropriés
         if (updates.status) onStatusChange(updates.status)
-        if (updates.searchInvoice) onSearch(updates.searchInvoice)
+        if (updates.search) onSearch(updates.search)
         if (updates.startDate || updates.endDate) {
             onDateChange(updates.startDate || state.startDate, updates.endDate)
         }
@@ -155,8 +165,8 @@ export default function Filtre({
                 <div className="flex-1 px-4">
                     <Input
                         type="text"
-                        value={state.searchInvoice}
-                        onChange={(e) => handleStateChange({ searchInvoice: e.target.value })}
+                        value={state.search}
+                        onChange={(e) => handleStateChange({ search: e.target.value })}
                         placeholder="Rechercher une facture..."
                         className="w-full"
                         aria-label="Rechercher une facture"
@@ -516,7 +526,7 @@ export default function Filtre({
                             )}
                             <div className="space-y-2">
                                 {user?.role === Role.MAGASINIER ? (
-                                    <ScanDialog onScan={(result) => handleStateChange({ searchInvoice: result })} />
+                                    <ScanDialog onScan={(result) => handleStateChange({ search: result })} />
                                 ) : user?.role === Role.CHEF_DEPOT ? (
                                     <>
                                         <Button variant="outline" className="hover:bg-primary-700 hover:text-white bg-primary-500 text-white transition-all duration-300" onClick={() => setIsScanOpen(true)}>
@@ -527,15 +537,15 @@ export default function Filtre({
                                             isOpen={isScanOpen} 
                                             onClose={() => setIsScanOpen(false)} 
                                             onScan={(result) => {
-                                                handleStateChange({ searchInvoice: result })
+                                                handleStateChange({ search: result })
                                                 setIsScanOpen(false)
                                             }} 
                                         />
                                     </>
                                 ) : user?.role === Role.CONTROLEUR ? (
-                                    <ScanController onScan={(result) => handleStateChange({ searchInvoice: result })} />
+                                    <ScanController onScan={(result) => handleStateChange({ search: result })} />
                                 ) : user?.role === Role.SUPERVISEUR_MAGASIN ? (
-                                    <ScanSuperviseurMagasin onScan={(result) => handleStateChange({ searchInvoice: result })} />
+                                    <ScanSuperviseurMagasin onScan={(result) => handleStateChange({ search: result })} />
                                 ) : null}
                             </div>
                         </div>
@@ -547,8 +557,8 @@ export default function Filtre({
                             </Label>
                             <Input
                                 type="text"
-                                value={state.searchInvoice}
-                                onChange={(e) => handleStateChange({ searchInvoice: e.target.value })}
+                                value={state.search}
+                                onChange={(e) => handleStateChange({ search: e.target.value })}
                                 placeholder="Rechercher..."
                                 className="w-full"
                             />

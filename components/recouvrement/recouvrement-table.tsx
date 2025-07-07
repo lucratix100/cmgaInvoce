@@ -110,12 +110,8 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     }
   };
 
+  // Filtrage uniquement pour les statuts et dépôts (la recherche est gérée côté serveur)
   const filteredFactures = factures.filter((facture) => {
-    const matchesSearch =
-      facture.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      facture.accountNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      facture.customer?.name.toLowerCase().includes(searchQuery.toLowerCase());
-
     const matchesPaymentStatus =
       paymentStatus === "tous" ||
       facture.statusPayment === paymentStatus;
@@ -128,7 +124,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
       selectedDepot === "tous" ||
       facture.depotId?.toString() === selectedDepot;
 
-    return matchesSearch && matchesPaymentStatus && matchesDeliveryStatus && matchesDepot;
+    return matchesPaymentStatus && matchesDeliveryStatus && matchesDepot;
   });
 
   return (

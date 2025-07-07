@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
-import { Check, CheckCheck, Loader2, Truck, User } from "lucide-react"
+import { Check, CheckCheck, Loader2, Truck, User, Edit } from "lucide-react"
 import { getInvoiceByNumber } from "@/actions/invoice"
-import { processDelivery, getBlsByInvoice } from "@/actions/invoice"
+import { processDelivery, getBlsByInvoice, updateBl, getBlEditInfo } from "@/actions/invoice"
 import { getDrivers } from "@/actions/driver"
 import { getUsers } from "@/actions/user"
 import { InvoiceStatus } from "@/types/enums"
 import { Role } from "@/types/roles"
+import { getCurrentUser } from "@/actions/user"
 
 interface GestionFactureProps {
     isOpen: boolean
@@ -66,6 +67,11 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
     const [loadingDrivers, setLoadingDrivers] = useState(false)
     const [loadingMagasiniers, setLoadingMagasiniers] = useState(false)
     const [superviseurMagasin, setSuperviseurMagasin] = useState<{ id: number, firstname: string, lastname: string } | null>(null)
+    const [currentUser, setCurrentUser] = useState<any>(null)
+    const [pendingBl, setPendingBl] = useState<any>(null)
+    const [isEditMode, setIsEditMode] = useState(false)
+    const [maxQuantitesEdit, setMaxQuantitesEdit] = useState<{ [reference: string]: number }>({})
+    const [allBls, setAllBls] = useState<any[]>([])
     const { toast } = useToast()
 
     const formatAmount = (amount: number) => {
@@ -78,12 +84,16 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
     useEffect(() => {
         if (isOpen) {
             fetchFacture()
+            fetchCurrentUser()
+            // Charger les chauffeurs pour les superviseurs magasin ET les magasiniers
+            if (isSuperviseurMagasin || currentUser?.role === Role.MAGASINIER) {
+            fetchDrivers()
+            }
             if (isSuperviseurMagasin) {
-                fetchDrivers()
                 fetchMagasiniers()
             }
         }
-    }, [isOpen, numeroFacture, isSuperviseurMagasin])
+    }, [isOpen, numeroFacture, isSuperviseurMagasin, currentUser?.role])
 
     // Initialiser le chauffeur sélectionné si driverId est fourni
     useEffect(() => {
@@ -112,6 +122,19 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
         fetchSuperviseurMagasin();
     }, [facture?.depotId]);
 
+    // Charger l'utilisateur actuel
+    useEffect(() => {
+        const loadCurrentUser = async () => {
+            try {
+                const user = await getCurrentUser()
+                setCurrentUser(user)
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'utilisateur:', error)
+            }
+        }
+        loadCurrentUser()
+    }, [])
+
     const fetchFacture = async () => {
         try {
             setLoading(true)
@@ -123,8 +146,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             }
 
             setFacture(response.invoice)
-
             const bls = await getBlsByInvoice(numeroFacture);
+            setAllBls(bls);
 
             // 1. Trouver le dernier BL validé pour obtenir les remainingQty
             const validatedBls = bls
@@ -230,13 +253,23 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
         }
     }
 
+    const fetchCurrentUser = async () => {
+        try {
+            const user = await getCurrentUser()
+            setCurrentUser(user)
+        } catch (error) {
+            console.error('Erreur lors du chargement de l\'utilisateur:', error)
+        }
+    }
+
     const checkPendingBls = async (invoiceNumber: string) => {
         try {
             const bls = await getBlsByInvoice(invoiceNumber)
-            const hasPending = bls.some((bl: any) => bl.status === 'en attente de confirmation')
-            setHasPendingBl(hasPending)
+            const pendingBl = bls.find((bl: any) => bl.status === 'en attente de confirmation')
+            setHasPendingBl(!!pendingBl)
+            setPendingBl(pendingBl || null)
             
-            if (hasPending) {
+            if (pendingBl) {
                 toast({
                     title: "Information",
                     description: "Un BL est déjà en attente de confirmation pour cette facture. Veuillez attendre sa validation avant de créer un nouveau BL.",
@@ -250,15 +283,9 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
 
     const handleQuantiteLivreeChange = (reference: string, value: string, maxQuantity: number) => {
         let quantite = parseInt(value, 10)
-        if (isNaN(quantite)) {
-            quantite = 0
-        }
-        if (quantite > maxQuantity) {
-            quantite = maxQuantity
-        }
-        if (quantite < 0) {
-            quantite = 0
-        }
+        if (isNaN(quantite)) quantite = 0
+        if (quantite > maxQuantity) quantite = maxQuantity
+        if (quantite < 0) quantite = 0
         setQuantitesLivrees(prev => ({ ...prev, [reference]: quantite }))
     }
 
@@ -290,14 +317,14 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                 finalDriverId = parseInt(selectedDriver)
                 finalMagasinierId = parseInt(selectedMagasinier)
             } else {
-                if (!finalDriverId) {
-                    console.log("Erreur: Aucun chauffeur sélectionné")
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un chauffeur",
-                        variant: "destructive"
-                    })
-                    return
+            if (!finalDriverId) {
+                console.log("Erreur: Aucun chauffeur sélectionné")
+                toast({
+                    title: "Erreur",
+                    description: "Veuillez sélectionner un chauffeur",
+                    variant: "destructive"
+                })
+                return
                 }
             }
             
@@ -390,14 +417,14 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                 finalDriverId = parseInt(selectedDriver)
                 finalMagasinierId = parseInt(selectedMagasinier)
             } else {
-                if (!finalDriverId) {
-                    console.log("Erreur: Aucun chauffeur sélectionné")
-                    toast({
-                        title: "Erreur",
-                        description: "Veuillez sélectionner un chauffeur",
-                        variant: "destructive"
-                    })
-                    return
+            if (!finalDriverId) {
+                console.log("Erreur: Aucun chauffeur sélectionné")
+                toast({
+                    title: "Erreur",
+                    description: "Veuillez sélectionner un chauffeur",
+                    variant: "destructive"
+                })
+                return
                 }
             }
             
@@ -447,6 +474,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                 title: "Succès", 
                 description: result.message || "Livraison complète validée avec succès !" 
             })
+            await fetchFacture()
+            setIsEditMode(false)
             onClose()
         } catch (err: any) {
             console.error('Erreur lors de la validation:', err)
@@ -458,6 +487,160 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleUpdateBl = async () => {
+        if (!pendingBl) return;
+        try {
+            setLoading(true)
+            
+            // Utiliser driverId s'il est fourni, sinon vérifier selectedDriver
+            let finalDriverId = driverId || (selectedDriver ? parseInt(selectedDriver) : undefined)
+            let finalMagasinierId = magasinierId || (selectedMagasinier ? parseInt(selectedMagasinier) : undefined)
+            
+            if (isSuperviseurMagasin) {
+                if (!selectedDriver) {
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un chauffeur",
+                        variant: "destructive"
+                    })
+                    return
+                }
+                if (!selectedMagasinier) {
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un magasinier",
+                        variant: "destructive"
+                    })
+                    return
+                }
+                finalDriverId = parseInt(selectedDriver)
+                finalMagasinierId = parseInt(selectedMagasinier)
+            } else {
+                if (!finalDriverId) {
+                    toast({
+                        title: "Erreur",
+                        description: "Veuillez sélectionner un chauffeur",
+                        variant: "destructive"
+                    })
+                    return
+                }
+            }
+            
+            console.log("Début de la modification du BL:", pendingBl.id)
+            
+            // Préparer les produits pour la modification
+            const productsForUpdate = produitsAffiches.map((produit: any) => {
+                const quantiteLivree = quantitesLivrees[produit.reference] !== undefined
+                    ? Number(quantitesLivrees[produit.reference])
+                    : (produit.quantiteLivree ?? produit.quantite ?? 0);
+                return {
+                    reference: produit.reference,
+                    quantiteLivree,
+                    designation: produit.designation || '',
+                    quantite: quantiteLivree,
+                    prixUnitaire: Number(produit.prixUnitaire) || 0
+                }
+            })
+
+            console.log("Produits pour modification:", productsForUpdate)
+
+            // Appeler updateBl
+            const result = await updateBl(
+                pendingBl.id,
+                productsForUpdate,
+                false, // isCompleteDelivery = false pour modification
+                finalDriverId,
+                finalMagasinierId
+            )
+
+            console.log("Résultat de la modification:", result)
+
+            toast({
+                title: "Succès",
+                description: result.message || "BL modifié avec succès",
+            })
+            
+            // Recharger les données
+            await fetchFacture()
+            setIsEditMode(false)
+            // Si le BL n'est plus en attente, on sort du mode édition
+            if (result.bl && result.bl.status !== 'en attente de confirmation') {
+                setIsEditMode(false)
+            }
+        } catch (err: any) {
+            console.error('Erreur lors de la modification:', err)
+            toast({
+                title: "Erreur",
+                description: err.message || "Impossible de modifier le BL",
+                variant: "destructive"
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const canEditBl = () => {
+        if (!pendingBl || !currentUser) return false;
+        
+        // Le BL doit être en attente de confirmation
+        if (pendingBl.status !== 'en attente de confirmation') return false;
+        
+        // Vérifier que l'utilisateur est le créateur du BL
+        if (pendingBl.userId === currentUser.id) return true;
+        
+        // Ou que l'utilisateur est un superviseur magasin du même dépôt
+        if (currentUser.role === Role.SUPERVISEUR_MAGASIN && facture?.depotId) {
+            return currentUser.depotId === facture.depotId;
+        }
+        
+        return false;
+    }
+
+    // Détermination de la liste des produits à afficher
+    const produitsAffiches = isEditMode && pendingBl
+      ? (typeof pendingBl.products === 'string' ? JSON.parse(pendingBl.products) : pendingBl.products)
+      : (facture && facture.order ? facture.order : []);
+
+    // Fonction pour activer le mode édition et initialiser les quantités
+    const activerEditionBl = async () => {
+        if (pendingBl) {
+            const produits = typeof pendingBl.products === 'string' ? JSON.parse(pendingBl.products) : pendingBl.products;
+            const initialQuantites: { [reference: string]: number } = {};
+            produits.forEach((p: any) => {
+                initialQuantites[p.reference] = p.quantiteLivree ?? p.quantite ?? 0;
+            });
+            setQuantitesLivrees(initialQuantites);
+            // Récupérer les quantités max modifiables depuis le backend
+            const editInfo = await getBlEditInfo(pendingBl.id)
+            const maxQ: { [reference: string]: number } = {}
+            editInfo.forEach((info: any) => {
+                maxQ[info.reference] = info.quantiteMaxModifiable
+            })
+            setMaxQuantitesEdit(maxQ)
+        }
+        setIsEditMode(true);
+    }
+
+    // Calcul des quantités déjà livrées (hors BL en attente)
+    const quantitesLivreesValidees: { [reference: string]: number } = {};
+    if (facture && facture.order && Array.isArray(facture.order)) {
+      const blsValides = allBls.filter((bl: any) => bl.status === 'validée' || bl.status === 'livrée');
+      console.log('--- BLs validés pour la facture ---', blsValides);
+      facture.order.forEach((p: any) => {
+        let totalLivree = 0;
+        blsValides.forEach((bl: any) => {
+          const produitsBl = typeof bl.products === 'string' ? JSON.parse(bl.products) : bl.products;
+          console.log('Produits du BL', bl.id, produitsBl);
+          const prod = produitsBl.find((bp: any) => bp.reference === p.reference);
+          console.log('Produit trouvé pour référence', p.reference, ':', prod);
+          if (prod) totalLivree += Number(prod.quantiteLivree !== undefined ? prod.quantiteLivree : (prod.quantite !== undefined ? prod.quantite : 0));
+        });
+        console.log('Total livré pour', p.reference, ':', totalLivree);
+        quantitesLivreesValidees[p.reference] = totalLivree;
+      });
+      console.log('=== Résumé quantités livrées validées ===', quantitesLivreesValidees);
     }
 
     if (loading) {
@@ -531,12 +714,26 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                     <div className="space-y-2">
                         <h4 className="font-medium text-gray-900">Produits commandés</h4>
                         <div className="max-h-[300px] overflow-y-auto border rounded-lg">
-                        {facture.order && facture.order.length > 0 ? (
-                                facture.order.map((produit: any, index: number) => {
-                                    const quantiteCommandee = Number(produit.quantite) || 0;
-                                    const quantiteDejaLivree = Number(deliveredQuantities[produit.reference]) || 0;
-                                    const quantiteRestante = Math.max(0, quantiteCommandee - quantiteDejaLivree);
-
+                        {produitsAffiches && produitsAffiches.length > 0 ? (
+                                produitsAffiches.map((produit: any, index: number) => {
+                                    // Toujours prendre la quantité commandée de la facture
+                                    const produitFacture = facture.order.find((p: any) => p.reference === produit.reference);
+                                    const quantiteCommandee = produitFacture ? Number(produitFacture.quantite) : 0;
+                                    // Déjà livrée = somme des BL validés
+                                    const quantiteLivreeDansBLValides = quantitesLivreesValidees[produit.reference] || 0;
+                                    // Quantité du BL en attente (hors édition)
+                                    let quantiteBLenAttente = 0;
+                                    if (pendingBl && !isEditMode) {
+                                        const produitsBL = typeof pendingBl.products === 'string' ? JSON.parse(pendingBl.products) : pendingBl.products;
+                                        const prodBL = produitsBL.find((bp: any) => bp.reference === produit.reference);
+                                        quantiteBLenAttente = prodBL ? Number(prodBL.quantiteLivree ?? prodBL.quantite ?? 0) : 0;
+                                    }
+                                    // Quantité restante réelle = Commandée - Déjà livrée
+                                    const quantiteRestanteReelle = quantiteCommandee - quantiteLivreeDansBLValides;
+                                    // Valeur max pour l'input = quantité restante réelle
+                                    const maxInput = isEditMode && pendingBl && maxQuantitesEdit[produit.reference] !== undefined
+                                        ? maxQuantitesEdit[produit.reference]
+                                        : quantiteRestanteReelle;
                                     return (
                                         <div key={`${produit.reference}-${index}`} className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50">
                                             <div className="flex-1 min-w-0">
@@ -544,8 +741,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                                                 <p className="text-xs text-gray-500">Réf: {produit.reference}</p>
                                                 <div className="flex gap-4 mt-1">
                                                     <p className="text-xs text-gray-600">Commandée: {quantiteCommandee}</p>
-                                                    <p className="text-xs text-blue-600">Déjà livrée: {quantiteDejaLivree}</p>
-                                                    <p className="text-xs text-green-600 font-bold">Restante: {quantiteRestante}</p>
+                                                    <p className="text-xs text-blue-600">Déjà livrée: {quantiteLivreeDansBLValides}</p>
+                                                    <p className="text-xs text-green-600 font-bold">Restante: {quantiteRestanteReelle < 0 ? 0 : quantiteRestanteReelle}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 ml-4">
@@ -556,11 +753,15 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                                                     id={`qty-${produit.reference}`}
                                                     type="number"
                                                     min="0"
-                                                    max={quantiteRestante}
-                                                    value={quantitesLivrees[produit.reference] || 0}
-                                                    onChange={e => handleQuantiteLivreeChange(produit.reference, e.target.value, quantiteRestante)}
+                                                    max={maxInput}
+                                                    value={
+                                                        quantitesLivrees[produit.reference] !== undefined
+                                                            ? quantitesLivrees[produit.reference]
+                                                            : (produit.quantiteLivree ?? produit.quantite ?? 0)
+                                                    }
+                                                    onChange={e => handleQuantiteLivreeChange(produit.reference, e.target.value, maxInput)}
                                                     className="w-20 h-8 text-center text-sm"
-                                                    disabled={quantiteRestante <= 0 || hasPendingBl}
+                                                    disabled={!isEditMode && (quantiteRestanteReelle <= 0 || (hasPendingBl && !isEditMode))}
                                                 />
                                             </div>
                                         </div>
@@ -639,60 +840,85 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                     )}  
                     {/* Section chauffeur pour les autres rôles */}
                     {!isSuperviseurMagasin && (
-                        <div className="space-y-3">
-                            {/* chauffeur */}
-                            <div className="flex items-center gap-3">
-                                <Label className="text-sm font-medium">Chauffeur:</Label>
-                                <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={!!driverId}>
-                                    <SelectTrigger className="w-[250px] h-9">
-                                        <SelectValue placeholder="Sélectionner un chauffeur" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {drivers.map((driver) => (
-                                            <SelectItem 
-                                                key={driver.id} 
-                                                value={driver.id.toString()}
-                                            >
-                                                {driver.firstname} {driver.lastname}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                    <div className="space-y-3">
+                        {/* chauffeur */}
+                        <div className="flex items-center gap-3">
+                            <Label className="text-sm font-medium">Chauffeur:</Label>
+                            <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={!!driverId}>
+                                <SelectTrigger className="w-[250px] h-9">
+                                    <SelectValue placeholder="Sélectionner un chauffeur" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {drivers.map((driver) => (
+                                        <SelectItem 
+                                            key={driver.id} 
+                                            value={driver.id.toString()}
+                                        >
+                                            {driver.firstname} {driver.lastname}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        </div>
+                    )}
+                        
+                        {/* Message d'information si BL en attente */}
+                        {hasPendingBl && (
+                            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                                <p className="text-yellow-800 text-xs">
+                                    <strong>Information :</strong> Un bon de livraison est déjà en attente de confirmation pour cette facture. 
+                                    Veuillez attendre sa validation avant de créer un nouveau BL.
+                                </p>
                             </div>
-                        </div>
-                    )}
-                    
-                    {/* Message d'information si BL en attente */}
-                    {hasPendingBl && (
-                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                            <p className="text-yellow-800 text-xs">
-                                <strong>Information :</strong> Un bon de livraison est déjà en attente de confirmation pour cette facture. 
-                                Veuillez attendre sa validation avant de créer un nouveau BL.
-                            </p>
-                        </div>
-                    )}
-                    
-                    {/* Boutons d'action */}
-                    <div className="flex justify-end gap-3 pt-2">
-                        <Button 
-                            onClick={handleSave} 
-                            disabled={loading || hasPendingBl}
-                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
-                            size="sm"
-                        >
-                            <Check className="h-4 w-4 mr-1"/>
-                            Livraison partielle
-                        </Button>
-                        <Button 
-                            className="hover:bg-green-700 bg-green-600" 
-                            onClick={handleValiderLivraison} 
-                            disabled={loading || hasPendingBl}
-                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
-                            size="sm"
-                        >
-                            <CheckCheck className="h-4 w-4 mr-1"/>
-                            Livraison complète
-                        </Button>
+                        )}
+                        
+                        {/* Boutons d'action */}
+                        <div className="flex justify-end gap-3 pt-2">
+                        {/* Bouton de modification du BL en attente */}
+                        {pendingBl && canEditBl() && !isEditMode && (
+                            <Button 
+                                onClick={activerEditionBl} 
+                                disabled={loading}
+                                variant="outline"
+                                size="sm"
+                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                            >
+                                <Edit className="h-4 w-4 mr-1"/>
+                                Modifier le BL
+                            </Button>
+                        )}
+                        {pendingBl && canEditBl() && isEditMode && (
+                            <Button 
+                                onClick={handleUpdateBl} 
+                                disabled={loading}
+                                variant="outline"
+                                size="sm"
+                                className="border-green-500 text-green-600 hover:bg-green-50"
+                            >
+                                <Check className="h-4 w-4 mr-1"/>
+                                Enregistrer les modifications
+                            </Button>
+                        )}
+                            <Button 
+                                onClick={handleSave} 
+                                disabled={loading || hasPendingBl}
+                                title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                                size="sm"
+                            >
+                                <Check className="h-4 w-4 mr-1"/>
+                                Livraison partielle
+                            </Button>
+                            <Button 
+                                className="hover:bg-green-700 bg-green-600" 
+                                onClick={handleValiderLivraison} 
+                                disabled={loading || hasPendingBl}
+                                title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                                size="sm"
+                            >
+                                <CheckCheck className="h-4 w-4 mr-1"/>
+                                Livraison complète
+                            </Button>
                     </div>
                 </div>
             </DialogContent>

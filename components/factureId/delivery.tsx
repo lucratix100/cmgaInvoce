@@ -193,54 +193,50 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
       </TableHeader>
       <TableBody>
           {parsedProducts.map((product, index) => {
-            const quantiteRestante = Number(product.remainingQty || 0);
-            let quantiteLivree = 0;
-            let quantiteCommandee = 0;
-
-            const previousBl = blIndex > 0 ? allBls[blIndex - 1] : null;
-
-            if (previousBl) {
-              const previousBlProducts =
-                typeof previousBl.products === "string"
-                  ? JSON.parse(previousBl.products)
-                  : previousBl.products;
+            // Qté livrée dans CE BL
+            const quantiteLivree = Number(product.quantite ?? 0);
+            // Qté restante après CE BL
+            const quantiteRestante = Number(product.remainingQty ?? 0);
+            // Qté restant du BL précédent
+            let quantiteRestantBlPrecedent = 0;
+            if (blIndex > 0) {
+              const previousBl = allBls[blIndex - 1];
+              const previousBlProducts = typeof previousBl.products === "string"
+                ? JSON.parse(previousBl.products)
+                : previousBl.products;
               const productInPreviousBl = previousBlProducts.find(
                 (p: BlProduct) => p.reference === product.reference
               );
-              const remainingInPreviousBl = productInPreviousBl
-                ? Number(productInPreviousBl.remainingQty || 0)
-                : quantiteRestante; // Fallback if product not in previous BL
-              quantiteLivree = remainingInPreviousBl - quantiteRestante;
-              quantiteCommandee = remainingInPreviousBl; // Pour les BL suivants, la quantité commandée est la quantité restante du BL précédent
+              quantiteRestantBlPrecedent = productInPreviousBl
+                ? Number(productInPreviousBl.remainingQty ?? 0)
+                : 0;
             } else {
-              // This is the first BL.
+              // Premier BL : quantité commandée
               const originalProduct = invoice.order.find(
                 (p: InvoiceProduct) => p.reference === product.reference
               );
-              quantiteCommandee = originalProduct
+              quantiteRestantBlPrecedent = originalProduct
                 ? Number(originalProduct.quantite)
                 : 0;
-              quantiteLivree = quantiteCommandee - quantiteRestante;
             }
-
             return (
-          <TableRow key={index} className="hover:bg-gray-50">
-            <TableCell className="font-medium">
-              {product.reference || "N/A"}
-            </TableCell>
-            <TableCell>{product.designation || "N/A"}</TableCell>
-            {hasPreviousBl && (
-              <TableCell className="text-right font-medium text-green-600">
-                {quantiteCommandee}
-              </TableCell>
-            )}
-            <TableCell className="text-right font-medium text-green-600">
-              {quantiteLivree}
-            </TableCell>
+              <TableRow key={index} className="hover:bg-gray-50">
+                <TableCell className="font-medium">
+                  {product.reference || "N/A"}
+                </TableCell>
+                <TableCell>{product.designation || "N/A"}</TableCell>
+                {hasPreviousBl && (
+                  <TableCell className="text-right font-medium text-green-600">
+                    {quantiteRestantBlPrecedent}
+                  </TableCell>
+                )}
+                <TableCell className="text-right font-medium text-green-600">
+                  {quantiteLivree}
+                </TableCell>
                 <TableCell className="text-right text-red-600 font-medium">
                   {quantiteRestante}
-            </TableCell>
-          </TableRow>
+                </TableCell>
+              </TableRow>
             );
           })}
       </TableBody>
@@ -274,7 +270,8 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
           const remainingInPreviousBl = productInPreviousBl
             ? Number(productInPreviousBl.remainingQty || 0)
             : quantiteRestante;
-          quantiteLivree = remainingInPreviousBl - quantiteRestante;
+          // Utiliser la quantité effectivement livrée dans ce BL
+          quantiteLivree = Number(product.quantite ?? 0);
           quantiteCommandee = remainingInPreviousBl;
         } else {
           const originalProduct = invoice.order.find(
@@ -283,7 +280,8 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
           quantiteCommandee = originalProduct
             ? Number(originalProduct.quantite)
             : 0;
-          quantiteLivree = quantiteCommandee - quantiteRestante;
+          // Utiliser la quantité effectivement livrée dans ce BL
+          quantiteLivree = Number(product.quantite ?? 0);
         }
 
         return {
