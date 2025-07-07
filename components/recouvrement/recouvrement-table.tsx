@@ -215,8 +215,17 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     </TableCell>}
                     {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium text-lg">
-                          {formatMontant(Number(facture.remainingAmount) || 0)}
+                        <span className="font-medium text-lg flex items-center gap-1">
+                          {facture.statusPayment?.toUpperCase() === "PAYÉ"
+                            ? <>
+                                {formatMontant(0)}
+                                {Number(facture.remainingAmount) < 0 && (
+                                  <span className="text-green-600 text-xs font-semibold ml-1">
+                                    +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
+                                  </span>
+                                )}
+                              </>
+                            : formatMontant(Math.max(0, Number(facture.remainingAmount) || 0))}
                         </span>
                       </div>
                     </TableCell>}

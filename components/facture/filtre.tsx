@@ -10,10 +10,7 @@ import { useState, useCallback, useMemo } from "react"
 import { depot, user } from "@/types"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
-import ScanDialog from "@/components/scan-magasinier"
-import ScanChefDepot from "../scan-chef-depot"
-import ScanController from "../scan-controller"
-import ScanSuperviseurMagasin from "../scan-superviseur-magasin"
+import ScanUnified from "@/components/scan-unified"
 
 interface FilterProps {
     onStatusChange: (status: string) => void;
@@ -146,6 +143,22 @@ export default function Filtre({
         { value: "non payé", label: "NON PAYÉ" },
         { value: "paiement partiel", label: "PAIEMENT PARTIEL" }
     ], [])
+
+    // Fonction pour obtenir le rôle correspondant au ScanUnified
+    const getScanRole = (userRole: string) => {
+        switch (userRole) {
+            case Role.MAGASINIER:
+                return 'magasinier'
+            case Role.CHEF_DEPOT:
+                return 'chef-depot'
+            case Role.CONTROLEUR:
+                return 'controller'
+            case Role.SUPERVISEUR_MAGASIN:
+                return 'superviseur-magasin'
+            default:
+                return 'magasinier'
+        }
+    }
 
     return (
         <>
@@ -525,28 +538,19 @@ export default function Filtre({
                                 </div>
                             )}
                             <div className="space-y-2">
-                                {user?.role === Role.MAGASINIER ? (
-                                    <ScanDialog onScan={(result) => handleStateChange({ search: result })} />
-                                ) : user?.role === Role.CHEF_DEPOT ? (
-                                    <>
-                                        <Button variant="outline" className="hover:bg-primary-700 hover:text-white bg-primary-500 text-white transition-all duration-300" onClick={() => setIsScanOpen(true)}>
-                                            <ScanBarcode className="h-4 w-4 mr-2" />
-                                            Scanner la facture
-                                        </Button>
-                                        <ScanChefDepot
-                                            isOpen={isScanOpen}
-                                            onClose={() => setIsScanOpen(false)}
+                                {/* Utilisation du composant unifié ScanUnified */}
+                                {(user?.role === Role.MAGASINIER ||
+                                    user?.role === Role.CHEF_DEPOT ||
+                                    user?.role === Role.CONTROLEUR ||
+                                    user?.role === Role.SUPERVISEUR_MAGASIN) && (
+                                        <ScanUnified
+                                            role={getScanRole(user.role)}
                                             onScan={(result) => {
                                                 handleStateChange({ search: result })
                                                 setIsScanOpen(false)
                                             }}
                                         />
-                                    </>
-                                ) : user?.role === Role.CONTROLEUR ? (
-                                    <ScanController onScan={(result) => handleStateChange({ search: result })} />
-                                ) : user?.role === Role.SUPERVISEUR_MAGASIN ? (
-                                    <ScanSuperviseurMagasin onScan={(result) => handleStateChange({ search: result })} />
-                                ) : null}
+                                    )}
                             </div>
                         </div>
                         {/* Section Droite: Recherche */}
