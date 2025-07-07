@@ -4,6 +4,7 @@ export enum Role {
   CHEF_DEPOT = 'CHEF DEPOT',
   RECOUVREMENT = 'RECOUVREMENT',
   CONTROLEUR = 'CONTROLEUR',
+  SUPERVISEUR_MAGASIN = 'SUPERVISEUR_MAGASIN',
 }
 
 export enum InvoiceStatus {

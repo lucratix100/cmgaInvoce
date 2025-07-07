@@ -46,6 +46,7 @@ export default class ProcessDeliveriesController {
             if (remainingQty === 0) {
                 invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
                 await invoice.save()
+                
 
                 // Enregistrer l'activité de confirmation de livraison
                 await UserActivityService.logActivity(
@@ -61,6 +62,7 @@ export default class ProcessDeliveriesController {
                         isCompleteDelivery: false
                     }
                 )
+                
 
                 // Notifier les admins que le BL a été validé et la facture livrée
                 await NotificationService.notifyBlValidation(
@@ -89,6 +91,7 @@ export default class ProcessDeliveriesController {
                     isCompleteDelivery: false
                 }
             )
+            
 
             // Notifier les admins que le BL a été validé (livraison partielle)
             await NotificationService.notifyBlValidation(
@@ -99,6 +102,7 @@ export default class ProcessDeliveriesController {
                 'livraison partielle',
                 invoice.id
             )
+            
 
             return response.status(200).json({ message: 'BL validée.' })
         } else {
@@ -110,6 +114,7 @@ export default class ProcessDeliveriesController {
             await bl.save()
             invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
             await invoice.save()
+            
 
             // Enregistrer l'activité de confirmation de livraison complète
             await UserActivityService.logActivity(
@@ -125,6 +130,7 @@ export default class ProcessDeliveriesController {
                     isCompleteDelivery: true
                 }
             )
+            
 
             // Notifier les admins que le BL a été validé et la facture livrée (livraison complète)
             await NotificationService.notifyBlValidation(
@@ -135,13 +141,14 @@ export default class ProcessDeliveriesController {
                 'livrée',
                 invoice.id
             )
+            
 
             return response.status(200).json({ message: 'BL validée.' })
         }
     }
     async processDeliveries({ request, response, auth }: HttpContext) {
         const user = await auth.authenticate()
-        const { invoiceNumber, products, isCompleteDelivery, driverId } = request.body()
+        const { invoiceNumber, products, isCompleteDelivery, driverId, magasinierId } = request.body()
         // return console.log(products, isCompleteDelivery, "products", driverId)
         const invoice = await Invoice.query().where('invoice_number', invoiceNumber).preload('customer').first()
         if (!invoice) {
@@ -163,7 +170,7 @@ export default class ProcessDeliveriesController {
         const { needDoubleCheck } = depot
         if (!needDoubleCheck) {
             const newBlproducts = await this.calculateNewBlProducts(invoice, isCompleteDelivery, products)
-            const bl = await this.createBl(isCompleteDelivery, invoice, newBlproducts, needDoubleCheck, userId, driverId)
+            const bl = await this.createBl(isCompleteDelivery, invoice, newBlproducts, needDoubleCheck, userId, driverId, magasinierId)
             await Confirmation.create({
                 userId: userId,
                 blId: bl.id,
@@ -171,6 +178,7 @@ export default class ProcessDeliveriesController {
             //   une seule confirmation
             bl.merge({ status: 'validée' })
             await bl.save()
+            
 
             // Enregistrer l'activité de traitement de livraison
             await UserActivityService.logActivity(
@@ -186,6 +194,7 @@ export default class ProcessDeliveriesController {
                     needDoubleCheck: false
                 }
             )
+            
 
             // Notifier les admins que le BL a été créé et validé
             await NotificationService.notifyBlValidation(
@@ -196,6 +205,7 @@ export default class ProcessDeliveriesController {
                 'validée',
                 invoice.id
             )
+            
 
             if (isCompleteDelivery) {
                 invoice.merge({ isCompleted: true })
@@ -222,13 +232,14 @@ export default class ProcessDeliveriesController {
                         if (lastBl.status === 'en attente de confirmation') {
                             return response.status(200).json({ message: 'En attente de la confirmation du bon de livraison.' })
                         }
-                        const bl = await this.createBl(isCompleteDelivery, invoice, lastBl.products, needDoubleCheck, userId, driverId)
+                        const bl = await this.createBl(isCompleteDelivery, invoice, lastBl.products, needDoubleCheck, userId, driverId, magasinierId)
                         await Confirmation.create({
                             userId: userId,
                             blId: bl.id,
                         })
                         bl.merge({ status: 'en attente de confirmation' })
                         await bl.save()
+                        
 
                         // Enregistrer l'activité de traitement de livraison
                         await UserActivityService.logActivity(
@@ -245,6 +256,7 @@ export default class ProcessDeliveriesController {
                                 status: 'en attente de confirmation'
                             }
                         )
+                        
 
                         // Notifier les admins que le BL a été créé et est en attente de confirmation
                         await NotificationService.notifyBlValidation(
@@ -255,11 +267,11 @@ export default class ProcessDeliveriesController {
                             'en attente de confirmation',
                             invoice.id
                         )
-
+                        
                         return response.status(200).json({ message: 'En attente de la confirmation du bon de livraison.' })
                     }
                 }
-                const bl = await this.createBl(isCompleteDelivery, invoice, invoice.order, needDoubleCheck, userId, driverId)
+                const bl = await this.createBl(isCompleteDelivery, invoice, invoice.order, needDoubleCheck, userId, driverId, magasinierId)
                 await Confirmation.create({
                     userId: userId,
                     blId: bl.id,
@@ -267,6 +279,7 @@ export default class ProcessDeliveriesController {
 
                 invoice.merge({ status: InvoiceStatus.EN_COURS })
                 await invoice.save()
+                
 
                 // Enregistrer l'activité de traitement de livraison
                 await UserActivityService.logActivity(
@@ -283,6 +296,7 @@ export default class ProcessDeliveriesController {
                         status: 'en attente de confirmation'
                     }
                 )
+                
 
                 // Notifier les admins que le BL a été créé et est en attente de confirmation
                 await NotificationService.notifyBlValidation(
@@ -293,6 +307,7 @@ export default class ProcessDeliveriesController {
                     'en attente de confirmation',
                     invoice.id
                 )
+                
 
                 return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
 
@@ -302,7 +317,7 @@ export default class ProcessDeliveriesController {
             if (lastBl && lastBl.status === 'en attente de confirmation') {
                 return response.status(200).json({ message: 'En attente de la 2 éme confirmation.' })
             }
-            const bl = await this.createBl(isCompleteDelivery, invoice, products, needDoubleCheck, userId, driverId)
+            const bl = await this.createBl(isCompleteDelivery, invoice, products, needDoubleCheck, userId, driverId, magasinierId)
             await Confirmation.create({
                 userId: userId,
                 blId: bl.id,
@@ -310,6 +325,7 @@ export default class ProcessDeliveriesController {
 
             invoice.merge({ isCompleteDelivery: false, status: InvoiceStatus.EN_COURS })
             await invoice.save()
+            
 
             // Enregistrer l'activité de traitement de livraison
             await UserActivityService.logActivity(
@@ -326,6 +342,7 @@ export default class ProcessDeliveriesController {
                     status: 'en attente de confirmation'
                 }
             )
+            
 
             // Notifier les admins que le BL a été créé et est en attente de confirmation
             await NotificationService.notifyBlValidation(
@@ -336,19 +353,20 @@ export default class ProcessDeliveriesController {
                 'en attente de confirmation',
                 invoice.id
             )
+            
 
             return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
 
         }
     }
 
-    private async createBl(isCompleteDelivery: boolean, invoice: any, products: any, needDoubleCheck: boolean, userId: number, driverId: number) {
+    private async createBl(isCompleteDelivery: boolean, invoice: any, products: any, needDoubleCheck: boolean, userId: number, driverId: number, magasinierId?: number) {
         if (isCompleteDelivery) {
             const formatedProducts = products.map((product: any) => {
-                const quantite = Number(product.remainingQty) || 0;
+                const quantite = Number(product.quantite) || 0;
                 const prixUnitaire = Number(product.prixUnitaire) || 0;
                 const total = quantite * prixUnitaire;
-
+                
                 return {
                     reference: product.reference,
                     designation: product.designation,
@@ -358,31 +376,37 @@ export default class ProcessDeliveriesController {
                     remainingQty: 0,
                 }
             })
-            if (invoice.status === InvoiceStatus.EN_COURS) {
-                const totalAmount = formatedProducts.reduce((acc: number, curr: any) => acc + (Number(curr.total) || 0), 0);
-                console.log("total", totalAmount, driverId, userId)
-                return await Bl.create({
-                    invoiceId: invoice.id,
-                    userId: userId,
-                    products: JSON.stringify(formatedProducts),
-                    total: totalAmount,
-                    isDelivered: !needDoubleCheck,
-                    status: 'en attente de confirmation',
-                    driverId: driverId,
-                })
-            }
+
+            const totalAmount = formatedProducts.reduce((acc: number, curr: any) => acc + (Number(curr.total) || 0), 0);
+
+            return await Bl.create({
+                invoiceId: invoice.id,
+                userId: magasinierId || userId,
+                products: JSON.stringify(formatedProducts),
+                total: totalAmount,
+                isDelivered: !needDoubleCheck,
+                status: 'en attente de confirmation',
+                driverId: driverId,
+            })
         }
+
         const formatedProducts = products.map((product: any) => {
             const quantite = Number(product.quantite) || 0;
             const prixUnitaire = Number(product.prixUnitaire) || 0;
             const total = quantite * prixUnitaire;
-
+            
+            // Trouver la quantité commandée dans la facture originale
+            const originalProduct = invoice.order.find((p: any) => p.reference === product.reference);
+            const quantiteCommandee = originalProduct ? Number(originalProduct.quantite) : 0;
+            const remainingQty = quantiteCommandee - quantite;
+            
             return {
                 reference: product.reference,
                 designation: product.designation,
                 quantite: quantite,
                 prixUnitaire: prixUnitaire,
                 total: total,
+                remainingQty: remainingQty,
             }
         })
 
@@ -390,7 +414,7 @@ export default class ProcessDeliveriesController {
 
         return await Bl.create({
             invoiceId: invoice.id,
-            userId,
+            userId: magasinierId || userId,
             products: JSON.stringify(formatedProducts),
             total: totalAmount,
             isDelivered: !needDoubleCheck,
@@ -398,6 +422,7 @@ export default class ProcessDeliveriesController {
             driverId: driverId,
         })
     }
+
     private async calculateNewBlProducts(invoice: any, isCompleteDelivery: boolean, products: any) {
         if (isCompleteDelivery) {
             return JSON.stringify(invoice.order)

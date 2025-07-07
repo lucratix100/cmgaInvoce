@@ -3,7 +3,7 @@ import { userValidatorStore, userValidatorUpdate } from '#validators/user'
 import type { HttpContext } from '@adonisjs/core/http'
 import { Role } from '../enum/index.js'
 import UserActivityService from '#services/user_activity_service'
-import NotificationService from '#services/notification_service'
+// import NotificationService from '#services/notification_service'
 
 export default class UsersController {
 
@@ -116,7 +116,6 @@ export default class UsersController {
                     error: 'Les mots de passe ne correspondent pas'
                 })
             }
-            // return console.log(data)
             const user = await User.find(params.id)
             if (!user) {
                 return response.status(404).json({ error: 'User not found' })

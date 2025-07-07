@@ -8,5 +8,6 @@ export const paymentValidator = vine.compile(
         paymentMethod: vine.enum(PaymentMethod),
         paymentDate: vine.date(),
         comment: vine.string().optional(),
+        chequeInfo: vine.string().optional(),
     })
 )

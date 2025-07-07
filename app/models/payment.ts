@@ -23,6 +23,9 @@ export default class Payment extends BaseModel {
   @column()
   declare comment: string | null
 
+  @column()
+  declare chequeInfo: string | null
+
   @belongsTo(() => Invoice)
   declare invoice: BelongsTo<typeof Invoice>
 
