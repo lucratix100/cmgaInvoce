@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { Invoice } from '@/lib/types';
-import { getMultipleInvoiceDetails, InvoiceDetails } from '@/actions/invoice-details';
+import { getMultipleInvoiceDetails } from '../actions/invoice-details';
 
 export interface ExcelExportData {
   factures: Invoice[];
@@ -149,14 +149,20 @@ export const exportToExcel = async (data: ExcelExportData) => {
 
     // Ajouter les colonnes spécifiques au recouvrement si l'utilisateur a les droits
     if (user.role === 'RECOUVREMENT' || user.role === 'ADMIN') {
+      let montantRestantStr = '';
+      if ((facture.statusPayment || '').toUpperCase() === 'PAYÉ') {
+        montantRestantStr = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(0);
+        if (Number(facture.remainingAmount) < 0) {
+          montantRestantStr += ' +' + new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(Math.abs(Number(facture.remainingAmount)));
+        }
+      } else {
+        montantRestantStr = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(Math.max(0, Number(facture.remainingAmount) || 0));
+      }
       return {
         ...baseData,
         'Date échéance': new Date(facture.date).toLocaleDateString('fr-FR'),
         'État paiement': (facture.statusPayment || "non_paye").replace("_", " ").toUpperCase(),
-        'Montant restant à payer': new Intl.NumberFormat('fr-FR', { 
-          style: 'currency', 
-          currency: 'XOF' 
-        }).format(Number(facture.remainingAmount) || 0),
+        'Montant restant à payer': montantRestantStr,
         'Informations paiements': formatPaymentInfo(details.payments),
         'Progression paiement': calculatePaymentProgress(facture.totalTtc, facture.remainingAmount),
       };
@@ -170,7 +176,7 @@ export const exportToExcel = async (data: ExcelExportData) => {
   
   // Créer une feuille de calcul avec les données
   const worksheet = XLSX.utils.json_to_sheet(exportData);
-  
+
   // Ajuster la largeur des colonnes
   const columnWidths = [
     { wch: 15 }, // Numéro facture
