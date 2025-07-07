@@ -69,9 +69,9 @@ export default class SageInvoicesController {
                     const tvaMax = Math.max(tva, tva2) // Prendre la TVA la plus élevée
                     const remise = Math.abs(parseInt(product._attributes.remise) || 0) // Convertir la remise en pourcentage
 
-                    const prixUnitaire = Math.abs(Math.round(parseFloat(product._attributes.prixUnitaire) || 0))
-                    const montantTva = Math.abs(Math.round((tvaMax / 100) * prixUnitaire))
-                    const prixUnitaireTva = prixUnitaire + montantTva
+                    const prixUnitaire = Math.abs(parseFloat(product._attributes.prixUnitaire) || 0)
+                    const montantTva = Math.abs((tvaMax / 100) * prixUnitaire)
+                    const prixUnitaireTva = Math.round(prixUnitaire + montantTva)
                     const quantite = Math.abs(parseInt(product._attributes.quantite, 10) || 0)
 
                     // Appliquer la remise si elle existe
