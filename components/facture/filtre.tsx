@@ -5,12 +5,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Building, Calendar, DollarSign, Filter, Search, Menu, X, ScanBarcode } from "lucide-react"
-import { useState, useCallback, useMemo } from "react"
+import { Building, Calendar, DollarSign, Filter, Search, Menu, X } from "lucide-react"
+import { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import { depot, user } from "@/types"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
 import ScanUnified from "@/components/scan-unified"
+import { useForm, Controller } from "react-hook-form"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { DatePicker } from "@/components/ui/date-picker"
+import { format, parse } from "date-fns"
 
 interface FilterProps {
     onStatusChange: (status: string) => void;
@@ -24,15 +29,18 @@ interface FilterProps {
     depots: depot[];
 }
 
-interface FilterState {
-    startDate: string;
-    endDate?: string;
-    status: string;
-    search: string;
-    paymentStatus: string;
-    depot: string;
-    searchField: string;
-}
+// Schéma de validation avec Zod
+const filterSchema = z.object({
+    startDate: z.string(),
+    endDate: z.string().optional(),
+    status: z.string(),
+    search: z.string(),
+    paymentStatus: z.string(),
+    depot: z.string(),
+    searchField: z.string()
+})
+
+type FilterFormData = z.infer<typeof filterSchema>
 
 export default function Filtre({
     onStatusChange,
@@ -46,13 +54,15 @@ export default function Filtre({
     depots
 }: FilterProps) {
 
-    console.log(user, 'user')
     const router = useRouter()
     const searchParams = useSearchParams()
     const today = new Date().toISOString().split('T')[0]
-    const [isScanOpen, setIsScanOpen] = useState(false)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
-    const [state, setState] = useState<FilterState>(() => {
+    // Initialisation des valeurs par défaut depuis les paramètres URL
+    const defaultValues = useMemo(() => {
         const params = new URLSearchParams(searchParams.toString())
         return {
             startDate: params.get('startDate') || today,
@@ -63,44 +73,43 @@ export default function Filtre({
             depot: params.get('depot') || "tous",
             searchField: "invoiceNumber"
         }
+    }, [searchParams, today])
+
+    // Configuration de react-hook-form avec mode "onBlur" pour éviter les re-renders
+    const {
+        control,
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { isDirty }
+    } = useForm<FilterFormData>({
+        resolver: zodResolver(filterSchema),
+        defaultValues,
+        mode: "onBlur" // Changé de "onChange" à "onBlur" pour éviter les re-renders
     })
 
-    const [depotsData, setDepotsData] = useState<depot[]>(depots)
-    // const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    // Surveiller les changements de valeurs pour déclencher les callbacks
+    const watchedValues = watch()
 
-    // Gestion des erreurs améliorée
-    const handleError = (error: unknown, context: string) => {
-        console.error(`Erreur dans ${context}:`, error)
-        setError(`Une erreur est survenue lors de ${context}. Veuillez réessayer.`)
-    }
+    // Fonction de debounce pour la recherche
+    const debouncedSearch = useCallback((searchValue: string) => {
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
+        }
 
-    const updateURL = useCallback((newState: Partial<FilterState>) => {
-        const params = new URLSearchParams(searchParams.toString())
+        searchTimeoutRef.current = setTimeout(() => {
+            onSearch(searchValue)
+        }, 300) // 300ms de délai
+    }, [onSearch])
 
-        Object.entries(newState).forEach(([key, value]) => {
-            if (value) {
-                params.set(key, value)
-            } else {
-                params.delete(key)
-            }
-        })
-
-        router.replace(`?${params.toString()}`, { scroll: false })
-    }, [searchParams, router])
-
-    const handleStateChange = useCallback((updates: Partial<FilterState>) => {
-        const newState = { ...state, ...updates }
-        setState(newState)
-
-        // Mettre à jour l'URL avec tous les paramètres
+    // Mise à jour de l'URL et des callbacks avec debounce
+    const updateURLAndCallbacks = useCallback((values: FilterFormData) => {
         const params = new URLSearchParams(searchParams.toString())
 
         // Si une recherche est spécifiée, ne pas inclure la date pour permettre une recherche globale
-        const hasSearch = updates.search && updates.search.trim() !== ''
+        const hasSearch = values.search && values.search.trim() !== ''
 
-        Object.entries(newState).forEach(([key, value]) => {
+        Object.entries(values).forEach(([key, value]) => {
             if (value && value !== 'tous') {
                 // Ne pas inclure startDate si il y a une recherche
                 if (hasSearch && key === 'startDate') {
@@ -116,18 +125,47 @@ export default function Filtre({
         router.replace(`?${params.toString()}`, { scroll: false })
 
         // Appeler les callbacks appropriés
-        if (updates.status) onStatusChange(updates.status)
-        if (updates.search) onSearch(updates.search)
-        if (updates.startDate || updates.endDate) {
-            onDateChange(updates.startDate || state.startDate, updates.endDate)
+        if (values.status) onStatusChange(values.status)
+        if (values.startDate || values.endDate) {
+            onDateChange(values.startDate, values.endDate)
         }
-        if (updates.paymentStatus && onPaymentStatusChange) {
-            onPaymentStatusChange(updates.paymentStatus)
+        if (values.paymentStatus && onPaymentStatusChange) {
+            onPaymentStatusChange(values.paymentStatus)
         }
-        if (updates.depot && onDepotChange) {
-            onDepotChange(updates.depot)
+        if (values.depot && onDepotChange) {
+            onDepotChange(values.depot)
         }
-    }, [state, onStatusChange, onSearch, onDateChange, onPaymentStatusChange, onDepotChange, router, searchParams])
+    }, [searchParams, router, onStatusChange, onDateChange, onPaymentStatusChange, onDepotChange])
+
+    // Effet pour surveiller les changements et mettre à jour l'URL (sauf pour la recherche)
+    useEffect(() => {
+        if (isDirty) {
+            const { search, ...otherValues } = watchedValues
+            updateURLAndCallbacks({ ...otherValues, search: search || "" })
+        }
+    }, [watchedValues, isDirty, updateURLAndCallbacks])
+
+    // Effet séparé pour la recherche avec debounce
+    useEffect(() => {
+        if (watchedValues.search !== undefined) {
+            debouncedSearch(watchedValues.search)
+        }
+    }, [watchedValues.search, debouncedSearch])
+
+    // Nettoyage du timeout
+    useEffect(() => {
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current)
+            }
+        }
+    }, [])
+
+    // Gestion des erreurs améliorée
+    const handleError = (error: unknown, context: string) => {
+        console.error(`Erreur dans ${context}:`, error)
+        setError(`Une erreur est survenue lors de ${context}. Veuillez réessayer.`)
+    }
 
     const statusOptions = useMemo(() => [
         { value: "tous", label: "TOUS" },
@@ -160,6 +198,22 @@ export default function Filtre({
         }
     }
 
+    // Fonction pour convertir une date string en Date
+    const parseDateString = (dateString: string | undefined): Date | undefined => {
+        if (!dateString) return undefined
+        try {
+            return parse(dateString, 'yyyy-MM-dd', new Date())
+        } catch {
+            return undefined
+        }
+    }
+
+    // Fonction pour convertir une Date en string
+    const formatDateToString = (date: Date | undefined): string => {
+        if (!date) return ''
+        return format(date, 'yyyy-MM-dd')
+    }
+
     return (
         <>
             {/* Bouton du menu burger pour mobile */}
@@ -176,14 +230,19 @@ export default function Filtre({
                     {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 </Button>
                 <div className="flex-1 px-4">
-                    <Input
-                        type="text"
-                        value={state.search}
-                        onChange={(e) => handleStateChange({ search: e.target.value })}
-                        placeholder="Rechercher une facture..."
-                        className="w-full"
-                        aria-label="Rechercher une facture"
-                        role="searchbox"
+                    <Controller
+                        name="search"
+                        control={control}
+                        render={({ field }) => (
+                            <Input
+                                {...field}
+                                type="text"
+                                placeholder="Rechercher une facture..."
+                                className="w-full"
+                                aria-label="Rechercher une facture"
+                                role="searchbox"
+                            />
+                        )}
                     />
                 </div>
             </div>
@@ -218,72 +277,89 @@ export default function Filtre({
                                     <Building className="h-4 w-4" />
                                     Dépôt
                                 </Label>
-                                <Select
-                                    value={state.depot}
-                                    onValueChange={(value) => handleStateChange({ depot: value })}
-                                    aria-label="Sélectionner un dépôt"
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Sélectionner un dépôt" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {error ? (
-                                            <SelectItem value="error" disabled className="text-red-500">
-                                                {error}
-                                            </SelectItem>
-                                        ) : (
-                                            <>
-                                                <SelectItem value="tous" className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer">
-                                                    TOUS LES DÉPÔTS
-                                                </SelectItem>
-                                                {depots?.map((depot) => (
-                                                    <SelectItem
-                                                        key={depot.id}
-                                                        value={depot.id.toString()}
-                                                        className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
-                                                    >
-                                                        {depot.name}
+                                <Controller
+                                    name="depot"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select
+                                            value={field.value}
+                                            onValueChange={field.onChange}
+                                            aria-label="Sélectionner un dépôt"
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Sélectionner un dépôt" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {error ? (
+                                                    <SelectItem value="error" disabled className="text-red-500">
+                                                        {error}
                                                     </SelectItem>
-                                                ))}
-                                            </>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                                ) : (
+                                                    <>
+                                                        <SelectItem value="tous" className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer">
+                                                            TOUS LES DÉPÔTS
+                                                        </SelectItem>
+                                                        {depots?.map((depot) => (
+                                                            <SelectItem
+                                                                key={depot.id}
+                                                                value={depot.id.toString()}
+                                                                className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                                            >
+                                                                {depot.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </div>
                         )}
 
                         {/* Dates */}
                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-primary-700">
-                                <Calendar className="h-4 w-4" />
-                                Période
+                            <Label className="flex items-center gap-2 text-primary-700 text-sm">
+                                <Calendar className="h-4 w-4 flex-shrink-0" />
+                                <span>Période</span>
                             </Label>
                             <div className="grid grid-cols-2 gap-2">
-                                <Input
-                                    type="date"
-                                    value={state.startDate}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value;
-                                        setState((prev) => ({ ...prev, startDate: newDate }));
-                                        if (newDate.length === 10) {
-                                            handleStateChange({ startDate: newDate });
-                                        }
-                                    }}
-                                    className="w-full"
-                                    required
-                                />
-                                <Input
-                                    type="date"
-                                    value={state.endDate || ''}
-                                    onChange={(e) => {
-                                        const newDate = e.target.value;
-                                        setState((prev) => ({ ...prev, endDate: newDate }));
-                                        if (newDate.length === 10) {
-                                            handleStateChange({ endDate: newDate });
-                                        }
-                                    }}
-                                    className="w-full"
-                                />
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-gray-600">Début</Label>
+                                    <Controller
+                                        name="startDate"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <DatePicker
+                                                date={parseDateString(field.value)}
+                                                onDateChange={(date) => {
+                                                    const dateString = formatDateToString(date)
+                                                    field.onChange(dateString)
+                                                }}
+                                                placeholder="Date début"
+                                                className="w-full"
+                                            />
+                                        )}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-gray-600">Fin (optionnel)</Label>
+                                    <Controller
+                                        name="endDate"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <DatePicker
+                                                date={parseDateString(field.value)}
+                                                onDateChange={(date) => {
+                                                    const dateString = formatDateToString(date)
+                                                    field.onChange(dateString)
+                                                }}
+                                                placeholder="Date fin"
+                                                className="w-full"
+                                            />
+                                        )}
+                                    />
+                                </div>
                             </div>
                         </div>
                         {/* État */}
@@ -292,18 +368,24 @@ export default function Filtre({
                                 <Filter className="h-4 w-4" />
                                 État
                             </Label>
-                            <Select value={state.status} onValueChange={(value) => handleStateChange({ status: value })}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Sélectionner un état" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {statusOptions.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Controller
+                                name="status"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select value={field.value} onValueChange={field.onChange}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Sélectionner un état" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {statusOptions.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
                         </div>
                         {/* État de paiement */}
                         {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
@@ -312,75 +394,40 @@ export default function Filtre({
                                     <DollarSign className="h-4 w-4" />
                                     État paiement
                                 </Label>
-                                <Select value={state.paymentStatus} onValueChange={(value) => handleStateChange({ paymentStatus: value })}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Sélectionner un état" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {paiementOptions.map((option) => (
-                                            <SelectItem
-                                                key={option.value}
-                                                value={option.value}
-                                                className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
-                                            >
-                                                {option.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Controller
+                                    name="paymentStatus"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Sélectionner un état" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {paiementOptions.map((option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                        className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </div>
                         )}
                     </div>
-
                 </div>
             </div>
+
             {/* Version desktop */}
             <Card className="hidden md:block border-none shadow-md overflow-hidden bg-white">
                 <CardHeader className="bg-primary-50 pb-1">
                     <CardTitle className="flex items-center gap-2 text-primary-700">
                         <div className="flex items-center gap-2 justify-between w-full">
-                            {/* <div className="flex items-center gap-2">
-                                <Filter className="h-5 w-5" />
-                                <span className="text-md font-medium">Filtres</span>
-                            </div> */}
                             <div className="flex items-center gap-2">
-                                {/* {currentUser?.role === "ADMIN" && (
-                                    <Select
-                                        value={state.depot}
-                                        onValueChange={(value) => handleStateChange({ depot: value })}
-                                        disabled={loading}
-                                    >
-                                        <SelectTrigger className="w-[180px] border-dashed bg-white hover:bg-primary-100 transition-colors">
-                                            <Building className="h-4 w-4 mr-2 text-primary" />
-                                            <SelectValue
-                                                placeholder={
-                                                    loading ? "Chargement..." : "Sélectionner un dépôt"
-                                                }
-                                            />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            {error ? (
-                                                <SelectItem
-                                                    value="error"
-                                                    disabled
-                                                    className="text-red-500"
-                                                >
-                                                    {error}
-                                                </SelectItem>
-                                            ) : (
-                                                depots.map((depot) => (
-                                                    <SelectItem
-                                                        key={depot.id}
-                                                        value={depot.id.toString()}
-                                                        className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
-                                                    >
-                                                        {depot.name}
-                                                    </SelectItem>
-                                                ))
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                )} */}
                             </div>
                         </div>
                     </CardTitle>
@@ -391,41 +438,46 @@ export default function Filtre({
                         <div className="flex items-end gap-4">
                             {/* Section Date */}
                             <div className="flex gap-4">
-                                <div className="space-y-2 w-40">
-                                    <Label htmlFor="start-date" className="flex items-center gap-2 text-primary-700">
-                                        <Calendar className="h-4 w-4" />
-                                        Date
+                                <div className="space-y-2 w-48">
+                                    <Label htmlFor="start-date" className="flex items-center gap-2 text-primary-700 text-sm">
+                                        <Calendar className="h-4 w-4 flex-shrink-0" />
+                                        <span className="truncate">Date début</span>
                                     </Label>
-                                    <Input
-                                        type="date"
-                                        value={state.startDate}
-                                        onChange={(e) => {
-                                            const newDate = e.target.value;
-                                            setState((prev) => ({ ...prev, startDate: newDate }));
-                                            if (newDate.length === 10) {
-                                                handleStateChange({ startDate: newDate });
-                                            }
-                                        }}
-                                        className="border-primary-200 focus:border-primary-500 w-full"
-                                        required
+                                    <Controller
+                                        name="startDate"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <DatePicker
+                                                date={parseDateString(field.value)}
+                                                onDateChange={(date) => {
+                                                    const dateString = formatDateToString(date)
+                                                    field.onChange(dateString)
+                                                }}
+                                                placeholder="Date début"
+                                                className="w-full"
+                                            />
+                                        )}
                                     />
                                 </div>
-                                <div className="space-y-2 w-40">
-                                    <Label htmlFor="end-date" className="flex items-center gap-2 text-primary-700">
-                                        <Calendar className="h-4 w-4" />
-                                        Date fin (optionnel)
+                                <div className="space-y-2 w-48">
+                                    <Label htmlFor="end-date" className="flex items-center gap-2 text-primary-700 text-sm">
+                                        <Calendar className="h-4 w-4 flex-shrink-0" />
+                                        <span className="truncate">Date fin (optionnel)</span>
                                     </Label>
-                                    <Input
-                                        type="date"
-                                        value={state.endDate || ''}
-                                        onChange={(e) => {
-                                            const newDate = e.target.value;
-                                            setState((prev) => ({ ...prev, endDate: newDate }));
-                                            if (newDate.length === 10) {
-                                                handleStateChange({ endDate: newDate });
-                                            }
-                                        }}
-                                        className="border-primary-200 focus:border-primary-500 w-full"
+                                    <Controller
+                                        name="endDate"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <DatePicker
+                                                date={parseDateString(field.value)}
+                                                onDateChange={(date) => {
+                                                    const dateString = formatDateToString(date)
+                                                    field.onChange(dateString)
+                                                }}
+                                                placeholder="Date fin (optionnel)"
+                                                className="w-full"
+                                            />
+                                        )}
                                     />
                                 </div>
                             </div>
@@ -436,22 +488,28 @@ export default function Filtre({
                                     <Filter className="h-4 w-4" />
                                     État
                                 </Label>
-                                <Select value={state.status} onValueChange={(value) => handleStateChange({ status: value })}>
-                                    <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
-                                        <SelectValue placeholder="Sélectionner un état" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        {statusOptions.map((option) => (
-                                            <SelectItem
-                                                key={option.value}
-                                                value={option.value}
-                                                className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
-                                            >
-                                                {option.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Controller
+                                    name="status"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
+                                                <SelectValue placeholder="Sélectionner un état" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-white">
+                                                {statusOptions.map((option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                        className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </div>
                             {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
                                 <div className="space-y-2">
@@ -459,22 +517,28 @@ export default function Filtre({
                                         <DollarSign className="h-4 w-4" />
                                         État paiement
                                     </Label>
-                                    <Select value={state.paymentStatus} onValueChange={(value) => handleStateChange({ paymentStatus: value })}>
-                                        <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
-                                            <SelectValue placeholder="Sélectionner un état" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            {paiementOptions.map((option) => (
-                                                <SelectItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                    className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
-                                                >
-                                                    {option.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Controller
+                                        name="paymentStatus"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
+                                                    <SelectValue placeholder="Sélectionner un état" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-white">
+                                                    {paiementOptions.map((option) => (
+                                                        <SelectItem
+                                                            key={option.value}
+                                                            value={option.value}
+                                                            className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                                        >
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
                                 </div>
                             )}
                             {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
@@ -483,46 +547,48 @@ export default function Filtre({
                                         <Building className="h-4 w-4 mr-2 text-primary" />
                                         Dépôt
                                     </Label>
-
-                                    <Select
-                                        value={state.depot}
-                                        onValueChange={(value) => handleStateChange({ depot: value })}
-
-                                    >
-                                        <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
-                                            <SelectValue
-                                                placeholder={
-                                                    "Sélectionner un dépôt"
-                                                }
-                                            />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            {error ? (
-                                                <SelectItem
-                                                    value="error"
-                                                    disabled
-                                                    className="text-red-500"
-                                                >
-                                                    {error}
-                                                </SelectItem>
-                                            ) : (
-                                                <>
-                                                    <SelectItem value="tous" className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer">
-                                                        TOUS LES DÉPÔTS
-                                                    </SelectItem>
-                                                    {depotsData?.map((depot) => (
+                                    <Controller
+                                        name="depot"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select
+                                                value={field.value}
+                                                onValueChange={field.onChange}
+                                            >
+                                                <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
+                                                    <SelectValue
+                                                        placeholder="Sélectionner un dépôt"
+                                                    />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-white">
+                                                    {error ? (
                                                         <SelectItem
-                                                            key={depot.id}
-                                                            value={depot.id.toString()}
-                                                            className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                                            value="error"
+                                                            disabled
+                                                            className="text-red-500"
                                                         >
-                                                            {depot.name}
+                                                            {error}
                                                         </SelectItem>
-                                                    ))}
-                                                </>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
+                                                    ) : (
+                                                        <>
+                                                            <SelectItem value="tous" className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer">
+                                                                TOUS LES DÉPÔTS
+                                                            </SelectItem>
+                                                            {depots?.map((depot) => (
+                                                                <SelectItem
+                                                                    key={depot.id}
+                                                                    value={depot.id.toString()}
+                                                                    className="hover:bg-primary-50 focus:bg-primary-50 cursor-pointer"
+                                                                >
+                                                                    {depot.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
                                 </div>
                             )}
                             <div className="space-y-2">
@@ -532,11 +598,10 @@ export default function Filtre({
                                     user?.role === Role.CONTROLEUR ||
                                     user?.role === Role.SUPERVISEUR_MAGASIN) && (
                                         <ScanUnified
-                                            depot={depotsData.find((depot) => depot.id === user?.depotId)}
+                                            depot={depots.find((depot) => depot.id === user?.depotId)}
                                             role={getScanRole(user.role)}
                                             onScan={(result) => {
-                                                handleStateChange({ search: result })
-                                                setIsScanOpen(false)
+                                                setValue('search', result)
                                             }}
                                         />
                                     )}
@@ -548,12 +613,17 @@ export default function Filtre({
                                 <Search className="h-4 w-4" />
                                 Rechercher
                             </Label>
-                            <Input
-                                type="text"
-                                value={state.search}
-                                onChange={(e) => handleStateChange({ search: e.target.value })}
-                                placeholder="Rechercher..."
-                                className="w-full"
+                            <Controller
+                                name="search"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input
+                                        {...field}
+                                        type="text"
+                                        placeholder="Rechercher..."
+                                        className="w-full"
+                                    />
+                                )}
                             />
                         </div>
                     </div>

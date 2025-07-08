@@ -9,7 +9,7 @@ import Link from "next/link"
 import Filtre from "../facture/filtre"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "../ui/dialog"
 import Notification from "../notification-dialog"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Invoice } from "@/lib/types"
 import { useSearchParams } from "next/navigation"
 import { getCurrentUser } from "@/actions/user"
@@ -29,11 +29,13 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
   const searchParams = useSearchParams()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
-  const [paymentStatus, setPaymentStatus] = useState(searchParams.get('paymentStatus') || "tous");
-  const [deliveryStatus, setDeliveryStatus] = useState(searchParams.get('status') || "tous");
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
-  const [selectedDepot, setSelectedDepot] = useState(searchParams.get('depot') || "tous");
   const [isExporting, setIsExporting] = useState(false);
+
+  // Récupération des paramètres directement depuis l'URL
+  const paymentStatus = searchParams.get('paymentStatus') || "tous";
+  const deliveryStatus = searchParams.get('status') || "tous";
+  const searchQuery = searchParams.get('search') || "";
+  const selectedDepot = searchParams.get('depot') || "tous";
 
   const formatMontant = (montant: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(montant);
@@ -46,6 +48,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
       year: 'numeric'
     });
   };
+
   const getStatusColor = (status: string) => {
     const colors = {
       // Statuts de livraison
@@ -65,20 +68,21 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     return colors[upperStatus as keyof typeof colors] || colors.default;
   };
 
+  // Callbacks pour les filtres (maintenant gérés par react-hook-form dans le composant Filtre)
   const handlePaymentStatusChange = (status: string) => {
-    setPaymentStatus(status);
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
   };
 
   const handleDeliveryStatusChange = (status: string) => {
-    setDeliveryStatus(status);
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
   };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
   };
 
   const handleDepotChange = (depotId: string) => {
-    setSelectedDepot(depotId);
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
   };
 
   const handleExportExcel = async () => {
@@ -93,7 +97,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
           selectedDepot
         }
       );
-      
+
       toast({
         title: "Export réussi",
         description: "Le fichier Excel a été téléchargé avec succès.",
@@ -110,22 +114,24 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     }
   };
 
-  // Filtrage uniquement pour les statuts et dépôts (la recherche est gérée côté serveur)
-  const filteredFactures = factures.filter((facture) => {
-    const matchesPaymentStatus =
-      paymentStatus === "tous" ||
-      facture.statusPayment === paymentStatus;
+  // Filtrage optimisé avec useMemo pour éviter les recalculs inutiles
+  const filteredFactures = useMemo(() => {
+    return factures.filter((facture) => {
+      const matchesPaymentStatus =
+        paymentStatus === "tous" ||
+        facture.statusPayment === paymentStatus;
 
-    const matchesDeliveryStatus =
-      deliveryStatus === "tous" ||
-      facture.status === deliveryStatus;
+      const matchesDeliveryStatus =
+        deliveryStatus === "tous" ||
+        facture.status === deliveryStatus;
 
-    const matchesDepot =
-      selectedDepot === "tous" ||
-      facture.depotId?.toString() === selectedDepot;
+      const matchesDepot =
+        selectedDepot === "tous" ||
+        facture.depotId?.toString() === selectedDepot;
 
-    return matchesPaymentStatus && matchesDeliveryStatus && matchesDepot;
-  });
+      return matchesPaymentStatus && matchesDeliveryStatus && matchesDepot;
+    });
+  }, [factures, paymentStatus, deliveryStatus, selectedDepot]);
 
   return (
     <>
@@ -195,9 +201,9 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <TableCell>
                     </TableCell>
                     <TableCell className="font-medium">
-                     
-                        {facture.invoiceNumber}
-                    
+
+                      {facture.invoiceNumber}
+
                     </TableCell>
                     <TableCell>{facture.accountNumber}</TableCell>
                     <TableCell>{formatDate(facture.date)}</TableCell>
@@ -218,13 +224,13 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                         <span className="font-medium text-lg flex items-center gap-1">
                           {facture.statusPayment?.toUpperCase() === "PAYÉ"
                             ? <>
-                                {formatMontant(0)}
-                                {Number(facture.remainingAmount) < 0 && (
-                                  <span className="text-green-600 text-xs font-semibold ml-1">
-                                    +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
-                                  </span>
-                                )}
-                              </>
+                              {formatMontant(0)}
+                              {Number(facture.remainingAmount) < 0 && (
+                                <span className="text-green-600 text-xs font-semibold ml-1">
+                                  +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
+                                </span>
+                              )}
+                            </>
                             : formatMontant(Math.max(0, Number(facture.remainingAmount) || 0))}
                         </span>
                       </div>
