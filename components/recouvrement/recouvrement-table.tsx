@@ -1,0 +1,264 @@
+"use client"
+
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
+import { Bell, Check, Eye, Loader2, FileX, Download } from "lucide-react"
+import Link from "next/link"
+import Filtre from "../facture/filtre"
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "../ui/dialog"
+import Notification from "../notification-dialog"
+import { useState, useMemo } from "react"
+import { Invoice } from "@/lib/types"
+import { useSearchParams } from "next/navigation"
+import { getCurrentUser } from "@/actions/user"
+import { Role } from "@/types/roles"
+import { exportFilteredToExcel } from "@/lib/excel-export"
+import { toast } from "@/components/ui/use-toast"
+
+interface RecouvrementTableProps {
+  factures: Invoice[];
+  user: any;
+  isLoading?: boolean;
+  depots: any[];
+}
+
+export default function RecouvrementTable({ factures, user, isLoading = false, depots }: RecouvrementTableProps) {
+
+  const searchParams = useSearchParams()
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Récupération des paramètres directement depuis l'URL
+  const paymentStatus = searchParams.get('paymentStatus') || "tous";
+  const deliveryStatus = searchParams.get('status') || "tous";
+  const searchQuery = searchParams.get('search') || "";
+  const selectedDepot = searchParams.get('depot') || "tous";
+
+  const formatMontant = (montant: number) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(montant);
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      // Statuts de livraison
+      "NON RÉCEPTIONNÉE": "bg-red-100 text-red-700 border-red-200",
+      "EN ATTENTE DE LIVRAISON": "bg-amber-100 text-amber-700 border-amber-200",
+      "LIVRÉE": " bg-green-100 text-green-800 border-green-200 ",
+      "EN COURS DE LIVRAISON": " bg-white text-blue-700 border-blue-200 ",
+      "LIVRAISON PARTIELLE": "bg-blue-100 text-blue-700 border-blue-200 ",
+      // Statuts de paiement
+      "PAYÉ": " bg-green-100 w-[80px] items-center justify-center rounded-none text-green-700 border-green-200 ",
+      "NON PAYÉ": " bg-red-100 rounded-none text-red-700 border-red-200 ",
+      "PAIEMENT PARTIEL": "bg-white rounded-none text-blue-700 border-blue-200",
+      // Statut par défaut
+      default: "bg-gray-100 text-gray-700 border-gray-200"
+    };
+    const upperStatus = status.toUpperCase();
+    return colors[upperStatus as keyof typeof colors] || colors.default;
+  };
+
+  // Callbacks pour les filtres (maintenant gérés par react-hook-form dans le composant Filtre)
+  const handlePaymentStatusChange = (status: string) => {
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
+  };
+
+  const handleDeliveryStatusChange = (status: string) => {
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
+  };
+
+  const handleSearch = (query: string) => {
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
+  };
+
+  const handleDepotChange = (depotId: string) => {
+    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      await exportFilteredToExcel(
+        { factures, user },
+        {
+          searchQuery,
+          paymentStatus,
+          deliveryStatus,
+          selectedDepot
+        }
+      );
+
+      toast({
+        title: "Export réussi",
+        description: "Le fichier Excel a été téléchargé avec succès.",
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      toast({
+        title: "Erreur d'export",
+        description: "Une erreur s'est produite lors de l'export. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Filtrage optimisé avec useMemo pour éviter les recalculs inutiles
+  const filteredFactures = useMemo(() => {
+    return factures.filter((facture) => {
+      const matchesPaymentStatus =
+        paymentStatus === "tous" ||
+        facture.statusPayment === paymentStatus;
+
+      const matchesDeliveryStatus =
+        deliveryStatus === "tous" ||
+        facture.status === deliveryStatus;
+
+      const matchesDepot =
+        selectedDepot === "tous" ||
+        facture.depotId?.toString() === selectedDepot;
+
+      return matchesPaymentStatus && matchesDeliveryStatus && matchesDepot;
+    });
+  }, [factures, paymentStatus, deliveryStatus, selectedDepot]);
+
+  return (
+    <>
+      <div>
+        <Filtre
+          onStatusChange={handleDeliveryStatusChange}
+          onSearch={handleSearch}
+          currentStatus={deliveryStatus}
+          searchValue={searchQuery}
+          onDateChange={() => { }}
+          onPaymentStatusChange={handlePaymentStatusChange}
+          onDepotChange={handleDepotChange}
+          user={user}
+          depots={depots}
+        />
+      </div>
+      <div className="overflow-x-auto border rounded-lg">
+        <div className="space-y-5 flex justify-end p-4">
+          {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+            <Button
+              onClick={handleExportExcel}
+              variant="outline"
+              size="sm"
+              className="hover:bg-primary-700 hover:text-white font-bold bg-white text-primary-700 transition-colors duration-300 transform hover:scale-105"
+              disabled={isLoading || filteredFactures.length === 0 || isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {isExporting ? 'Export en cours...' : 'Exporter Excel'}
+            </Button>
+          )}
+        </div>
+        <div className="max-h-[600px] overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredFactures.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-500">
+              <FileX className="h-12 w-12 mb-4" />
+              <h3 className="text-lg font-medium">Aucune facture trouvée</h3>
+              <p className="text-sm">Il n'y a pas de factures correspondant à vos critères de recherche.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="sticky top-0 bg-white z-10">
+                <TableRow className="bg-primary-50/50 ">
+                  <TableHead className="w-[50px]">
+                  </TableHead>
+                  <TableHead className="font-semibold text-primary-900">Numéro facture</TableHead>
+                  <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
+                  <TableHead className="font-semibold text-primary-900">Date facture</TableHead>
+                  <TableHead className="font-semibold text-primary-900">Client</TableHead>
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Date échéance</TableHead>}
+                  <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
+                  <TableHead className="font-semibold text-primary-900">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredFactures.map((facture) => (
+                  <TableRow key={facture.id} className=" hover:bg-primary-50/30">
+                    <TableCell>
+                    </TableCell>
+                    <TableCell className="font-medium">
+
+                      {facture.invoiceNumber}
+
+                    </TableCell>
+                    <TableCell>{facture.accountNumber}</TableCell>
+                    <TableCell>{formatDate(facture.date)}</TableCell>
+                    <TableCell>{facture.customer?.name}</TableCell>
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>{formatDate(facture.date)}</TableCell>}
+                    <TableCell>
+                      <Badge className={getStatusColor(facture.status)}>
+                        {facture.status.replace("_", " ").toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                      <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
+                        {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
+                      </Badge>
+                    </TableCell>}
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-lg flex items-center gap-1">
+                          {facture.statusPayment?.toUpperCase() === "PAYÉ"
+                            ? <>
+                              {formatMontant(0)}
+                              {Number(facture.remainingAmount) < 0 && (
+                                <span className="text-green-600 text-xs font-semibold ml-1">
+                                  +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
+                                </span>
+                              )}
+                            </>
+                            : formatMontant(Math.max(0, Number(facture.remainingAmount) || 0))}
+                        </span>
+                      </div>
+                    </TableCell>}
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipContent>
+                              <p>Ajouter une notification</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={user && user.role !== Role.ADMIN ? `/factures/${facture.invoiceNumber}` : `/dashboard/invoices/${facture.invoiceNumber}`} className="flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
+                            Détails
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
