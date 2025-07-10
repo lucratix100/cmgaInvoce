@@ -10,9 +10,7 @@ export default class SageInvoicesController {
         try {
             const invoiceXml = await readFile('database/sql-server/invoice-cmga.xml', 'utf8')
             const invoiceJson = xmljs.xml2js(invoiceXml, { compact: true }) as any
-
             const depots = await Depot.all()
-
             // Vérifier que factures existe et est un tableau
             if (!invoiceJson.factures?.facture) {
                 console.log('Aucune facture trouvée dans le XML')
@@ -33,7 +31,11 @@ export default class SageInvoicesController {
                 }
 
                 const isInvoiceExist = await Invoice.findBy('invoice_number', invoice._attributes.numeroFacture)
-                console.log(isInvoiceExist, 'isInvoiceExist xml');
+                if (isInvoiceExist) {
+                    console.log(`Facture ${invoice._attributes.numeroFacture} existe déjà, ignorée`)
+                    return
+                }
+
                 if (!invoice.orders || (invoice?._attributes?.numeroFacture[0]?.toUpperCase() !== "F")) return // Ignorer si pas d'orders ou ne commence pas par F
 
                 // Extraire les données client
@@ -84,8 +86,8 @@ export default class SageInvoicesController {
                         reference: product._attributes.reference,
                         designation: product._attributes.designation,
                         quantite: quantite,
-                        tva: montantTva,
-                        remise: remise,
+                        tva: `${tvaMax}%`,
+                        remise: `${remise}%`,
                         prixUnitaire: prixUnitaireTva,
                         total: Math.round(prixFinal), // Arrondir pour éviter les décimales
                     }
@@ -105,6 +107,18 @@ export default class SageInvoicesController {
 
                 const depot = depots.find((depot: any) => depot.name === invoice._attributes.nomBase)
 
+                // Vérifier si le numéro de facture contient la lettre "R" pour déterminer le statut et le montant
+                const hasReturnReference = invoice._attributes.numeroFacture?.toUpperCase().includes('R')
+
+                // Déterminer le statut et le montant total
+                let finalStatus = InvoiceStatus.NON_RECEPTIONNEE
+                let finalTotalTTC = totalTTC
+
+                if (hasReturnReference) {
+                    finalStatus = InvoiceStatus.RETOUR
+                    finalTotalTTC = -Math.abs(totalTTC) // Rendre le montant négatif
+                }
+
                 // Préparer les données de la facture
                 const invoiceData = {
                     customerId: customerId,
@@ -113,40 +127,14 @@ export default class SageInvoicesController {
                     invoiceNumber: invoice._attributes.numeroFacture,
                     date: invoice._attributes.dateFacture,
                     order: JSON.stringify(formattedProducts),
-                    totalTTC: totalTTC,
-                    status: InvoiceStatus.NON_RECEPTIONNEE,
+                    totalTTC: finalTotalTTC,
+                    status: finalStatus,
                     isCompleteDelivery: true
                 }
 
-                // Vérifier si la facture existe et si les données sont différentes
-                if (isInvoiceExist) {
-                    // Vérifier le statut de la facture avant mise à jour
-                    if (isInvoiceExist.status !== InvoiceStatus.NON_RECEPTIONNEE && isInvoiceExist.status !== InvoiceStatus.EN_ATTENTE) {
-                        console.log(`Facture ${invoice._attributes.numeroFacture} ignorée: statut ${isInvoiceExist.status}`)
-                        return
-                    }
-
-                    // Comparer les données pour voir s'il y a des changements
-                    const hasChanges =
-                        isInvoiceExist.customerId !== customerId ||
-                        isInvoiceExist.accountNumber !== invoice._attributes.codeClient ||
-                        isInvoiceExist.depotId !== depot?.id ||
-                        isInvoiceExist.date !== invoice._attributes.dateFacture ||
-                        isInvoiceExist.order !== JSON.stringify(formattedProducts) ||
-                        isInvoiceExist.totalTTC !== totalTTC
-
-                    if (hasChanges) {
-                        // Mettre à jour la facture existante
-                        await isInvoiceExist.merge(invoiceData).save()
-                        console.log(`Facture ${invoice._attributes.numeroFacture} mise à jour`)
-                    } else {
-                        console.log(`Facture ${invoice._attributes.numeroFacture} inchangée, pas de mise à jour`)
-                    }
-                } else {
-                    // Créer une nouvelle facture
-                    await Invoice.create(invoiceData)
-                    console.log(`Nouvelle facture ${invoice._attributes.numeroFacture} créée`)
-                }
+                // Créer une nouvelle facture
+                await Invoice.create(invoiceData)
+                console.log(`Nouvelle facture ${invoice._attributes.numeroFacture} créée`)
             }))
 
             return { success: true, message: 'Importation des factures terminée' }

@@ -1,16 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
-
-import Invoice from '#models/invoice'
 import { InvoiceStatus, Role } from '../enum/index.js'
-import Bl from '#models/bl'
+import Invoice from '#models/invoice'
 import Assignment from '#models/assignment'
-import User from '#models/user'
-import InvoiceReminder from '#models/invoice_reminder'
-import Customer from '#models/customer'
-import Depot from '#models/depot'
+import Bl from '#models/bl'
 import UserActivityService from '#services/user_activity_service'
-import NotificationService from '#services/notification_service'
 
 
 
@@ -20,8 +14,8 @@ export default class InvoicesController {
     async index({ request, response, auth }: HttpContext) {
         const user = await auth.authenticate()
         try {
-            const { status, search, startDate, endDate } = request.qs()
-            console.log(status, search, startDate, endDate, "status, search, startDate, endDate")
+            const { status, search, startDate, endDate, depot } = request.qs()
+            console.log(status, search, startDate, endDate, depot, "status, search, startDate, endDate, depot")
             let patterns: string[] = []
             // Si l'utilisateur est RECOUVREMENT, on récupère ses préfixes
             if (user.$original.role === Role.RECOUVREMENT) {
@@ -38,13 +32,20 @@ export default class InvoicesController {
             let query = Invoice.query()
                 .preload('customer')
                 .preload('payments')
+                .preload('depot')
                 .orderBy('date', 'desc')
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
             // Filtre sur le statut
             if (status && Object.values(InvoiceStatus).includes(status)) {
                 query = query.where('status', status)
             }
-            // Si pas ADMIN ou RECOUVREMENT, on filtre sur le dépôt
-            if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
+            // Filtrage par dépôt
+            if (depot && depot !== 'tous') {
+                query = query.where('depot_id', depot)
+            } else if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
+                // Si pas ADMIN ou RECOUVREMENT, on filtre sur le dépôt de l'utilisateur
                 query = query.where('depot_id', user.$original.depotId)
             }
             // Filtrage par préfixes uniquement pour RECOUVREMENT
@@ -118,7 +119,33 @@ export default class InvoicesController {
                 }
             })
 
-            return response.json(formattedInvoices)
+            // Calcul des statistiques
+            const totalAmount = formattedInvoices.reduce((acc, invoice) => acc + Number(invoice.totalTtc || 0), 0)
+            const totalCount = formattedInvoices.length
+
+            // Statistiques par statut - inclure tous les états même avec 0 factures
+            const statsByStatus = Object.values(InvoiceStatus).reduce((acc, status) => {
+                const invoicesByStatus = formattedInvoices.filter(invoice => invoice.status === status)
+                const count = invoicesByStatus.length
+                const amount = invoicesByStatus.reduce((sum, invoice) => sum + Number(invoice.totalTtc || 0), 0)
+
+                acc[status] = {
+                    count,
+                    amount
+                }
+                return acc
+            }, {} as Record<string, { count: number; amount: number }>)
+
+            return response.json({
+                invoices: formattedInvoices,
+                statistics: {
+                    total: {
+                        count: totalCount,
+                        amount: totalAmount
+                    },
+                    byStatus: statsByStatus
+                }
+            })
         } catch (error) {
             console.error('Erreur détaillée:', error)
             return response.status(500).json({
@@ -142,6 +169,9 @@ export default class InvoicesController {
         }
 
         let query = Invoice.query()
+            .whereHas('depot', (depotQuery) => {
+                depotQuery.where('isActive', true)
+            })
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
@@ -166,6 +196,9 @@ export default class InvoicesController {
     async update(ctx: HttpContext) {
         const user = await ctx.auth.authenticate()
         let query = Invoice.query()
+            .whereHas('depot', (depotQuery) => {
+                depotQuery.where('isActive', true)
+            })
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
@@ -204,6 +237,9 @@ export default class InvoicesController {
             }
         }
         let query = Invoice.query()
+            .whereHas('depot', (depotQuery) => {
+                depotQuery.where('isActive', true)
+            })
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
@@ -238,6 +274,9 @@ export default class InvoicesController {
             }
 
             let query = Invoice.query()
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
@@ -271,6 +310,9 @@ export default class InvoicesController {
             patterns = assignedInvoices.map(a => a.pattern)
         }
         let query = Invoice.query()
+            .whereHas('depot', (depotQuery) => {
+                depotQuery.where('isActive', true)
+            })
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
@@ -314,6 +356,9 @@ export default class InvoicesController {
 
             let query = Invoice.query()
                 .preload('customer')
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
                 .where('created_at', '>=', `${startDate} 00:00:00`)
                 .where('created_at', '<=', `${endDate} 23:59:59`)
                 .orderBy('created_at', 'desc')
@@ -356,6 +401,9 @@ export default class InvoicesController {
         }
 
         let query = Invoice.query()
+            .whereHas('depot', (depotQuery) => {
+                depotQuery.where('isActive', true)
+            })
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
@@ -393,6 +441,9 @@ export default class InvoicesController {
                 .where('invoice_number', params.invoice_number)
                 .preload('customer')
                 .preload('depot')
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
@@ -436,7 +487,6 @@ export default class InvoicesController {
                 parsedOrder = []
             }
 
-
             return response.json(invoice)
         } catch (error) {
             console.error('7. Final error:', error)
@@ -466,6 +516,9 @@ export default class InvoicesController {
         try {
             let query = Invoice.query()
                 .where('invoice_number', params.invoice_number)
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
 
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
@@ -506,6 +559,9 @@ export default class InvoicesController {
         try {
             let query = Invoice.query()
                 .where('invoice_number', invoiceNumber)
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
@@ -542,20 +598,32 @@ export default class InvoicesController {
 
             // Requêtes pour obtenir les statistiques
             const totalResult = await Invoice.query()
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
                 .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
                 .count('* as total');
 
             const enAttenteResult = await Invoice.query()
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
                 .where('status', InvoiceStatus.EN_ATTENTE)
                 .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
                 .count('* as total');
 
             const livreeResult = await Invoice.query()
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
                 .where('status', InvoiceStatus.LIVREE)
                 .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
                 .count('* as total');
 
             const enCoursResult = await Invoice.query()
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
                 .where('status', InvoiceStatus.EN_COURS)
                 .whereBetween('date', [firstDayOfMonth, lastDayOfMonth])
                 .count('* as total');
@@ -582,11 +650,16 @@ export default class InvoicesController {
     }
 
     async get_invoice_by_scan(ctx: HttpContext) {
-        
+
         const invoiceNumber = ctx.request.body().invoice_number
-        
-        const invoice = await Invoice.query().where('invoice_number', invoiceNumber).first()
- 
+
+        const invoice = await Invoice.query()
+            .where('invoice_number', invoiceNumber)
+            .whereHas('depot', (depotQuery) => {
+                depotQuery.where('isActive', true)
+            })
+            .first()
+
         if (!invoice) {
             return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
         }
@@ -600,14 +673,18 @@ export default class InvoicesController {
         const { status } = ctx.request.body()
 
         try {
-            let query = Invoice.query().where('invoice_number', invoiceNumber)
-            
+            let query = Invoice.query()
+                .where('invoice_number', invoiceNumber)
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
+
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
-            
+
             const invoice = await query.preload('customer').first()
-            
+
             if (!invoice) {
                 return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
             }
