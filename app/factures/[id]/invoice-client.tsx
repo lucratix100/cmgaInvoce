@@ -37,7 +37,6 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
   const handleBack = () => {
     router.back();
   };
-
   return (
     <div className="p-10 w-full px-4 sm:px-6 lg:px-8">
       <div className="flex  flex-col space-y-6 mt-5">
@@ -55,7 +54,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
                 <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
                   <DialogContent className="bg-white">
                     <DialogTitle>Notification de suivi</DialogTitle>
-                    <DialogDescription>Créez un rappel pour la facture {invoice.invoiceNumber}</DialogDescription>
+                    <DialogDescription> Créez un rappel pour la facture {invoice.invoiceNumber}</DialogDescription>
                     <Notification
                       invoiceId={Number(invoice.invoiceNumber)}
                       user={user}
