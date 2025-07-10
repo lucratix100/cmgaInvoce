@@ -14,6 +14,7 @@ import { getUsers } from "@/actions/user"
 import { toast } from "sonner"
 import { Role } from "@/types/roles"
 import { getCurrentUser } from "@/actions/user"
+import { InvoiceStatus } from "@/types/enums"
 
 interface GestionFactureProps {
     isOpen: boolean
@@ -23,6 +24,7 @@ interface GestionFactureProps {
     driverId?: number
     magasinierId?: number
     isSuperviseurMagasin?: boolean
+    reSetState: () => void
 }
 
 interface InvoiceProduct {
@@ -52,7 +54,7 @@ interface Invoice {
     statusPayment: string
 }
 
-export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave, driverId, magasinierId, isSuperviseurMagasin }: GestionFactureProps) {
+export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave, driverId, magasinierId, isSuperviseurMagasin, reSetState }: GestionFactureProps) {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [facture, setFacture] = useState<Invoice | null>(null)
@@ -140,7 +142,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             const response = await getInvoiceByNumber(numeroFacture)
 
             if (!response || !response.invoice) {
-                throw new Error('Facture non trouvée')
+                throw new Error('Cette facture n\'existe pas')
             }
 
             setFacture(response.invoice)
@@ -333,6 +335,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                 toast.info(result.message)
                 // Fermer le dialogue car la confirmation sera faite par un autre rôle
                 onClose()
+                reSetState()
                 return
             }
 
@@ -411,12 +414,14 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                 toast.info(result.message)
                 // Fermer le dialogue car la confirmation sera faite par un autre rôle
                 onClose()
+                reSetState()
                 return
             }
 
             toast.success(result.message || "Livraison complète validée avec succès !")
             await fetchFacture()
             setIsEditMode(false)
+            reSetState()
             onClose()
         } catch (err: any) {
             console.error('Erreur lors de la validation:', err)
@@ -575,6 +580,23 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
             </Dialog>
         )
     }
+    if (facture?.status === InvoiceStatus.LIVREE) {
+        return (
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent className="sm:max-w-[800px]">
+                    <DialogHeader>
+                        <DialogTitle>Facture déjà livrée</DialogTitle>
+                    </DialogHeader>
+                    <div className="text-center py-8">
+                        <p className="text-red-500">La facture est déjà livrée</p>
+                        <Button variant="outline" onClick={onClose} className="mt-4">
+                            Fermer
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )
+    }
 
     if (error || !facture) {
         return (
@@ -584,7 +606,7 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                         <DialogTitle>Erreur</DialogTitle>
                     </DialogHeader>
                     <div className="text-center py-8">
-                        <p className="text-red-500">{error || "Facture non trouvée"}</p>
+                        <p className="text-red-500">{error || "Cette facture n'existe pas"}</p>
                         <Button variant="outline" onClick={onClose} className="mt-4">
                             Fermer
                         </Button>

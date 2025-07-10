@@ -7,12 +7,10 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { Bell, Check, Eye, Loader2, FileX, Download } from "lucide-react"
 import Link from "next/link"
 import Filtre from "../facture/filtre"
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "../ui/dialog"
-import Notification from "../notification-dialog"
+
 import { useState, useMemo } from "react"
 import { Invoice } from "@/lib/types"
 import { useSearchParams } from "next/navigation"
-import { getCurrentUser } from "@/actions/user"
 import { Role } from "@/types/roles"
 import { exportFilteredToExcel } from "@/lib/excel-export"
 import { toast } from "@/components/ui/use-toast"
@@ -22,9 +20,16 @@ interface RecouvrementTableProps {
   user: any;
   isLoading?: boolean;
   depots: any[];
+  statistics?: {
+    total: {
+      count: number;
+      amount: number;
+    };
+    byStatus: Record<string, { count: number; amount: number }>;
+  };
 }
 
-export default function RecouvrementTable({ factures, user, isLoading = false, depots }: RecouvrementTableProps) {
+export default function RecouvrementTable({ factures, user, isLoading = false, depots, statistics }: RecouvrementTableProps) {
 
   const searchParams = useSearchParams()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -51,15 +56,14 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
 
   const getStatusColor = (status: string) => {
     const colors = {
-      // Statuts de livraison
-      "NON RÉCEPTIONNÉE": "bg-red-100 text-red-700 border-red-200",
+      // Statuts de livraison selon l'enum InvoiceStatus
       "EN ATTENTE DE LIVRAISON": "bg-amber-100 text-amber-700 border-amber-200",
-      "LIVRÉE": " bg-green-100 text-green-800 border-green-200 ",
-      "EN COURS DE LIVRAISON": " bg-white text-blue-700 border-blue-200 ",
-      "LIVRAISON PARTIELLE": "bg-blue-100 text-blue-700 border-blue-200 ",
+      "EN COURS DE LIVRAISON": "bg-blue-100 text-blue-700 border-blue-200",
+      "LIVRÉE": "bg-green-100 text-green-800 border-green-200",
+      "RETOUR": "bg-red-100 text-red-700 border-red-200",
       // Statuts de paiement
-      "PAYÉ": " bg-green-100 w-[80px] items-center justify-center rounded-none text-green-700 border-green-200 ",
-      "NON PAYÉ": " bg-red-100 rounded-none text-red-700 border-red-200 ",
+      "PAYÉ": "bg-green-100 w-[80px] items-center justify-center rounded-none text-green-700 border-green-200",
+      "NON PAYÉ": "bg-red-100 rounded-none text-red-700 border-red-200",
       "PAIEMENT PARTIEL": "bg-white rounded-none text-blue-700 border-blue-200",
       // Statut par défaut
       default: "bg-gray-100 text-gray-700 border-gray-200"
@@ -68,21 +72,23 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     return colors[upperStatus as keyof typeof colors] || colors.default;
   };
 
-  // Callbacks pour les filtres (maintenant gérés par react-hook-form dans le composant Filtre)
-  const handlePaymentStatusChange = (status: string) => {
-    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
-  };
-
-  const handleDeliveryStatusChange = (status: string) => {
-    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
-  };
-
-  const handleSearch = (query: string) => {
-    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
-  };
-
-  const handleDepotChange = (depotId: string) => {
-    // Cette fonction est maintenant gérée par react-hook-form dans le composant Filtre
+  const getStatisticsColor = (status: string) => {
+    const colors = {
+      // Statuts de livraison selon l'enum InvoiceStatus
+      "NON RÉCEPTIONNÉE": "bg-gray-50 border-gray-200 text-gray-800",
+      "RETOUR": "bg-red-50 border-red-200 text-red-800",
+      "EN ATTENTE DE LIVRAISON": "bg-amber-50 border-amber-200 text-amber-800",
+      "EN COURS DE LIVRAISON": "bg-blue-50 border-blue-200 text-blue-800",
+      "LIVRÉE": "bg-green-50 border-green-200 text-green-800",
+      // Statuts de paiement
+      "PAYÉ": "bg-green-50 border-green-200 text-green-800",
+      "NON PAYÉ": "bg-red-50 border-red-200 text-red-800",
+      "PAIEMENT PARTIEL": "bg-blue-50 border-blue-200 text-blue-800",
+      // Statut par défaut
+      default: "bg-gray-50 border-gray-200 text-gray-800"
+    };
+    const upperStatus = status.toUpperCase();
+    return colors[upperStatus as keyof typeof colors] || colors.default;
   };
 
   const handleExportExcel = async () => {
@@ -137,34 +143,63 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     <>
       <div>
         <Filtre
-          onStatusChange={handleDeliveryStatusChange}
-          onSearch={handleSearch}
-          currentStatus={deliveryStatus}
-          searchValue={searchQuery}
-          onDateChange={() => { }}
-          onPaymentStatusChange={handlePaymentStatusChange}
-          onDepotChange={handleDepotChange}
           user={user}
           depots={depots}
         />
       </div>
       <div className="overflow-x-auto border rounded-lg">
-        <div className="space-y-5 flex justify-end p-4">
+        <div className="space-y-5 flex flex-col lg:flex-row justify-between items-start lg:items-center p-4 gap-4">
+          {/* Statistiques */}
+          {statistics && (
+            <div className="flex flex-wrap gap-3 items-center">
+              {/* Total */}
+              <div className="flex items-center gap-3 bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 px-4 py-3 rounded-xl shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">Total</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-primary-900">{statistics.total.count}</span>
+                    <span className="text-sm text-primary-700">factures</span>
+                  </div>
+                  <span className="text-lg font-semibold text-primary-800">{formatMontant(statistics.total.amount)}</span>
+                </div>
+              </div>
+
+              {/* Statistiques par statut */}
+              {Object.entries(statistics.byStatus).map(([status, stats]) => (
+                <div key={status} className={`flex items-center gap-3 border px-4 py-3 rounded-xl shadow-sm ${getStatisticsColor(status)} ${stats.count === 0 ? 'opacity-60' : ''}`}>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium uppercase tracking-wide opacity-80">
+                      {status.replace('_', ' ')}
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-bold">{stats.count}</span>
+                      <span className="text-sm opacity-80">factures</span>
+                    </div>
+                    <span className="text-base font-semibold">{formatMontant(stats.amount)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Bouton Export */}
           {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-            <Button
-              onClick={handleExportExcel}
-              variant="outline"
-              size="sm"
-              className="hover:bg-primary-700 hover:text-white font-bold bg-white text-primary-700 transition-colors duration-300 transform hover:scale-105"
-              disabled={isLoading || filteredFactures.length === 0 || isExporting}
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              {isExporting ? 'Export en cours...' : 'Exporter Excel'}
-            </Button>
+            <div className="flex-shrink-0">
+              <Button
+                onClick={handleExportExcel}
+                variant="outline"
+                size="sm"
+                className="hover:bg-primary-700 hover:text-white font-bold bg-white text-primary-700 transition-colors duration-300 transform hover:scale-105"
+                disabled={isLoading || filteredFactures.length === 0 || isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {isExporting ? 'Export en cours...' : 'Exporter Excel'}
+              </Button>
+            </div>
           )}
         </div>
         <div className="max-h-[600px] overflow-y-auto">

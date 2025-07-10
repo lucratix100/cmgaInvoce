@@ -32,6 +32,7 @@ interface InvoiceClientProps {
 }
 
 export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProps) {
+  console.log({ invoiceNumber, user })
   const router = useRouter();
   const { invoice, isLoading, error } = useInvoice(invoiceNumber);
 

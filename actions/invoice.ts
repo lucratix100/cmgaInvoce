@@ -8,6 +8,7 @@ interface SearchParams {
     search?: string
     startDate?: string
     endDate?: string
+    depot?: string
 }
 
 export const getInvoices = async (params?: SearchParams) => {
@@ -20,31 +21,37 @@ export const getInvoices = async (params?: SearchParams) => {
         // Si une recherche est spécifiée, ne pas appliquer de contrainte de date par défaut
         // pour permettre une recherche globale
         const hasSearch = params?.search && params.search.trim() !== ''
-        
+
         // Construire les paramètres de requête
-        const queryParams: any = {
-            status: (params?.status || 'tous') !== 'tous' ? (params?.status || 'tous') : undefined,
+        const queryParams: any = {}
+
+        // Si il y a une recherche, ne pas ajouter les autres filtres pour permettre une recherche globale
+        if (!hasSearch) {
+            queryParams.status = (params?.status || 'tous') !== 'tous' ? (params?.status || 'tous') : undefined
+            queryParams.depot = (params?.depot || 'tous') !== 'tous' ? (params?.depot || 'tous') : undefined
         }
-        
+
         // Ajouter la recherche si elle existe
         if (params?.search) {
             queryParams.search = params.search
         }
-        
-        // Gérer les dates : ne pas appliquer de date par défaut si il y a une recherche
-        if (params?.startDate) {
-            queryParams.startDate = params.startDate
-        } else if (!hasSearch) {
-            // Seulement appliquer la date par défaut s'il n'y a pas de recherche
-            queryParams.startDate = today
+
+        // Gérer les dates : ne pas appliquer de contraintes de date si il y a une recherche
+        if (!hasSearch) {
+            if (params?.startDate) {
+                queryParams.startDate = params.startDate
+            } else {
+                // Seulement appliquer la date par défaut s'il n'y a pas de recherche
+                queryParams.startDate = today
+            }
+
+            if (params?.endDate) {
+                queryParams.endDate = params.endDate
+            }
         }
-        
-        if (params?.endDate) {
-            queryParams.endDate = params.endDate
-        }
-        
+
         console.log('getInvoices params:', { params, hasSearch, queryParams })
-        
+
         const response = await axios.get(`${process.env.API_URL}invoices`, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -53,10 +60,73 @@ export const getInvoices = async (params?: SearchParams) => {
             params: queryParams
         })
 
+        // Si la réponse contient des statistiques (nouveau format), retourner les factures
+        if (response.data && typeof response.data === 'object' && 'invoices' in response.data) {
+            return response.data.invoices || []
+        }
+        // Ancien format (retour direct des factures)
         return response.data || []
     } catch (error) {
         console.log("Erreur lors de la récupération des factures:", error)
         return []
+    }
+}
+
+// Récupérer les factures avec les statistiques
+export const getInvoicesWithStatistics = async (params?: SearchParams) => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+        // Obtenir la date courante au format YYYY-MM-DD
+        const today = new Date().toISOString().split('T')[0]
+
+        // Si une recherche est spécifiée, ne pas appliquer de contrainte de date par défaut
+        // pour permettre une recherche globale
+        const hasSearch = params?.search && params.search.trim() !== ''
+
+        // Construire les paramètres de requête
+        const queryParams: any = {}
+
+        // Si il y a une recherche, ne pas ajouter les autres filtres pour permettre une recherche globale
+        if (!hasSearch) {
+            queryParams.status = (params?.status || 'tous') !== 'tous' ? (params?.status || 'tous') : undefined
+            queryParams.depot = (params?.depot || 'tous') !== 'tous' ? (params?.depot || 'tous') : undefined
+        }
+
+        // Ajouter la recherche si elle existe
+        if (params?.search) {
+            queryParams.search = params.search
+        }
+
+        // Gérer les dates : ne pas appliquer de contraintes de date si il y a une recherche
+        if (!hasSearch) {
+            if (params?.startDate) {
+                queryParams.startDate = params.startDate
+            } else {
+                // Seulement appliquer la date par défaut s'il n'y a pas de recherche
+                queryParams.startDate = today
+            }
+
+            if (params?.endDate) {
+                queryParams.endDate = params.endDate
+            }
+        }
+
+        console.log('getInvoicesWithStatistics params:', { params, hasSearch, queryParams })
+
+        const response = await axios.get(`${process.env.API_URL}invoices`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json'
+            },
+            params: queryParams
+        })
+
+        // Retourner les données complètes avec statistiques
+        return response.data || { invoices: [], statistics: null }
+    } catch (error) {
+        console.log("Erreur lors de la récupération des factures avec statistiques:", error)
+        return { invoices: [], statistics: null }
     }
 }
 
@@ -98,26 +168,26 @@ export const getInvoiceByNumber = async (invoiceNumber: string) => {
     } catch (error: any) {
         console.log("Erreur lors de la récupération de la facture:", error)
         if (error.response?.status === 404) {
-            return { error: 'Facture non trouvée' }
+            return { error: 'Cette facture n\'existe pas' }
         }
-        return { error: 'Erreur lors de la récupération de la facture' }
+        return { error: 'Cette facture n\'existe pas' }
     }
 }
 export const updateInvoiceStatus = async (invoiceNumber: string, status: string) => {
     try {
-    const cookieStore = await cookies()
-    const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}" ).token
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
         const response = await axios.patch(`${process.env.API_URL}invoice/${invoiceNumber}`, { status }, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Accept': 'application/json'
-        }
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
         })
         return response.data
     } catch (error: any) {
         console.log("Erreur lors de la mise à jour du statut:", error)
         if (error.response?.status === 404) {
-            throw new Error('Facture non trouvée')
+            throw new Error('Cette facture n\'existe pas')
         }
         throw new Error('Erreur lors de la mise à jour du statut')
     }
@@ -128,7 +198,7 @@ export const createBlForInvoice = async (
     products: { reference: string, quantiteLivree: number }[]
 ) => {
     const cookieStore = await cookies()
-    const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}" ).token
+    const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
     await axios.post(`${process.env.API_URL}process-delivery`, {
         invoiceNumber,
         products
@@ -149,8 +219,8 @@ export const processDelivery = async (
 ) => {
     try {
         const cookieStore = await cookies()
-        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}" ).token
-        
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+
         const response = await axios.post(`${process.env.API_URL}process-delivery`, {
             invoiceNumber,
             products,
@@ -163,7 +233,7 @@ export const processDelivery = async (
                 'Accept': 'application/json'
             }
         })
-        
+
         return response.data
     } catch (error: any) {
         console.error("Erreur lors du traitement de la livraison:", error)
@@ -177,8 +247,8 @@ export const processDelivery = async (
 export const confirmBl = async (invoiceNumber: string) => {
     try {
         const cookieStore = await cookies()
-        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}" ).token
-        
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+
         const response = await axios.post(`${process.env.API_URL}confirm-bl`, {
             invoiceNumber
         }, {
@@ -187,7 +257,7 @@ export const confirmBl = async (invoiceNumber: string) => {
                 'Accept': 'application/json'
             }
         })
-        
+
         return response.data
     } catch (error: any) {
         console.error("Erreur lors de la confirmation du BL:", error)
@@ -201,15 +271,15 @@ export const confirmBl = async (invoiceNumber: string) => {
 export const getBlsByInvoice = async (invoiceNumber: string) => {
     try {
         const cookieStore = await cookies()
-        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}" ).token
-        
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+
         const response = await axios.get(`${process.env.API_URL}invoices/${invoiceNumber}/bls`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Accept': 'application/json'
             }
         })
-        
+
         return response.data
     } catch (error: any) {
         console.error("Erreur lors de la récupération des BLs:", error)
@@ -221,7 +291,7 @@ export const getInvoiceWithPayments = async (invoiceNumber: string) => {
     try {
         const cookieStore = await cookies()
         const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
-        
+
         // Récupérer la facture avec les paiements
         const response = await axios.get(`${process.env.API_URL}invoices?invoiceNumber=${invoiceNumber}`, {
             headers: {
@@ -229,14 +299,15 @@ export const getInvoiceWithPayments = async (invoiceNumber: string) => {
                 'Accept': 'application/json'
             }
         })
-        
-        const invoices = response.data || []
+        console.log({ response: response.data.invoices })
+
+        const invoices = response.data.invoices || []
         const invoice = invoices.find((inv: any) => inv.invoiceNumber === invoiceNumber)
-        
+
         if (!invoice) {
-            return { error: 'Facture non trouvée' }
+            return { error: 'Cette facture n\'existe pas' }
         }
-        
+
         // Récupérer les paiements de la facture
         const paymentsResponse = await axios.get(`${process.env.API_URL}payments?invoiceNumber=${invoiceNumber}`, {
             headers: {
@@ -244,11 +315,11 @@ export const getInvoiceWithPayments = async (invoiceNumber: string) => {
                 'Accept': 'application/json'
             }
         })
-        
+
         const payments = paymentsResponse.data || []
         const totalPaid = payments.reduce((acc: number, payment: any) => acc + Number(payment.amount), 0)
         const remainingAmount = Math.max(0, Number(invoice.totalTtc || invoice.totalTTC || 0) - totalPaid)
-        
+
         return {
             invoice,
             payments,
@@ -259,9 +330,9 @@ export const getInvoiceWithPayments = async (invoiceNumber: string) => {
     } catch (error: any) {
         console.log("Erreur lors de la récupération de la facture avec paiements:", error)
         if (error.response?.status === 404) {
-            return { error: 'Facture non trouvée' }
+            return { error: 'Cette facture n\'existe pas' }
         }
-        return { error: 'Erreur lors de la récupération de la facture' }
+        return { error: 'Cette facture n\'existe pas' }
     }
 }
 

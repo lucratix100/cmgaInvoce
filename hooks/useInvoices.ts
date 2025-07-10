@@ -6,6 +6,7 @@ interface UseInvoicesParams {
     endDate?: string;
     status?: string;
     search?: string;
+    depot?: string;
 }
 
 export function useInvoices(params: UseInvoicesParams = {}) {
