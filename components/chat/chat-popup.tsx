@@ -123,7 +123,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
   useEffect(() => {
     if (!accessToken) return
 
-    const socket = io('http://localhost:3334', {
+    const socket = io(process.env.WEBSOCKET_URL || 'http://localhost:3334', {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       auth: {

@@ -79,7 +79,11 @@ export default function ScanMainDialog({
                         )}
                     </div>
 
-                    {children || (
+                    <div className="text-sm text-gray-500 text-center">
+                                <p>{description}</p>
+                            </div>
+
+                    {/* {children || (
                         <div className="space-y-4">
                             <div className="text-sm text-gray-500 text-center">
                                 <p>{description}</p>
@@ -94,7 +98,7 @@ export default function ScanMainDialog({
                                 Mode test (saisie manuelle)
                             </Button>
                         </div>
-                    )}
+                    )} */}
                 </div>
             </DialogContent>
         </Dialog>
