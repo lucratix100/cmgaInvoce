@@ -58,7 +58,6 @@ interface Bl {
 }
 
 export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onClose: externalOnClose, depot }: ScanUnifiedProps) {
-    console.log(depot, "depot");
     const [internalIsOpen, setInternalIsOpen] = useState(false)
     const [scannedValue, setScannedValue] = useState("")
     const [isTestMode, setIsTestMode] = useState(false)
@@ -386,7 +385,10 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
         <>
             <ScanMainDialog
                 isOpen={isOpen}
-                onOpenChange={setIsOpen}
+                onOpenChange={(open) => {
+                    if (!open) handleClose();
+                    else setIsOpen(true);
+                }}
                 scannedValue={scannedValue}
                 onInputChange={handleInputChange}
                 onKeyDown={handleKeyDown}

@@ -566,6 +566,35 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
         console.log('=== Résumé quantités livrées validées ===', quantitesLivreesValidees);
     }
 
+    // Vérifie si toutes les quantités à livrer correspondent exactement aux quantités restantes (livraison complète)
+    const isLivraisonComplete = () => {
+        if (!facture || !facture.order) return false;
+        return facture.order.every((p: any) => {
+            const quantiteCommandee = Number(p.quantite) || 0;
+            const quantiteLivree = Number(quantitesLivrees[p.reference]) || 0;
+            const quantiteDejaLivree = Number(deliveredQuantities[p.reference]) || 0;
+            const quantiteRestante = quantiteCommandee - quantiteDejaLivree;
+            return quantiteRestante > 0 ? quantiteLivree === quantiteRestante : true;
+        }) && facture.order.some((p: any) => {
+            const quantiteCommandee = Number(p.quantite) || 0;
+            const quantiteDejaLivree = Number(deliveredQuantities[p.reference]) || 0;
+            const quantiteRestante = quantiteCommandee - quantiteDejaLivree;
+            return quantiteRestante > 0;
+        });
+    }
+
+    // Vérifie si au moins un produit n’a pas toute sa quantité restante sélectionnée (livraison partielle)
+    const isLivraisonPartielle = () => {
+        if (!facture || !facture.order) return false;
+        return facture.order.some((p: any) => {
+            const quantiteCommandee = Number(p.quantite) || 0;
+            const quantiteLivree = Number(quantitesLivrees[p.reference]) || 0;
+            const quantiteDejaLivree = Number(deliveredQuantities[p.reference]) || 0;
+            const quantiteRestante = quantiteCommandee - quantiteDejaLivree;
+            return quantiteLivree > 0 && quantiteLivree < quantiteRestante;
+        });
+    }
+
     if (loading) {
         return (
             <Dialog open={isOpen} onOpenChange={onClose}>
@@ -842,8 +871,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                         )}
                         <Button
                             onClick={handleSave}
-                            disabled={loading || hasPendingBl}
-                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                            disabled={loading || hasPendingBl || isLivraisonComplete()}
+                            title={hasPendingBl ? "Un BL est en attente de confirmation" : isLivraisonComplete() ? "Tous les produits sont sélectionnés pour une livraison complète" : ""}
                             size="sm"
                         >
                             <Check className="h-4 w-4 mr-1" />
@@ -852,8 +881,8 @@ export default function GestionFacture({ isOpen, onClose, numeroFacture, onSave,
                         <Button
                             className="hover:bg-green-700 bg-green-600"
                             onClick={handleValiderLivraison}
-                            disabled={loading || hasPendingBl}
-                            title={hasPendingBl ? "Un BL est en attente de confirmation" : ""}
+                            disabled={loading || hasPendingBl || !isLivraisonComplete()}
+                            title={hasPendingBl ? "Un BL est en attente de confirmation" : !isLivraisonComplete() ? "Tous les produits doivent être sélectionnés pour une livraison complète" : ""}
                             size="sm"
                         >
                             <CheckCheck className="h-4 w-4 mr-1" />
