@@ -140,28 +140,84 @@ export default class PaymentsController {
   /**
    * Met à jour un paiement existant
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
     try {
+      const currentUser = await auth.authenticate()
       const payment = await Payment.findOrFail(params.id)
       const data = request.only(['amount', 'paymentMethod', 'paymentDate', 'comment', 'chequeInfo'])
       data.amount = Number(data.amount)
 
-      const invoice = await Invoice.findOrFail(payment.invoiceId)
+      const invoice = await Invoice.query()
+        .where('id', payment.invoiceId)
+        .preload('customer')
+        .firstOrFail()
 
-      const totalPaid = await this.getTotalPaid(invoice.id)
-      const remainingAmount = Number(invoice.totalTTC) - totalPaid
-
-      if (data.amount > remainingAmount) {
-        return response.status(400).json({
-          error: `Le nouveau montant (${data.amount}) dépasse le montant restant (${remainingAmount})`
+      // Vérification des permissions selon le rôle et le statut de la facture
+      if (currentUser.role !== 'ADMIN' && currentUser.role !== 'RECOUVREMENT') {
+        return response.status(403).json({
+          error: 'Vous n\'avez pas les permissions pour modifier ce paiement'
         })
       }
+
+      // Si l'utilisateur est RECOUVREMENT et que la facture est PAYE, refuser la modification
+      if (currentUser.role === 'RECOUVREMENT' && invoice.statusPayment === InvoicePaymentStatus.PAYE) {
+        return response.status(403).json({
+          error: 'Vous ne pouvez pas modifier un paiement lorsque la facture est marquée comme PAYE. Seul un administrateur peut effectuer cette modification.'
+        })
+      }
+
+      // Calcul du montant total payé (en excluant le paiement actuel pour la validation)
+      const otherPayments = await Payment.query()
+        .where('invoice_id', invoice.id)
+        .whereNot('id', payment.id)
+      
+      const totalOtherPayments = otherPayments.reduce((acc, p) => acc + Number(p.amount), 0)
+      const newTotalPaid = totalOtherPayments + data.amount
+      const remainingAmount = Number(invoice.totalTTC) - totalOtherPayments
+
+      // Validation du montant
+      if (data.amount <= 0) {
+        return response.status(400).json({
+          error: 'Le montant doit être supérieur à 0'
+        })
+      }
+
+      // Sauvegarder l'ancien montant pour l'activité
+      const oldAmount = payment.amount
 
       payment.merge(data)
       await payment.save()
 
       await this.updateInvoiceStatus(invoice.id)
       await invoice.refresh()
+
+      // Enregistrer l'activité de modification de paiement
+      await UserActivityService.logActivity(
+        Number(currentUser.id),
+        UserActivityService.ACTIONS.UPDATE_PAYMENT,
+        currentUser.role,
+        invoice.id,
+        {
+          paymentId: payment.id,
+          oldAmount,
+          newAmount: data.amount,
+          paymentMethod: data.paymentMethod,
+          invoiceNumber: invoice.invoiceNumber,
+          invoiceStatus: invoice.statusPayment
+        }
+      )
+
+      // Notifier les admins uniquement si c'est un utilisateur recouvrement
+      if (currentUser.role === 'RECOUVREMENT') {
+        await NotificationService.notifyRecouvrementPaymentUpdate(
+          data.amount,
+          data.paymentMethod,
+          invoice.invoiceNumber,
+          invoice.customer?.name || 'Client inconnu',
+          `${currentUser.firstname} ${currentUser.lastname}`,
+          invoice.id
+        )
+      }
 
       return response.status(200).json({
         message: 'Paiement mis à jour avec succès',
@@ -177,15 +233,66 @@ export default class PaymentsController {
   /**
    * Supprime un paiement
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ params, response, auth }: HttpContext) {
     try {
+      const currentUser = await auth.authenticate()
       const payment = await Payment.findOrFail(params.id)
       const invoiceId = payment.invoiceId
+      const invoice = await Invoice.query()
+        .where('id', invoiceId)
+        .preload('customer')
+        .firstOrFail()
+
+      // Vérification des permissions selon le rôle et le statut de la facture
+      if (currentUser.role !== 'ADMIN' && currentUser.role !== 'RECOUVREMENT') {
+        return response.status(403).json({
+          error: 'Vous n\'avez pas les permissions pour supprimer ce paiement'
+        })
+      }
+
+      // Si l'utilisateur est RECOUVREMENT et que la facture est PAYE, refuser la suppression
+      if (currentUser.role === 'RECOUVREMENT' && invoice.statusPayment === InvoicePaymentStatus.PAYE) {
+        return response.status(403).json({
+          error: 'Vous ne pouvez pas supprimer un paiement lorsque la facture est marquée comme PAYE. Seul un administrateur peut effectuer cette suppression.'
+        })
+      }
+
+      // Sauvegarder les informations du paiement pour l'activité
+      const paymentInfo = {
+        id: payment.id,
+        amount: payment.amount,
+        paymentMethod: payment.paymentMethod,
+        invoiceNumber: invoice.invoiceNumber
+      }
 
       await payment.delete()
 
       await this.updateInvoiceStatus(invoiceId)
-      const invoice = await Invoice.findOrFail(invoiceId)
+      await invoice.refresh()
+
+      // Enregistrer l'activité de suppression de paiement
+      await UserActivityService.logActivity(
+        Number(currentUser.id),
+        UserActivityService.ACTIONS.DELETE_PAYMENT,
+        currentUser.role,
+        invoiceId,
+        {
+          ...paymentInfo,
+          invoiceStatus: invoice.statusPayment
+        }
+      )
+
+      // Notifier les admins uniquement si c'est un utilisateur recouvrement
+      if (currentUser.role === 'RECOUVREMENT') {
+        await NotificationService.notifyRecouvrementPaymentDelete(
+          paymentInfo.amount,
+          paymentInfo.paymentMethod,
+          paymentInfo.invoiceNumber,
+          invoice.customer?.name || 'Client inconnu',
+          `${currentUser.firstname} ${currentUser.lastname}`,
+          invoice.id
+        )
+      }
 
       return response.status(200).json({
         message: 'Paiement supprimé avec succès',

@@ -719,6 +719,93 @@ export default class InvoicesController {
             return ctx.response.status(500).json({ message: 'Erreur lors de la mise à jour du statut.' })
         }
     }
+
+    async getInvoicePaymentCalculations({ params, request, response, auth }: HttpContext) {
+        try {
+            console.log('🔍 getInvoicePaymentCalculations appelée avec params:', params)
+            console.log('🔍 Query params:', request.qs())
+            
+            const user = await auth.authenticate()
+            const { invoice_number } = params
+            const { excludePaymentId } = request.qs()
+
+            console.log('🔍 invoice_number:', invoice_number)
+            console.log('🔍 excludePaymentId:', excludePaymentId)
+
+            if (!invoice_number) {
+                console.log('❌ Numéro de facture manquant')
+                return response.status(400).json({ error: 'Le numéro de facture est requis' })
+            }
+
+            // Récupérer la facture avec les paiements
+            const invoice = await Invoice.query()
+                .where('invoice_number', invoice_number)
+                .preload('customer')
+                .preload('payments')
+                .first()
+
+            console.log('🔍 Facture trouvée:', invoice ? 'OUI' : 'NON')
+
+            if (!invoice) {
+                console.log('❌ Facture non trouvée')
+                return response.status(404).json({ error: 'Facture non trouvée' })
+            }
+
+            // Filtrer les paiements si un ID d'exclusion est fourni
+            const payments = excludePaymentId 
+                ? invoice.payments.filter(payment => payment.id !== Number(excludePaymentId))
+                : invoice.payments
+
+            console.log('🔍 Nombre de paiements:', payments.length)
+
+            // Calculs côté backend
+            const totalTTC = Number(invoice.totalTTC)
+            const totalPaid = payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
+            const remainingAmount = Math.max(0, totalTTC - totalPaid)
+            const surplus = totalPaid > totalTTC ? totalPaid - totalTTC : 0
+
+            // Calculer le pourcentage de paiement
+            const paymentPercentage = totalTTC > 0 ? Math.round((totalPaid / totalTTC) * 100) : 0
+
+            console.log('🔍 Calculs terminés:', { totalTTC, totalPaid, remainingAmount, surplus, paymentPercentage })
+
+            return response.json({
+                success: true,
+                data: {
+                    invoice: {
+                        id: invoice.id,
+                        invoiceNumber: invoice.invoiceNumber,
+                        totalTTC,
+                        statusPayment: invoice.statusPayment,
+                        customer: invoice.customer ? {
+                            name: invoice.customer.name,
+                            phone: invoice.customer.phone
+                        } : null
+                    },
+                    calculations: {
+                        totalTTC,
+                        totalPaid,
+                        remainingAmount,
+                        surplus,
+                        paymentPercentage
+                    },
+                    payments: payments.map(payment => ({
+                        id: payment.id,
+                        amount: payment.amount,
+                        paymentMethod: payment.paymentMethod,
+                        paymentDate: payment.paymentDate,
+                        comment: payment.comment,
+                        chequeInfo: payment.chequeInfo
+                    }))
+                }
+            })
+        } catch (error) {
+            console.error('❌ Erreur lors du calcul des montants de paiement:', error)
+            return response.status(500).json({ 
+                error: 'Erreur lors du calcul des montants de paiement' 
+            })
+        }
+    }
 }
 
 

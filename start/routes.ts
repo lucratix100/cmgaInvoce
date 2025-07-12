@@ -60,6 +60,11 @@ router.group(() => {
   router.get('/bls/user/date', [BlController, 'getBlbyUserAndDate'])
   router.get('/bls/max-quantite/:invoiceId/:blId', [BlController, 'getMaxQuantite'])
   router.get('/invoices/date', [InvoicesController, 'get_invoice_by_date'])
+  
+  // Routes spécifiques pour les calculs de paiement (prioritaires)
+  router.get('/invoices/:invoice_number/payment-calculations', [InvoicesController, 'getInvoicePaymentCalculations'])
+  
+  // Autres routes d'invoices
   router.get('/invoice/:invoice_number', [InvoicesController, 'get_invoice_by_invoice_number'])
   router.get('/invoices/:invoice_number/bls', [InvoicesController, 'getBls'])
   router.post('/confirm-delivery', [ProcessDeliveriesController, 'confirmBl'])

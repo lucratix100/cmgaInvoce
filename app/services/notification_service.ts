@@ -132,6 +132,56 @@ export default class NotificationService {
   }
 
   /**
+   * Notifie les admins d'une modification de paiement par un utilisateur recouvrement
+   */
+  static async notifyRecouvrementPaymentUpdate(
+    paymentAmount: number,
+    paymentMethod: string,
+    invoiceNumber: string,
+    customerName: string,
+    modifiedBy: string,
+    invoiceId?: number
+  ) {
+    const title = '✏️ Paiement modifié'
+    const message = `Un paiement de ${paymentAmount} FCFA a été modifié par ${modifiedBy} (${paymentMethod})`
+    const details = {
+      amount: paymentAmount,
+      method: paymentMethod,
+      invoiceNumber,
+      customerName,
+      modifiedBy,
+      type: 'recouvrement_payment_update'
+    }
+
+    await this.notifyAdminsForImportantActions(title, message, invoiceId, details)
+  }
+
+  /**
+   * Notifie les admins d'une suppression de paiement par un utilisateur recouvrement
+   */
+  static async notifyRecouvrementPaymentDelete(
+    paymentAmount: number,
+    paymentMethod: string,
+    invoiceNumber: string,
+    customerName: string,
+    deletedBy: string,
+    invoiceId?: number
+  ) {
+    const title = '🗑️ Paiement supprimé'
+    const message = `Un paiement de ${paymentAmount} FCFA a été supprimé par ${deletedBy} (${paymentMethod})`
+    const details = {
+      amount: paymentAmount,
+      method: paymentMethod,
+      invoiceNumber,
+      customerName,
+      deletedBy,
+      type: 'recouvrement_payment_delete'
+    }
+
+    await this.notifyAdminsForImportantActions(title, message, invoiceId, details)
+  }
+
+  /**
    * Notifie les admins d'une création de BL (DÉPRÉCIÉ - maintenant seulement dans les activités)
    */
   static async notifyBlCreation(
