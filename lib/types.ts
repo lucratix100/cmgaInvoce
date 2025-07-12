@@ -40,6 +40,7 @@ export type Invoice = {
     order: InvoiceProduct[];
     customer: Customer;
     depotId: number;
+    deliveredAt: Date;
     totalTtc: number;
     statusPayment: InvoicePaymentStatus;
     remainingAmount: number;

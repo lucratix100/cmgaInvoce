@@ -128,18 +128,33 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
         const value = e.target.value
         setScannedValue(value)
 
-        // Détection automatique du scan complet (sans useEffect)
+        // Détection automatique du scan complet
+        // Un scan complet est détecté quand la valeur a une longueur typique d'un numéro de facture
+        // et qu'aucune modification n'a eu lieu pendant un court délai
         if (value.trim() && !loading && !showGestion && !showConfirmation) {
-            setTimeout(() => {
-                if (value.trim() === scannedValue && value.trim()) {
-                    handleScan()
-                }
-            }, 100)
-        }
-    }, [loading, showGestion, showConfirmation, scannedValue])
+            // Détecter un scan complet basé sur la longueur et la stabilité
+            const isCompleteScan = value.trim().length >= 8 && value.trim().length <= 15
 
-    const handleScan = useCallback(async () => {
-        if (!scannedValue.trim()) {
+            if (isCompleteScan) {
+                // Attendre un court délai pour s'assurer que le scan est terminé
+                setTimeout(() => {
+                    // Vérifier que la valeur n'a pas changé pendant le délai
+                    if (value.trim() === e.target.value.trim()) {
+                        // Déclencher le scan en utilisant la valeur actuelle
+                        const currentValue = e.target.value.trim()
+                        if (currentValue) {
+                            // Appeler directement la logique de scan
+                            performScan(currentValue)
+                        }
+                    }
+                }, 200) // Augmenté à 200ms pour plus de fiabilité
+            }
+        }
+    }, [loading, showGestion, showConfirmation])
+
+    // Fonction séparée pour effectuer le scan
+    const performScan = useCallback(async (scanValue: string) => {
+        if (!scanValue.trim()) {
             setErrorMessage("Veuillez entrer un numéro de facture")
             return
         }
@@ -148,7 +163,7 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
             setLoading(true)
             setErrorMessage("")
 
-            const response = await getInvoiceByNumber(scannedValue)
+            const response = await getInvoiceByNumber(scanValue)
 
             if (response.error) {
                 setErrorMessage(response.error)
@@ -156,7 +171,7 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
             }
 
             if (!response || !response.invoice) {
-                setErrorMessage("Facture non trouvée")
+                setErrorMessage("Cette facture n'existe pas")
                 return
             }
 
@@ -186,15 +201,6 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
                         }
                         break
                     }
-                // {
-                //     if (!depot?.needDoubleCheck && invoice.status !== InvoiceStatus.NON_RECEPTIONNEE) {
-                //         setErrorMessage("Cette facture a déjà été scannée")
-                //         return
-                //     }
-                //     setInvoiceData(invoice)
-                //     setShowGestion(true)
-                //     break
-                // }
 
                 case 'magasinier':
                 case 'superviseur-magasin':
@@ -213,7 +219,7 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
                     setInvoiceData(invoice)
 
                     // Récupérer les BLs de la facture
-                    const bls = await getBlsByInvoice(scannedValue)
+                    const bls = await getBlsByInvoice(scanValue)
                     const pending = bls.filter((bl: Bl) => bl.status === 'en attente de confirmation')
                     setPendingBls(pending)
                     break
@@ -229,7 +235,15 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
         } finally {
             setLoading(false)
         }
-    }, [scannedValue, role])
+    }, [role, depot])
+
+    // Fonction handleScan qui utilise performScan
+    const handleScan = useCallback(async () => {
+        const currentValue = inputRef.current?.value || scannedValue
+        if (currentValue.trim()) {
+            await performScan(currentValue)
+        }
+    }, [scannedValue, performScan])
 
     const handleConfirmBl = useCallback(async (blId: number) => {
         if (!invoiceData) return
@@ -267,7 +281,8 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
         try {
             setLoading(true)
 
-            const responseUpdate = await updateInvoiceStatus(scannedValue, "en attente de livraison")
+            const currentValue = inputRef.current?.value || scannedValue
+            const responseUpdate = await updateInvoiceStatus(currentValue, "en attente de livraison")
 
             toast.success("Facture scannée et mise à jour avec succès")
 
@@ -392,6 +407,7 @@ export default function ScanUnified({ role, onScan, isOpen: externalIsOpen, onCl
                     isOpen={showGestion}
                     onClose={() => setShowGestion(false)}
                     numeroFacture={scannedValue}
+                    reSetState={resetState}
                     onSave={handleSaveGestion}
                     isSuperviseurMagasin={role === 'superviseur-magasin'}
                 />

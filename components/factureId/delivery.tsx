@@ -35,7 +35,6 @@ const html2pdf = dynamic(() => import("html2pdf.js"), {
 });
 
 export default function Delivery({ invoice, activeTab }: DeliveryProps) {
-
   const [bls, setBls] = useState<Bl[]>([]);
   const [loading, setLoading] = useState(true);
   const [superviseurMagasin, setSuperviseurMagasin] = useState<{ firstname: string, lastname: string } | null>(null);
@@ -413,7 +412,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
                 <div className="">
                   {sortedBls.map((bl, index) => (
                     <Card key={bl.id} className="overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-primary-50 to-primary-100/50 pb-4 pt-5 px-6 border-b border-primary-200/30">
+                      <CardHeader className="bg-gradient-to-r from-primary-50 to-primary-100/50 pb-4 p-y-2 px-6 border-b border-primary-200/30">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-6">
                             <div className="p-2 bg-primary-100 rounded-lg">

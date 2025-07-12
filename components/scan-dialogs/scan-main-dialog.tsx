@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Keyboard, ScanBarcode } from "lucide-react"
+import { Keyboard, ScanBarcode, AlertCircle, Barcode } from "lucide-react"
 
 interface ScanMainDialogProps {
     isOpen: boolean
@@ -44,8 +44,8 @@ export default function ScanMainDialog({
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogTrigger asChild>
-                <Button 
-                    variant="outline" 
+                <Button
+                    variant="outline"
                     className="hover:bg-primary-700 hover:text-white bg-primary-500 text-white transition-all duration-300"
                 >
                     <ScanBarcode className="h-4 w-4 mr-2" />
@@ -64,12 +64,18 @@ export default function ScanMainDialog({
                             id="scanner-input"
                             value={scannedValue}
                             onChange={onInputChange}
+                            autoFocus={true}
                             onKeyDown={onKeyDown}
-                            className="text-center text-lg font-medium"
+                            className="text-center text-lg font-medium focus-visible:ring-blue-500"
                             placeholder={placeholder}
                         />
                         {errorMessage && (
-                            <p className="text-sm text-red-500 text-center">{errorMessage}</p>
+                            <div className="flex items-center justify-center gap-2 text-sm text-red-500">
+                                {errorMessage === "Cette facture n'existe pas" && (
+                                    <AlertCircle className="h-4 w-4" />
+                                )}
+                                <span>{errorMessage}</span>
+                            </div>
                         )}
                     </div>
 
@@ -82,7 +88,7 @@ export default function ScanMainDialog({
                                 variant="outline"
                                 onClick={onTestMode}
                                 className="w-full"
-                                disabled={loading}
+                                disabled={true}
                             >
                                 <Keyboard className="h-4 w-4 mr-2" />
                                 Mode test (saisie manuelle)

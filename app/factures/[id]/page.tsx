@@ -1,6 +1,5 @@
 import { getInvoiceByNumber } from "@/actions/invoice";
 import { getCurrentUser } from "@/actions/user";
-import Navbar from "@/components/navbar/navbar";
 import Header from "@/components/factureId/header";
 import InvoiceClient from "./invoice-client";
 

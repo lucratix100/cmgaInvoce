@@ -68,7 +68,7 @@ export default function Detail({ invoice, userRole }: DetailProps) {
 
       <div className="flex justify-end">
         {(userRole === Role.RECOUVREMENT || userRole === Role.ADMIN) && (
-          <Paiment invoice={invoice} />
+          <Paiment invoice={invoice} user={{ role: userRole }} />
         )}
         <div className="w-1/6"></div>
         <Card className="border-none shadow-md bg-white w-1/2">

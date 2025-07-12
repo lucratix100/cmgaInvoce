@@ -59,7 +59,8 @@ export default function Filtre({
     const today = new Date().toISOString().split('T')[0]
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
+    const isInitializedRef = useRef(false)
+    const previousValuesRef = useRef<Partial<FilterFormData>>({})
 
     // Initialisation des valeurs par défaut depuis les paramètres URL
     const defaultValues = useMemo(() => {
@@ -75,104 +76,180 @@ export default function Filtre({
         }
     }, [searchParams, today])
 
-    // Configuration de react-hook-form avec mode "onBlur" pour éviter les re-renders
+    // Configuration de react-hook-form
     const {
         control,
-        handleSubmit,
         watch,
         setValue,
+        reset,
         formState: { isDirty }
     } = useForm<FilterFormData>({
         resolver: zodResolver(filterSchema),
         defaultValues,
-        mode: "onBlur" // Changé de "onChange" à "onBlur" pour éviter les re-renders
+        mode: "onBlur"
     })
 
-    // Surveiller les changements de valeurs pour déclencher les callbacks
+    // Surveiller les changements de valeurs
     const watchedValues = watch()
 
-    // Fonction de debounce pour la recherche
-    const debouncedSearch = useCallback((searchValue: string) => {
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current)
-        }
-
-        searchTimeoutRef.current = setTimeout(() => {
-            onSearch(searchValue)
-        }, 300) // 300ms de délai
-    }, [onSearch])
-
-    // Mise à jour de l'URL et des callbacks avec debounce
-    const updateURLAndCallbacks = useCallback((values: FilterFormData) => {
+    // Fonction pour mettre à jour l'URL
+    const updateURL = useCallback((newParams: Partial<FilterFormData>) => {
         const params = new URLSearchParams(searchParams.toString())
 
-        // Si une recherche est spécifiée, ne pas inclure la date pour permettre une recherche globale
-        const hasSearch = values.search && values.search.trim() !== ''
+        // Traiter chaque paramètre
+        if (newParams.status) {
+            params.set('status', newParams.status)
+        } else {
+            params.delete('status')
+        }
 
-        Object.entries(values).forEach(([key, value]) => {
-            if (value && value !== 'tous') {
-                // Ne pas inclure startDate si il y a une recherche
-                if (hasSearch && key === 'startDate') {
-                    params.delete(key)
-                } else {
-                    params.set(key, value)
-                }
-            } else {
-                params.delete(key)
-            }
-        })
+        if (newParams.startDate) {
+            params.set('startDate', newParams.startDate)
+        } else {
+            params.delete('startDate')
+        }
+
+        if (newParams.endDate) {
+            params.set('endDate', newParams.endDate)
+        } else {
+            params.delete('endDate')
+        }
+
+        if (newParams.paymentStatus) {
+            params.set('paymentStatus', newParams.paymentStatus)
+        } else {
+            params.delete('paymentStatus')
+        }
+
+        if (newParams.depot) {
+            params.set('depot', newParams.depot)
+        } else {
+            params.delete('depot')
+        }
+
+        if (newParams.search && newParams.search.trim() !== '') {
+            params.set('search', newParams.search.trim())
+        } else {
+            params.delete('search')
+        }
 
         router.replace(`?${params.toString()}`, { scroll: false })
+    }, [searchParams, router])
 
-        // Appeler les callbacks appropriés
-        if (values.status) onStatusChange(values.status)
-        if (values.startDate || values.endDate) {
-            onDateChange(values.startDate, values.endDate)
-        }
-        if (values.paymentStatus && onPaymentStatusChange) {
-            onPaymentStatusChange(values.paymentStatus)
-        }
-        if (values.depot && onDepotChange) {
-            onDepotChange(values.depot)
-        }
-    }, [searchParams, router, onStatusChange, onDateChange, onPaymentStatusChange, onDepotChange])
-
-    // Effet pour surveiller les changements et mettre à jour l'URL (sauf pour la recherche)
+    // Effet pour initialiser le formulaire avec les valeurs de l'URL
     useEffect(() => {
-        if (isDirty) {
-            const { search, ...otherValues } = watchedValues
-            updateURLAndCallbacks({ ...otherValues, search: search || "" })
+        if (!isInitializedRef.current) {
+            reset(defaultValues)
+            previousValuesRef.current = defaultValues
+            isInitializedRef.current = true
         }
-    }, [watchedValues, isDirty, updateURLAndCallbacks])
+    }, [defaultValues, reset])
 
-    // Effet séparé pour la recherche avec debounce
+    // Effet pour synchroniser avec les changements d'URL (rafraîchissement de page)
     useEffect(() => {
-        if (watchedValues.search !== undefined) {
-            debouncedSearch(watchedValues.search)
+        if (!isInitializedRef.current) {
+            return
         }
-    }, [watchedValues.search, debouncedSearch])
 
-    // Nettoyage du timeout
+        const params = new URLSearchParams(searchParams.toString())
+        const urlValues = {
+            startDate: params.get('startDate') || today,
+            endDate: params.get('endDate') || '',
+            status: params.get('status') || 'tous',
+            search: params.get('search') || "",
+            paymentStatus: params.get('paymentStatus') || "tous",
+            depot: params.get('depot') || "tous",
+            searchField: "invoiceNumber"
+        }
+
+        // Vérifier si les valeurs de l'URL sont différentes des valeurs précédentes
+        const previousValues = previousValuesRef.current
+
+        if (JSON.stringify(urlValues) !== JSON.stringify(previousValues)) {
+            reset(urlValues)
+            previousValuesRef.current = urlValues
+        }
+    }, [searchParams, today, reset])
+
+    // Effet pour surveiller les changements des filtres (sauf la recherche)
     useEffect(() => {
-        return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current)
+        if (!isInitializedRef.current) {
+            return
+        }
+
+        const currentValues = {
+            status: watchedValues.status,
+            startDate: watchedValues.startDate,
+            endDate: watchedValues.endDate,
+            paymentStatus: watchedValues.paymentStatus,
+            depot: watchedValues.depot
+        }
+
+        const previousValues = {
+            status: previousValuesRef.current.status,
+            startDate: previousValuesRef.current.startDate,
+            endDate: previousValuesRef.current.endDate,
+            paymentStatus: previousValuesRef.current.paymentStatus,
+            depot: previousValuesRef.current.depot
+        }
+
+        // Vérifier si les valeurs ont réellement changé
+        const hasChanged = JSON.stringify(currentValues) !== JSON.stringify(previousValues)
+
+        if (hasChanged) {
+            updateURL(currentValues)
+            previousValuesRef.current = { ...previousValuesRef.current, ...currentValues }
+        }
+    }, [watchedValues.status, watchedValues.startDate, watchedValues.endDate, watchedValues.paymentStatus, watchedValues.depot, updateURL])
+
+    // Fonction pour déclencher la recherche manuellement
+    const handleSearch = useCallback(() => {
+        if (!isInitializedRef.current) {
+            return
+        }
+
+        const currentSearch = watchedValues.search?.trim()
+        const previousSearch = previousValuesRef.current.search
+
+        if (currentSearch !== previousSearch) {
+            // Préserver tous les paramètres existants et seulement mettre à jour la recherche
+            const params = new URLSearchParams(searchParams.toString())
+            if (currentSearch && currentSearch !== '') {
+                params.set('search', currentSearch)
+            } else {
+                params.delete('search')
             }
+            router.replace(`?${params.toString()}`, { scroll: false })
+            previousValuesRef.current.search = currentSearch
+            router.refresh()
         }
-    }, [])
+    }, [watchedValues.search, searchParams, router])
 
-    // Gestion des erreurs améliorée
-    const handleError = (error: unknown, context: string) => {
-        console.error(`Erreur dans ${context}:`, error)
-        setError(`Une erreur est survenue lors de ${context}. Veuillez réessayer.`)
-    }
+    // Fonction pour gérer la touche Entrée
+    const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch()
+        }
+    }, [handleSearch])
+
+    // Fonction pour réinitialiser le champ de recherche
+    const handleClearSearch = useCallback(() => {
+        setValue('search', '', { shouldDirty: true, shouldTouch: true })
+        // Préserver tous les paramètres existants et seulement effacer la recherche
+        const params = new URLSearchParams(searchParams.toString())
+        params.delete('search')
+        router.replace(`?${params.toString()}`, { scroll: false })
+        previousValuesRef.current.search = ''
+        router.refresh()
+    }, [setValue, searchParams, router])
 
     const statusOptions = useMemo(() => [
         { value: "tous", label: "TOUS" },
         { value: "non réceptionnée", label: "NON RÉCEPTIONNÉE" },
         { value: "en attente de livraison", label: "EN ATTENTE DE LIVRAISON" },
         { value: "en cours de livraison", label: "EN COURS DE LIVRAISON" },
-        { value: "livrée", label: "LIVREE" }
+        { value: "livrée", label: "LIVREE" },
+        { value: "retour", label: "RETOUR" }
     ], [])
 
     const paiementOptions = useMemo(() => [
@@ -230,20 +307,45 @@ export default function Filtre({
                     {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 </Button>
                 <div className="flex-1 px-4">
-                    <Controller
-                        name="search"
-                        control={control}
-                        render={({ field }) => (
-                            <Input
-                                {...field}
-                                type="text"
-                                placeholder="Rechercher une facture..."
-                                className="w-full"
-                                aria-label="Rechercher une facture"
-                                role="searchbox"
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <Controller
+                                name="search"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input
+                                        {...field}
+                                        type="text"
+                                        placeholder="Rechercher une facture..."
+                                        className="pr-8"
+                                        aria-label="Rechercher une facture"
+                                        role="searchbox"
+                                        onKeyPress={handleKeyPress}
+                                    />
+                                )}
                             />
-                        )}
-                    />
+                            {watchedValues.search && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                                    onClick={handleClearSearch}
+                                    aria-label="Effacer la recherche"
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            )}
+                        </div>
+                        <Button
+                            onClick={handleSearch}
+                            size="sm"
+                            className="px-3"
+                            aria-label="Lancer la recherche"
+                        >
+                            <Search className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -366,7 +468,7 @@ export default function Filtre({
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2 text-primary-700">
                                 <Truck className="h-4 w-4" />
-                                État livraison
+                                Etat Livraison
                             </Label>
                             <Controller
                                 name="status"
@@ -392,7 +494,7 @@ export default function Filtre({
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2 text-primary-700">
                                     <DollarSign className="h-4 w-4" />
-                                    État paiement
+                                    Etat paiement
                                 </Label>
                                 <Controller
                                     name="paymentStatus"
@@ -418,6 +520,51 @@ export default function Filtre({
                                 />
                             </div>
                         )}
+
+                        {/* Champ de recherche pour mobile */}
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-primary-700">
+                                <Search className="h-4 w-4" />
+                                Rechercher
+                            </Label>
+                            <div className="flex gap-2">
+                                <Controller
+                                    name="search"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            {...field}
+                                            type="text"
+                                            placeholder="Rechercher une facture..."
+                                            className="pr-8"
+                                            aria-label="Rechercher une facture"
+                                            role="searchbox"
+                                            onKeyPress={handleKeyPress}
+                                        />
+                                    )}
+                                />
+                                {watchedValues.search && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                                        onClick={handleClearSearch}
+                                        aria-label="Effacer la recherche"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                )}
+                                <Button
+                                    onClick={handleSearch}
+                                    size="sm"
+                                    className="px-3"
+                                    aria-label="Lancer la recherche"
+                                >
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -486,7 +633,7 @@ export default function Filtre({
                             <div className="space-y-2 min-w-[200px]">
                                 <Label className="flex items-center gap-2 text-primary-700">
                                     <Truck className="h-4 w-4" />
-                                    État livraison
+                                    Etat Livraison
                                 </Label>
                                 <Controller
                                     name="status"
@@ -515,7 +662,7 @@ export default function Filtre({
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2 text-primary-700">
                                         <DollarSign className="h-4 w-4" />
-                                        État paiement
+                                        Etat paiement
                                     </Label>
                                     <Controller
                                         name="paymentStatus"
@@ -601,7 +748,13 @@ export default function Filtre({
                                             depot={depots.find((depot) => depot.id === user?.depotId)}
                                             role={getScanRole(user.role)}
                                             onScan={(result) => {
-                                                setValue('search', result)
+                                                const trimmedResult = result?.trim()
+                                                setValue('search', trimmedResult, { shouldDirty: true, shouldTouch: true })
+                                                // Déclencher la recherche automatiquement après le scan
+                                                setTimeout(() => {
+                                                    updateURL({ search: trimmedResult })
+                                                    previousValuesRef.current.search = trimmedResult
+                                                }, 100)
                                             }}
                                         />
                                     )}
@@ -613,18 +766,43 @@ export default function Filtre({
                                 <Search className="h-4 w-4" />
                                 Rechercher
                             </Label>
-                            <Controller
-                                name="search"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input
-                                        {...field}
-                                        type="text"
-                                        placeholder="Rechercher..."
-                                        className="w-full"
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Controller
+                                        name="search"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Input
+                                                {...field}
+                                                type="text"
+                                                placeholder="Rechercher..."
+                                                className="pr-8"
+                                                onKeyPress={handleKeyPress}
+                                            />
+                                        )}
                                     />
-                                )}
-                            />
+                                    {watchedValues.search && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                                            onClick={handleClearSearch}
+                                            aria-label="Effacer la recherche"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                                <Button
+                                    onClick={handleSearch}
+                                    size="sm"
+                                    className="px-3"
+                                    aria-label="Lancer la recherche"
+                                >
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardContent>

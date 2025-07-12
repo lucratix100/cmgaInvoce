@@ -54,7 +54,7 @@ export default async function RootLayout({
                   <header className="border-b bg-white shadow-sm sticky top-0 z-40">
                     <Header user={user} />
                   </header>
-                  <main className="p-4 md:p-2 bg-gray-50 min-h-[calc(100vh-64px)]">
+                  <main className="p-4 md:p-6 bg-gray-50 min-h-[calc(100vh-64px)]">
                     {children}
                   </main>
                 </div>

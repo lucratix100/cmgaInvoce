@@ -24,6 +24,22 @@ export const getDepots = async () => {
         return []
     }
 }
+export const getActiveDepots = async () => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get('accessToken')?.value || '{}').token
+        const response = await axios.get(`${process.env.API_URL}depots/active`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        })
+        return response.data
+    } catch (error: any) {
+        console.log('Erreur lors de la récupération des dépôts:', error.response?.data || error.message)
+        return []
+    }
+}
 
 export const getDepotById = async (id: number) => {
     try {
@@ -97,6 +113,7 @@ export const updateDepot = async (id: number, data: z.infer<typeof DepotSchema>)
         })
 
         revalidatePath('/dashboard/depots')
+        revalidatePath('/dashboard/invoices')
         return { success: true, data: response.data }
     } catch (error: any) {
         console.error("Erreur détaillée:", error.response?.data || error.message)

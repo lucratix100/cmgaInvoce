@@ -25,6 +25,7 @@ import Detail from "@/components/factureId/detail";
 import Delivery from "@/components/factureId/delivery";
 import { Role } from "@/types/roles";
 import { useInvoice } from "@/hooks/useInvoice";
+import { useQueryClient } from '@tanstack/react-query';
 
 interface InvoiceClientProps {
   invoiceNumber: string;
@@ -33,7 +34,8 @@ interface InvoiceClientProps {
 
 export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProps) {
   const router = useRouter();
-  const { invoice, isLoading, error } = useInvoice(invoiceNumber);
+  const { invoice, isLoading, error, refetch } = useInvoice(invoiceNumber);
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState("details");
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -60,6 +62,13 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
     router.back();
   };
 
+  // Fonction pour recharger les données après un paiement
+  const handlePaymentSuccess = () => {
+    // Invalider seulement les données de paiement sans recharger la facture complète
+    queryClient.invalidateQueries({ queryKey: ['payments', invoiceNumber] });
+    queryClient.invalidateQueries({ queryKey: ['payment-calculations', invoiceNumber] });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -83,16 +92,19 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
   }
 
   return (
-    <div className="p-10 w-full px-4 sm:px-6 lg:px-8">
-      <div className="flex  flex-col space-y-6 mt-5">
-        <div className="flex items-center space-x-4">
+    <div className="w-full  sm:px-6 lg:px-8">
+      <div className="flex  flex-col space-y-2 mt-2">
+        <div className="flex items-center ">
           <Button onClick={handleBack} className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" /> Retour aux factures
           </Button>
           <div className="flex items-center w-full gap-2 justify-end">
             {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
               <>
-                <PaimentDialog invoiceNumber={invoice.invoiceNumber} />
+                <PaimentDialog 
+                  invoiceNumber={invoice.invoiceNumber} 
+                  onSuccess={handlePaymentSuccess}
+                />
                 <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsNotificationOpen(true)}>
                   <Bell className="h-4 w-4" /> Ajouter une notification
                 </Button>
@@ -158,7 +170,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
           <Detail invoice={invoice} userRole={user?.role} />
           <Delivery invoice={invoice} activeTab={activeTab} />
           {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-            <Paiment invoice={invoice} />
+            <Paiment invoice={invoice} user={user} />
           )}
           {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
             <Reminder />

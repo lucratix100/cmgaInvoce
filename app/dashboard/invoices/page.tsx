@@ -22,5 +22,6 @@ async function getInitialData() {
 
 export default async function InvoicePage() {
   const initialData = await getInitialData()
+  console.log({ initialData })
   return <InvoiceClient initialData={initialData} />
 }

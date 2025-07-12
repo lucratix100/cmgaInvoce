@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Check, Package, User, Calendar, X } from "lucide-react"
+import { Loader2, Check, Package, User, Calendar, X, AlertCircle, Keyboard } from "lucide-react"
 
 interface InvoiceProduct {
     reference: string
@@ -111,7 +111,12 @@ export default function ControllerDialog({
                             placeholder={isTestMode ? "Saisissez le numéro de facture..." : "En attente du scan..."}
                         />
                         {errorMessage && (
-                            <p className="text-sm text-red-500 text-center">{errorMessage}</p>
+                            <div className="flex items-center justify-center gap-2 text-sm text-red-500">
+                                {errorMessage === "Cette facture n'existe pas" && (
+                                    <AlertCircle className="h-4 w-4" />
+                                )}
+                                <span>{errorMessage}</span>
+                            </div>
                         )}
                     </div>
 
@@ -142,7 +147,6 @@ export default function ControllerDialog({
                                         </span>
                                     </div>
                                 </div>
-                                
                                 {/* Informations principales */}
                                 <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                                     <div className="space-y-2">
@@ -244,7 +248,6 @@ export default function ControllerDialog({
                                                     )}
                                                 </Button>
                                             </div>
-                            
                                             {/* Produits du BL */}
                                             <div className="space-y-2">
                                                 <p className="text-sm font-medium">Produits livrés:</p>

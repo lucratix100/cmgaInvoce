@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getDepots } from '@/actions/depot';
+import { getActiveDepots } from '@/actions/depot';
 
 export function useDepots() {
     const {
@@ -9,7 +9,7 @@ export function useDepots() {
         refetch
     } = useQuery({
         queryKey: ['depots'],
-        queryFn: () => getDepots(),
+        queryFn: () => getActiveDepots(),
         staleTime: 5 * 60 * 1000, // Les données sont considérées comme fraîches pendant 5 minutes
         gcTime: 15 * 60 * 1000, // Garde les données en cache pendant 15 minutes
         retry: 2,

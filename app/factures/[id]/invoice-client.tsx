@@ -57,6 +57,14 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
     router.back();
   };
 
+  // Fonction pour recharger les données après un paiement
+  const handlePaymentSuccess = () => {
+    // Pour cette page qui utilise des props directes, on peut simplement
+    // laisser le composant Paiment gérer sa propre revalidation
+    // car il utilise maintenant React Query
+    console.log("Paiement ajouté avec succès - revalidation gérée par le composant Paiment");
+  };
+
   return (
     <div className=" w-full px-4 sm:px-6 lg:px-8">
       <div className="flex  flex-col space-y-2 mt-2">
@@ -67,14 +75,17 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
           <div className="flex items-center w-full gap-2 justify-end">
             {user && user.role === "RECOUVREMENT" && (
               <>
-                <PaimentDialog invoiceNumber={invoice.invoiceNumber} />
+                <PaimentDialog 
+                  invoiceNumber={invoice.invoiceNumber} 
+                  onSuccess={handlePaymentSuccess}
+                />
                 <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsNotificationOpen(true)}>
                   <Bell className="h-4 w-4" /> Ajouter une notification
                 </Button>
                 <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
                   <DialogContent className="bg-white">
                     <DialogTitle>Notification de suivi</DialogTitle>
-                    <DialogDescription>Créez un rappel pour la facture {invoice.invoiceNumber}</DialogDescription>
+                    <DialogDescription> Créez un rappel pour la facture {invoice.invoiceNumber}</DialogDescription>
                     <Notification
                       invoiceId={Number(invoice.invoiceNumber)}
                       user={user}
@@ -132,7 +143,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
           <Detail invoice={invoice} userRole={user?.role} />
           <Delivery invoice={invoice} activeTab={activeTab} />
           {user && user.role === "RECOUVREMENT" && (
-            <Paiment invoice={invoice} />
+            <Paiment invoice={invoice} user={user} />
           )}
           {user && user.role === "RECOUVREMENT" && (
             <Reminder />

@@ -1,11 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge, DollarSign } from "lucide-react";
+import { Badge, DollarSign, Edit, Trash2, AlertCircle, Lock } from "lucide-react";
 import { TabsContent } from "../ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Button } from "@/components/ui/button";
 import { Invoice } from "@/lib/types";
 import { InvoicePaymentStatus, PaymentMethod } from "@/types/enums";
-import { getPaymentHistory } from "@/actions/payment";
+import { getPaymentHistory, deletePayment } from "@/actions/payment";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Role } from "@/types/roles";
+import PaimentDialog from "@/components/paiment-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { getInvoicePaymentCalculations } from "@/actions/invoice";
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface Payment {
   id: number;
@@ -18,11 +34,57 @@ interface Payment {
 
 interface PaimentProps {
   invoice: Invoice;
+  user?: any; // Informations de l'utilisateur connecté
 }
 
-export default function Paiment({ invoice }: PaimentProps) {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function Paiment({ invoice, user }: PaimentProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const queryClient = useQueryClient();
+  
+  // Utiliser React Query pour les paiements
+  const {
+    data: payments = [],
+    isLoading: paymentsLoading,
+    error: paymentsError,
+    refetch: refetchPayments
+  } = useQuery({
+    queryKey: ['payments', invoice.invoiceNumber],
+    queryFn: () => getPaymentHistory(invoice.invoiceNumber),
+    staleTime: 0, // Toujours considérer comme périmé pour forcer la revalidation
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  // Utiliser React Query pour les calculs
+  const {
+    data: calculationsData,
+    isLoading: calculationsLoading,
+    error: calculationsError
+  } = useQuery({
+    queryKey: ['payment-calculations', invoice.invoiceNumber],
+    queryFn: () => getInvoicePaymentCalculations(invoice.invoiceNumber),
+    staleTime: 0, // Toujours considérer comme périmé pour forcer la revalidation
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  // Forcer la revalidation quand le composant est monté ou quand invoice.invoiceNumber change
+  useEffect(() => {
+    console.log('🔄 Revalidation des données pour:', invoice.invoiceNumber);
+    // Invalider et recharger les données pour s'assurer qu'elles sont à jour
+    queryClient.invalidateQueries({ queryKey: ['payments', invoice.invoiceNumber] });
+    queryClient.invalidateQueries({ queryKey: ['payment-calculations', invoice.invoiceNumber] });
+  }, [invoice.invoiceNumber, queryClient]);
+
+  // Extraire les calculs ou utiliser des valeurs par défaut
+  const calculations = calculationsData?.calculations || {
+    totalPaid: 0,
+    remainingAmount: 0,
+    surplus: 0,
+    paymentPercentage: 0
+  };
    
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -32,25 +94,87 @@ export default function Paiment({ invoice }: PaimentProps) {
   const isPaid = invoice.statusPayment === InvoicePaymentStatus.PAYE;
   const isPartiallyPaid = invoice.statusPayment === InvoicePaymentStatus.PAIEMENT_PARTIEL;
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const paymentsData = await getPaymentHistory(invoice.invoiceNumber);
-        setPayments(paymentsData);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des paiements:", error);
-      } finally {
-        setLoading(false);
+  // Vérifier les permissions de modification/suppression
+  const canModifyPayment = (payment: Payment) => {
+    if (!user) return false;
+    
+    // Seuls ADMIN et RECOUVREMENT peuvent modifier/supprimer
+    if (user.role !== Role.ADMIN && user.role !== Role.RECOUVREMENT) {
+      return false;
+    }
+    
+    // Si l'utilisateur est RECOUVREMENT et que la facture est PAYE, refuser
+    if (user.role === Role.RECOUVREMENT && isPaid) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Fonction pour recharger les données
+  const refreshData = () => {
+    console.log('🔄 RefreshData appelé pour:', invoice.invoiceNumber);
+    // Revalider seulement les données spécifiques aux paiements
+    queryClient.invalidateQueries({ queryKey: ['payments', invoice.invoiceNumber] });
+    queryClient.invalidateQueries({ queryKey: ['payment-calculations', invoice.invoiceNumber] });
+    // Forcer un refetch immédiat
+    refetchPayments();
+    // Ne pas revalider les données de facture pour éviter le changement de tab
+  };
+
+  // Utiliser les données calculées côté backend
+  const { totalPaid, remainingAmount, surplus, paymentPercentage } = calculations;
+
+  const handleDeletePayment = (payment: Payment) => {
+    if (!canModifyPayment(payment)) {
+      if (user?.role === Role.RECOUVREMENT && isPaid) {
+        toast.error("Vous ne pouvez pas supprimer un paiement lorsque la facture est marquée comme PAYE. Seul un administrateur peut effectuer cette suppression.");
+      } else {
+        toast.error("Vous n'avez pas les permissions pour supprimer ce paiement");
       }
-    };
+      return;
+    }
 
-    fetchPayments();
-  }, [invoice.invoiceNumber]);
+    setSelectedPayment(payment);
+    setIsDeleteDialogOpen(true);
+  };
 
-  // Calculer le montant total payé
-  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const resteAPayer = Math.max(0, invoice.totalTtc - totalPaid);
-  const surplus = totalPaid > invoice.totalTtc ? totalPaid - invoice.totalTtc : 0;
+  const handleConfirmDelete = async () => {
+    if (!selectedPayment) return;
+
+    try {
+      setDeleteLoading(true);
+      await deletePayment(selectedPayment.id);
+      
+      // Recharger seulement les données de paiement
+      queryClient.invalidateQueries({ queryKey: ['payments', invoice.invoiceNumber] });
+      queryClient.invalidateQueries({ queryKey: ['payment-calculations', invoice.invoiceNumber] });
+      
+      toast.success("Paiement supprimé avec succès");
+      setIsDeleteDialogOpen(false);
+      setSelectedPayment(null);
+    } catch (error: any) {
+      console.error("Erreur lors de la suppression:", error);
+      toast.error(error.message || "Erreur lors de la suppression du paiement");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Afficher les erreurs si elles existent
+  if (paymentsError) {
+    console.error("Erreur lors de la récupération des paiements:", paymentsError);
+  }
+
+  if (calculationsError) {
+    console.error("Erreur lors de la récupération des calculs:", calculationsError);
+  }
+
+  const loading = paymentsLoading || calculationsLoading;
+
+  const sortedPayments = [...payments].sort(
+    (a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
+  );
 
   return (
     <TabsContent value="paiements" className="space-y-4">
@@ -90,7 +214,7 @@ export default function Paiment({ invoice }: PaimentProps) {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="text-lg font-bold">
-                    {formatAmount(resteAPayer)}
+                    {formatAmount(remainingAmount)}
                   </div>
                 </CardContent>
               </Card>
@@ -123,24 +247,28 @@ export default function Paiment({ invoice }: PaimentProps) {
                       <TableHead className="font-medium text-xs">Mode</TableHead>
                       <TableHead className="font-medium text-xs">Chèque</TableHead>
                       <TableHead className="font-medium text-xs">Note</TableHead>
+                      {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                        <TableHead className="font-medium text-xs">Actions</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-2 text-sm">
+                        <TableCell colSpan={user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) ? 8 : 7} className="text-center py-2 text-sm">
                           Chargement...
                         </TableCell>
                       </TableRow>
-                    ) : payments.length === 0 ? (
+                    ) : sortedPayments.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-2 text-sm">
-                          Aucun paiement
+                        <TableCell colSpan={user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) ? 8 : 7} className="text-center py-4">
+                          Aucun paiement enregistré
                         </TableCell>
                       </TableRow>
                     ) : (
-                      payments.map((payment, index) => {
-                        const paidUpToThisPayment = payments
+                      sortedPayments.map((payment, index) => {
+                        // Calculer les montants après ce paiement en utilisant les données backend
+                        const paidUpToThisPayment = sortedPayments
                           .slice(0, index + 1)
                           .reduce((sum, p) => sum + p.amount, 0);
                         const remainingAfterThisPayment = Math.max(0, invoice.totalTtc - paidUpToThisPayment);
@@ -148,13 +276,16 @@ export default function Paiment({ invoice }: PaimentProps) {
                           ? paidUpToThisPayment - invoice.totalTtc 
                           : 0;
                         const isCheckPayment = payment.paymentMethod === PaymentMethod.CHEQUE;
+                        const canModify = canModifyPayment(payment);
                         
                         return (
                           <TableRow key={payment.id} className="text-sm">
                             <TableCell className="py-1">{new Date(payment.paymentDate).toLocaleDateString('fr-FR')}</TableCell>
                             <TableCell className="font-medium">{formatAmount(payment.amount)}</TableCell>
                             <TableCell className={remainingAfterThisPayment === 0 ? "text-green-600 font-medium" : ""}>
-                              {remainingAfterThisPayment === 0 ? "Payé" : formatAmount(remainingAfterThisPayment)}
+                              {paidUpToThisPayment >= invoice.totalTtc
+                                ? "Payé"
+                                : formatAmount(remainingAfterThisPayment)}
                             </TableCell>
                             <TableCell className={surplusFromThisPayment > 0 ? "text-blue-600 font-medium" : ""}>
                               {surplusFromThisPayment > 0 ? formatAmount(surplusFromThisPayment) : "-"}
@@ -166,6 +297,40 @@ export default function Paiment({ invoice }: PaimentProps) {
                             <TableCell className="text-xs">
                               {payment.comment || '-'}
                             </TableCell>
+                            {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                              <TableCell className="text-xs">
+                               {invoice.statusPayment !== InvoicePaymentStatus.PAYE ? <div className="flex gap-1">
+                                  <PaimentDialog
+                                    invoiceNumber={invoice.invoiceNumber}
+                                    payment={payment}
+                                    onSuccess={refreshData}
+                                    trigger={
+                                       <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={!canModify}
+                                        className="h-6 w-6 p-0"
+                                        title={canModify ? "Modifier" : "Non autorisé"}
+                                      >
+                                        <Edit className="h-3 w-3" />
+                                      </Button>
+                                    }
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeletePayment(payment)}
+                                    disabled={!canModify}
+                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                    title={canModify ? "Supprimer" : "Non autorisé"}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div> : <div className="flex gap-1">
+                                  <Lock className="h-4 w-4 font-bold text-red-600" />
+                                </div>} 
+                              </TableCell>
+                            )}
                           </TableRow>
                         );
                       })
@@ -190,8 +355,14 @@ export default function Paiment({ invoice }: PaimentProps) {
               </div>
               <div className="text-right">
                 <p className="font-medium text-sm">
-                  Progression: {Math.round((totalPaid / invoice.totalTtc) * 100)}%
+                  Progression: {paymentPercentage}%
                 </p>
+                <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
+                  <div 
+                    className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(paymentPercentage, 100)}%` }}
+                  ></div>
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Créé le: {new Date(invoice.date).toLocaleDateString('fr-FR')}
                 </p>
@@ -200,6 +371,24 @@ export default function Paiment({ invoice }: PaimentProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action ne peut pas être annulée. Cela supprimera définitivement le paiement de {selectedPayment && formatAmount(selectedPayment.amount)}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} disabled={deleteLoading}>
+              {deleteLoading ? "Suppression..." : "Supprimer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TabsContent>
   );
 }

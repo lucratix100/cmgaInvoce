@@ -7,9 +7,6 @@ import { Invoice } from "@/types/invoice"
 interface HeaderProps {
   invoice: Invoice
 }
-
-
-
 export default function Header({ invoice }: HeaderProps) {
   if (!invoice) return null;  // Protection contre les valeurs undefined
 
@@ -40,7 +37,7 @@ export default function Header({ invoice }: HeaderProps) {
   }
 
   return (
-    <Card className="border-none shadow-md bg-white overflow-hidden ">
+    <Card className="border-none bg-white overflow-hidden ">
       <div className="p-2">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-2">

@@ -3,9 +3,10 @@
 import { Card } from "@/components/ui/card"
 import RecouvrementTable from "@/components/recouvrement/recouvrement-table"
 import { Loader2, FileX } from "lucide-react"
-import { useInvoices } from "@/hooks/useInvoices"
+import { useInvoicesWithStatistics } from "@/hooks/useInvoicesWithStatistics"
 import { useDepots } from "@/hooks/useDepots"
 import { useSearchParams } from "next/navigation"
+import { useMemo } from "react"
 
 interface InvoiceClientProps {
   initialData: {
@@ -16,13 +17,34 @@ interface InvoiceClientProps {
 export default function InvoiceClient({ initialData }: InvoiceClientProps) {
   const searchParams = useSearchParams()
 
-  // Utiliser les hooks TanStack Query
-  const { invoices, isLoading: invoicesLoading } = useInvoices({
-    startDate: searchParams.get('startDate') || undefined,
-    endDate: searchParams.get('endDate') || undefined,
-    status: searchParams.get('status') || undefined,
-    search: searchParams.get('search') || undefined,
-  })
+  // Utiliser useMemo pour éviter les re-créations inutiles des paramètres
+  const queryParams = useMemo(() => {
+    const startDate = searchParams.get('startDate') || undefined
+    const endDate = searchParams.get('endDate') || undefined
+    const status = searchParams.get('status') || undefined
+    const search = searchParams.get('search') || undefined
+    const depot = searchParams.get('depot') || undefined
+
+    // Ne retourner que les paramètres qui ont une valeur
+    const params: any = {}
+    if (startDate) params.startDate = startDate
+    if (endDate) params.endDate = endDate
+    if (status) params.status = status
+    if (search) params.search = search
+    if (depot) params.depot = depot
+
+    return params
+  }, [
+    searchParams.get('startDate'),
+    searchParams.get('endDate'),
+    searchParams.get('status'),
+    searchParams.get('search'),
+    searchParams.get('depot')
+  ])
+
+  // Utiliser les hooks TanStack Query avec les paramètres optimisés
+  const { invoices, statistics, isLoading: invoicesLoading } = useInvoicesWithStatistics(queryParams)
+  console.log({ invoices, statistics })
 
   const { depots, isLoading: depotsLoading } = useDepots()
 
@@ -60,6 +82,7 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
                 user={initialData.user}
                 isLoading={isLoading}
                 depots={depots}
+                statistics={statistics}
               />
             </div>
           </Card>
