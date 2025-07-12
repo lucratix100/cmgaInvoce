@@ -14,6 +14,7 @@ import { useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
 import { exportFilteredToExcel } from "@/lib/excel-export"
 import { toast } from "@/components/ui/use-toast"
+import { InvoiceStatus } from "@/types/enums"
 
 interface RecouvrementTableProps {
   factures: Invoice[];
@@ -30,7 +31,7 @@ interface RecouvrementTableProps {
 }
 
 export default function RecouvrementTable({ factures, user, isLoading = false, depots, statistics }: RecouvrementTableProps) {
-
+  console.log({ factures })
   const searchParams = useSearchParams()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
@@ -256,9 +257,9 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                       </Badge>
                     </TableCell>
                     {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
-                      <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
+                      {facture.status !== InvoiceStatus.RETOUR ? <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
                         {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
-                      </Badge>
+                      </Badge> : "-"}
                     </TableCell>}
                     {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
                       <div className="flex flex-col">
@@ -266,13 +267,13 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                           {facture.statusPayment?.toUpperCase() === "PAYÉ"
                             ? <>
                               {formatMontant(0)}
-                              {Number(facture.remainingAmount) < 0 && (
+                              {facture.remainingAmount < 0 && (
                                 <span className="text-green-600 text-xs font-semibold ml-1">
                                   +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
                                 </span>
                               )}
                             </>
-                            : formatMontant(Math.max(0, Number(facture.remainingAmount) || 0))}
+                            : formatMontant(facture.remainingAmount || 0)}
                         </span>
                       </div>
                     </TableCell>}
