@@ -115,7 +115,7 @@ export default class InvoicesController {
                     depotId: invoice.depotId,
                     statusPayment: invoice.statusPayment,
                     totalTtc: invoice.totalTTC,
-                    remainingAmount: remainingAmount
+                    remainingAmount: invoice.status === InvoiceStatus.RETOUR ? invoice.totalTTC : remainingAmount
                 }
             })
 

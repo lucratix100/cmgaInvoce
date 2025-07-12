@@ -29,6 +29,7 @@ const PaymentsController = () => import('#controllers/payments_controller')
 const InvoiceRemindersController = () => import('#controllers/invoice_reminders_controller')
 const UserActivitiesController = () => import('#controllers/user_activities_controller')
 const DashboardController = () => import('#controllers/dashboard_controller')
+const UpdateInvoicesStatusController = () => import('#controllers/update_invoices_status_controller')
 
 // Contrôleurs pour le chat
 const ConversationsController = () => import('#controllers/conversations_controller')
@@ -83,6 +84,7 @@ router.group(() => {
   router.get('/dashboard/chart-data', [DashboardController, 'chartData'])
   router.get('/dashboard/advanced-stats', [DashboardController, 'advancedStats'])
   router.get('/depots/active', [DepotsController, 'getActiveDepots'])
+  router.post('/update-invoices-status', [UpdateInvoicesStatusController, 'updateInvoicesStatus'])
 
   // Routes du chat
   router.get('/chat/users', [ChatUsersController, 'index'])
