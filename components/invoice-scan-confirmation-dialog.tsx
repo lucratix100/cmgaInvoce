@@ -114,6 +114,7 @@ export default function InvoiceConfirmationDialog({
                     <div className="flex gap-3 pt-4">
                         <Button
                             variant="outline"
+                            
                             onClick={onClose}
                             disabled={loading}
                             className="flex-1"

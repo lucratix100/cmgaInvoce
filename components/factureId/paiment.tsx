@@ -42,7 +42,7 @@ export default function Paiment({ invoice, user }: PaimentProps) {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const queryClient = useQueryClient();
-  
+
   // Utiliser React Query pour les paiements
   const {
     data: payments = [],
@@ -85,7 +85,7 @@ export default function Paiment({ invoice, user }: PaimentProps) {
     surplus: 0,
     paymentPercentage: 0
   };
-   
+
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
   };
@@ -97,17 +97,17 @@ export default function Paiment({ invoice, user }: PaimentProps) {
   // Vérifier les permissions de modification/suppression
   const canModifyPayment = (payment: Payment) => {
     if (!user) return false;
-    
+
     // Seuls ADMIN et RECOUVREMENT peuvent modifier/supprimer
     if (user.role !== Role.ADMIN && user.role !== Role.RECOUVREMENT) {
       return false;
     }
-    
+
     // Si l'utilisateur est RECOUVREMENT et que la facture est PAYE, refuser
     if (user.role === Role.RECOUVREMENT && isPaid) {
       return false;
     }
-    
+
     return true;
   };
 
@@ -145,11 +145,11 @@ export default function Paiment({ invoice, user }: PaimentProps) {
     try {
       setDeleteLoading(true);
       await deletePayment(selectedPayment.id);
-      
+
       // Recharger seulement les données de paiement
       queryClient.invalidateQueries({ queryKey: ['payments', invoice.invoiceNumber] });
       queryClient.invalidateQueries({ queryKey: ['payment-calculations', invoice.invoiceNumber] });
-      
+
       toast.success("Paiement supprimé avec succès");
       setIsDeleteDialogOpen(false);
       setSelectedPayment(null);
@@ -159,6 +159,56 @@ export default function Paiment({ invoice, user }: PaimentProps) {
     } finally {
       setDeleteLoading(false);
     }
+  };
+
+  // Fonction helper pour rendre les actions de paiement
+  const renderPaymentActions = (payment: Payment) => {
+    const isInvoicePaid = invoice.statusPayment === InvoicePaymentStatus.PAYE;
+    const isAdminUser = user?.role === Role.ADMIN;
+
+    // Si l'utilisateur est RECOUVREMENT et que la facture est payée, afficher l'icône de verrouillage
+    if (!isAdminUser && isInvoicePaid) {
+      return (
+        <div className="flex gap-1">
+          <Lock className="h-4 w-4 font-bold text-red-600" />
+        </div>
+      );
+    }
+
+    // Pour tous les autres cas (ADMIN ou RECOUVREMENT avec facture non payée), afficher les boutons d'action
+
+
+    return (
+      <div className="flex gap-1">
+        <PaimentDialog
+          invoiceNumber={invoice.invoiceNumber}
+          payment={payment}
+          onSuccess={refreshData}
+          trigger={
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!canModifyPayment(payment)}
+              className="h-6 w-6 p-0"
+              title={canModifyPayment(payment) ? "Modifier" : "Non autorisé"}
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+          }
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleDeletePayment(payment)}
+          disabled={!canModifyPayment(payment)}
+          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+          title={canModifyPayment(payment) ? "Supprimer" : "Non autorisé"}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+
   };
 
   // Afficher les erreurs si elles existent
@@ -272,12 +322,12 @@ export default function Paiment({ invoice, user }: PaimentProps) {
                           .slice(0, index + 1)
                           .reduce((sum, p) => sum + p.amount, 0);
                         const remainingAfterThisPayment = Math.max(0, invoice.totalTtc - paidUpToThisPayment);
-                        const surplusFromThisPayment = paidUpToThisPayment > invoice.totalTtc 
-                          ? paidUpToThisPayment - invoice.totalTtc 
+                        const surplusFromThisPayment = paidUpToThisPayment > invoice.totalTtc
+                          ? paidUpToThisPayment - invoice.totalTtc
                           : 0;
                         const isCheckPayment = payment.paymentMethod === PaymentMethod.CHEQUE;
                         const canModify = canModifyPayment(payment);
-                        
+
                         return (
                           <TableRow key={payment.id} className="text-sm">
                             <TableCell className="py-1">{new Date(payment.paymentDate).toLocaleDateString('fr-FR')}</TableCell>
@@ -299,36 +349,7 @@ export default function Paiment({ invoice, user }: PaimentProps) {
                             </TableCell>
                             {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
                               <TableCell className="text-xs">
-                               {invoice.statusPayment !== InvoicePaymentStatus.PAYE ? <div className="flex gap-1">
-                                  <PaimentDialog
-                                    invoiceNumber={invoice.invoiceNumber}
-                                    payment={payment}
-                                    onSuccess={refreshData}
-                                    trigger={
-                                       <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={!canModify}
-                                        className="h-6 w-6 p-0"
-                                        title={canModify ? "Modifier" : "Non autorisé"}
-                                      >
-                                        <Edit className="h-3 w-3" />
-                                      </Button>
-                                    }
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeletePayment(payment)}
-                                    disabled={!canModify}
-                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                                    title={canModify ? "Supprimer" : "Non autorisé"}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div> : <div className="flex gap-1">
-                                  <Lock className="h-4 w-4 font-bold text-red-600" />
-                                </div>} 
+                                {renderPaymentActions(payment)}
                               </TableCell>
                             )}
                           </TableRow>
@@ -343,12 +364,11 @@ export default function Paiment({ invoice, user }: PaimentProps) {
               <div>
                 <h3 className="font-medium text-sm">Informations de paiement</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Statut: 
-                  <Badge className={`ml-1 text-xs ${
-                    isPaid ? "bg-green-100 text-green-700" : 
-                    isPartiallyPaid ? "bg-amber-100 text-amber-700" : 
-                    "bg-red-100 text-red-700"
-                  }`}>
+                  Statut:
+                  <Badge className={`ml-1 text-xs ${isPaid ? "bg-green-100 text-green-700" :
+                    isPartiallyPaid ? "bg-amber-100 text-amber-700" :
+                      "bg-red-100 text-red-700"
+                    }`}>
                     {invoice.statusPayment}
                   </Badge>
                 </p>
@@ -358,7 +378,7 @@ export default function Paiment({ invoice, user }: PaimentProps) {
                   Progression: {paymentPercentage}%
                 </p>
                 <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(paymentPercentage, 100)}%` }}
                   ></div>

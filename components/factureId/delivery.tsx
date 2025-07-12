@@ -50,7 +50,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
       }
     };
     loadBls();
-  }, [invoice.invoiceNumber]);
+  }, [invoice?.invoiceNumber]);
 
   useEffect(() => {
     const fetchSuperviseur = async () => {
@@ -100,7 +100,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
         </div>
         <h4 className="font-semibold text-blue-900 tracking-tight">Informations de livraison</h4>
       </div> */}
-      
+
       <div className="flex items-center justify-between px-8">
         {/* Informations du chauffeur */}
         <div className="flex items-center gap-4 bg-white/80 backdrop-blur rounded-lg p-3 border border-blue-50 hover:border-blue-200 transition-colors">
@@ -133,7 +133,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
             </div>
             <h5 className="font-medium text-gray-900">Créé par:</h5>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {superviseurMagasin && (
               <div className="flex items-center gap-2">
@@ -144,8 +144,8 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-400 rounded-full"></span>
               <span className="text-xs text-gray-700 font-semibold">
-                {bl.user?.role === 'SUPERVISEUR_MAGASIN' ? 'Superviseur' : 
-                 bl.user?.role === 'MAGASINIER' ? 'Magasinier' : 'Utilisateur'}:
+                {bl.user?.role === 'SUPERVISEUR_MAGASIN' ? 'Superviseur' :
+                  bl.user?.role === 'MAGASINIER' ? 'Magasinier' : 'Utilisateur'}:
               </span>
               <span className="text-xs text-gray-900">{bl.user?.firstname} {bl.user?.lastname}</span>
             </div>
@@ -171,25 +171,25 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
     const hasPreviousBl = blIndex > 0;
 
     return (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-gray-50">
-          <TableHead className="w-1/4 font-medium">Référence</TableHead>
-          <TableHead className="w-2/5 font-medium">Désignation</TableHead>
-          {hasPreviousBl && (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-gray-50">
+            <TableHead className="w-1/4 font-medium">Référence</TableHead>
+            <TableHead className="w-2/5 font-medium">Désignation</TableHead>
+            {hasPreviousBl && (
+              <TableHead className="w-1/6 font-medium text-right">
+                Qté restant du BL précédent
+              </TableHead>
+            )}
             <TableHead className="w-1/6 font-medium text-right">
-              Qté restant du BL précédent
+              Qté livrée
             </TableHead>
-          )}
-          <TableHead className="w-1/6 font-medium text-right">
-            Qté livrée
-          </TableHead>
-          <TableHead className="w-1/6 font-medium text-right">
-            Qté restante
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+            <TableHead className="w-1/6 font-medium text-right">
+              Qté restante
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {parsedProducts.map((product, index) => {
             // Qté restant du BL précédent
             let quantiteRestantBlPrecedent = 0;
@@ -235,9 +235,9 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
               </TableRow>
             );
           })}
-      </TableBody>
-    </Table>
-  );
+        </TableBody>
+      </Table>
+    );
   };
 
   const prepareProductsForTemplate = (
@@ -246,7 +246,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
     allBls: Bl[]
   ) => {
     const hasPreviousBl = blIndex > 0;
-    
+
     return {
       hasPreviousBl,
       products: products.map((product) => {
@@ -311,8 +311,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
       customerName: invoice.customer?.name || "N/A",
       customerPhone: invoice.customer?.phone || "N/A",
       deliveryDate: new Date(bl.createdAt).toLocaleDateString("fr-FR"),
-      driverName: `${bl.driver?.firstname || "N/A"} ${
-        bl.driver?.lastname || ""
+      driverName: `${bl.driver?.firstname || "N/A"} ${bl.driver?.lastname || ""
         }`,
       driverPhone: bl.driver?.phone || "N/A",
       products: templateData.products,
@@ -355,8 +354,7 @@ export default function Delivery({ invoice, activeTab }: DeliveryProps) {
       customerName: invoice.customer?.name || "N/A",
       customerPhone: invoice.customer?.phone || "N/A",
       deliveryDate: new Date(bl.createdAt).toLocaleDateString("fr-FR"),
-      driverName: `${bl.driver?.firstname || "N/A"} ${
-        bl.driver?.lastname || ""
+      driverName: `${bl.driver?.firstname || "N/A"} ${bl.driver?.lastname || ""
         }`,
       driverPhone: bl.driver?.phone || "N/A",
       products: templateData.products,
