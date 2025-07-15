@@ -13,7 +13,7 @@ import ChatButton from '@/components/chat/chat-button'
 import { getChatUsers } from '@/actions/chatUsers'
 
 export const metadata: Metadata = {
-  title: 'CMGA Delivery',
+  title: 'DEV MODE',
   description: 'Suivi livraisons CMGA',
   generator: 'CMGA Delivery',
 }
@@ -25,7 +25,7 @@ export default async function RootLayout({
 }) {
   const user = await getCurrentUser()
   const { token } = await getSession()
-  
+
   // Charger les utilisateurs seulement si connecté
   let users: any[] = []
   if (token && user) {
@@ -36,7 +36,7 @@ export default async function RootLayout({
       users = []
     }
   }
-  
+
   console.log(token, "token layout")
 
   return (

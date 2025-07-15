@@ -1,7 +1,7 @@
 import FactureClient from "./factureClient"
 import { getCurrentUser } from "@/actions/user"
 import { getInvoicesWithStatistics } from "@/actions/invoice"
-import { getDepots } from "@/actions/depot"
+import { getActiveDepots } from "@/actions/depot"
 import { Role } from "@/types/roles"
 
 
@@ -21,7 +21,7 @@ export default async function FacturePage({
       search: params.search,
       depot: params.depot
     }),
-    getDepots()
+    getActiveDepots()
   ])
 
   const invoices = invoicesData.invoices || []
