@@ -1,4 +1,4 @@
-﻿<factures>
+﻿<!-- <factures>
   <facture nomBase="GESTION_ZIGUINCHOR" numeroFacture="314" dateFacture="2025-07-03T00:00:00" codeClient="411ASFELT14">
     <client>
       <telephone />
@@ -8440,4 +8440,4 @@
       <produit reference="LPGRAHUILE20L" designation="HUILE BON APPETIT PALM 20L" quantite="8100" prixUnitaire="15611.770000" montantHT="126455337.000000" tva="0.000000" tva2="0.000000" remise="0.000000" />
     </orders>
   </facture>
-</factures>
+</factures> -->

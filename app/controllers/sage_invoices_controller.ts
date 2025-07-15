@@ -109,6 +109,8 @@ export default class SageInvoicesController {
 
                 // Vérifier si le numéro de facture contient la lettre "R" pour déterminer le statut et le montant
                 const hasReturnReference = invoice._attributes.numeroFacture?.toUpperCase().includes('R')
+                const REGUL_REFERENCE = ["REGUL", "REGULE", "RGL", "REGULATION", "REGU"]
+                const isRegulReference = REGUL_REFERENCE.some((reference) => invoice._attributes.ref_regul?.toUpperCase().includes(reference))
 
                 // Déterminer le statut et le montant total
                 let finalStatus = InvoiceStatus.NON_RECEPTIONNEE
@@ -116,7 +118,13 @@ export default class SageInvoicesController {
 
                 if (hasReturnReference) {
                     finalStatus = InvoiceStatus.RETOUR
-                    finalTotalTTC = -Math.abs(totalTTC) // Rendre le montant négatif
+                    finalTotalTTC = -Math.abs(totalTTC)
+                    // Rendre le montant négatif
+                }
+
+                if (isRegulReference) {
+                    finalStatus = InvoiceStatus.REGULE
+                    finalTotalTTC = totalTTC
                 }
 
                 // Préparer les données de la facture

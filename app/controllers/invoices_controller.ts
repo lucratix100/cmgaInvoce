@@ -86,18 +86,6 @@ export default class InvoicesController {
 
             const invoices = await query
 
-            // const formattedInvoices = invoices.map(invoice => ({
-            //     id: invoice.id,
-            //     invoiceNumber: invoice.invoiceNumber,
-            //     accountNumber: invoice.accountNumber,
-            //     date: invoice.date,
-            //     status: invoice.status,
-            //     customer: invoice.customer ? {
-            //         name: invoice.customer.name,
-            //         phone: invoice.customer.phone
-            //     } : null,
-            //     order: invoice.order
-            // }))
             const formattedInvoices = invoices.map(invoice => {
                 const totalPaid = invoice.payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
                 const remainingAmount = Number(invoice.totalTTC) - totalPaid
@@ -724,7 +712,7 @@ export default class InvoicesController {
         try {
             console.log('🔍 getInvoicePaymentCalculations appelée avec params:', params)
             console.log('🔍 Query params:', request.qs())
-            
+
             const user = await auth.authenticate()
             const { invoice_number } = params
             const { excludePaymentId } = request.qs()
@@ -752,7 +740,7 @@ export default class InvoicesController {
             }
 
             // Filtrer les paiements si un ID d'exclusion est fourni
-            const payments = excludePaymentId 
+            const payments = excludePaymentId
                 ? invoice.payments.filter(payment => payment.id !== Number(excludePaymentId))
                 : invoice.payments
 
@@ -801,8 +789,8 @@ export default class InvoicesController {
             })
         } catch (error) {
             console.error('❌ Erreur lors du calcul des montants de paiement:', error)
-            return response.status(500).json({ 
-                error: 'Erreur lors du calcul des montants de paiement' 
+            return response.status(500).json({
+                error: 'Erreur lors du calcul des montants de paiement'
             })
         }
     }
