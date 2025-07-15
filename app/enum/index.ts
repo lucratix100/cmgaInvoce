@@ -20,7 +20,6 @@ export enum InvoiceStatus {
   // PARTIELLEMENT_LIVREE = 'partiellement livrée',
 }
 
-
 export enum InvoicePaymentStatus {
   NON_PAYE = 'non payé',
   PAIEMENT_PARTIEL = 'paiement partiel',
