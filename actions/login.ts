@@ -35,7 +35,7 @@ export default async function login(values: z.infer<typeof LoginSchema>) {
         name: "accessToken",
         value: JSON.stringify(accessToken),
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        // secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24,
         path: "/"
       });
@@ -44,7 +44,7 @@ export default async function login(values: z.infer<typeof LoginSchema>) {
         name: "user",
         value: JSON.stringify(user),
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        // secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24,
         path: "/"
       });
