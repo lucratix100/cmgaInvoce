@@ -169,7 +169,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <span className="text-2xl font-bold text-primary-900">{statistics.total.count}</span>
                     <span className="text-sm text-primary-700">factures</span>
                   </div>
-                  <span className="text-lg font-semibold text-primary-800">{formatMontant(statistics.total.amount)}</span>
+                  {/* <span className="text-lg font-semibold text-primary-800">{formatMontant(statistics.total.amount)}</span> */}
                 </div>
               </div>
 
@@ -184,7 +184,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                       <span className="text-xl font-bold">{stats.count}</span>
                       <span className="text-sm opacity-80">factures</span>
                     </div>
-                    <span className="text-base font-semibold">{formatMontant(stats.amount)}</span>
+                    {/* <span className="text-base font-semibold">{formatMontant(stats.amount)}</span> */}
                   </div>
                 </div>
               ))}

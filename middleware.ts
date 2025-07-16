@@ -45,7 +45,7 @@ export function middleware(request: NextRequest) {
     if (isAuthenticated) {
       // Rediriger les utilisateurs connectés selon leur rôle
       if (userRole === "ADMIN") {
-        return NextResponse.redirect(new URL("/invoices", request.url));
+        return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
       } else {
         return NextResponse.redirect(new URL("/factures", request.url));
       }

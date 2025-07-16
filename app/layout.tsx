@@ -13,7 +13,7 @@ import ChatButton from '@/components/chat/chat-button'
 import { getChatUsers } from '@/actions/chatUsers'
 
 export const metadata: Metadata = {
-  title: 'DEV MODE',
+  title: process.env.NODE_ENV === 'development' ? 'DEV MODE' : 'CMGA Delivery',
   description: 'Suivi livraisons CMGA',
   generator: 'CMGA Delivery',
 }
