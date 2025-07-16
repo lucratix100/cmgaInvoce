@@ -3,7 +3,7 @@
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { Bell, Check, Eye, Loader2, FileX, Download } from "lucide-react"
 import Link from "next/link"
 import Filtre from "../facture/filtre"
