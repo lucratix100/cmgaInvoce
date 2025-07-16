@@ -7,10 +7,11 @@ export default class AuthController {
 
   public async login({ request, response }: HttpContext) {
     const { phone, password } = await request.validateUsing(loginValidator)
-    const user = await User.verifyCredentials(phone, password)
-    if (!user.isActive) {
-      return response.status(403).json({ message: 'Votre compte a été bloqué...' })
-    }
+    try {
+      const user = await User.verifyCredentials(phone, password)
+      if (!user.isActive) {
+        return response.status(403).json({ message: 'Votre compte a été bloqué...' })
+      }
     const accessToken = await User.accessTokens.create(user)
     const refreshToken = await User.refreshTokens.create(user)
     
@@ -27,6 +28,10 @@ export default class AuthController {
       refreshToken: refreshToken.value,
       type: 'bearer'
     })
+    } catch (error) {
+      console.log(error)
+      return response.status(401).json({ message: 'Numéro de téléphone ou mot de passe incorrect...' })
+    }
   }
   public async refresh({ request, response }: HttpContext) {
     const refreshToken = request.input('refresh_token')

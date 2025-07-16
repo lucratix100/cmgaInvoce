@@ -18,22 +18,21 @@ const dbConfig = defineConfig({
         paths: ['database/migrations'],
       },
     },
-
-    mssql: {
-      client: 'mssql',
-      connection: {
-        host: env.get('DB_MSSQL_HOST'),
-        port: env.get('DB_MSSQL_PORT') ? parseInt(env.get('DB_MSSQL_PORT') as string) : undefined,
-        user: env.get('DB_MSSQL_USER'),
-        server: env.get('DB_MSSQL_SERVER') || '',
-        password: env.get('DB_MSSQL_PASSWORD'),
-        database: env.get('DB_MSSQL_DATABASE'),
-        options: {
-          encrypt: true,
-          trustServerCertificate: true,
-        },
-      },
-    },
+    // mssql: {
+    //   client: 'mssql',
+    //   connection: {
+    //     host: env.get('DB_MSSQL_HOST'),
+    //     port: env.get('DB_MSSQL_PORT') ? parseInt(env.get('DB_MSSQL_PORT') as string) : undefined,
+    //     user: env.get('DB_MSSQL_USER'),
+    //     server: env.get('DB_MSSQL_SERVER') || '',
+    //     password: env.get('DB_MSSQL_PASSWORD'),
+    //     database: env.get('DB_MSSQL_DATABASE'),
+    //     options: {
+    //       encrypt: true,
+    //       trustServerCertificate: true,
+    //     },
+    //   },
+    // },
   },
 })
 export default dbConfig
