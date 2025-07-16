@@ -108,7 +108,7 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
   }, [])
 
   // State
-  const [selectedRootId, setSelectedRootId] = useState<string | null>(null)
+  const [selectedRootIds, setSelectedRootIds] = useState<string[]>([])
   const [selectedSuffixIds, setSelectedSuffixIds] = useState<string[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [assignByRoot, setAssignByRoot] = useState(true)
@@ -121,33 +121,34 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
 
   // Handlers
   const handleAddAssignment = async () => {
-    if (!selectedRootId || !selectedUserId) {
-      setError("Veuillez sélectionner une racine et un utilisateur")
+    if (!selectedRootIds.length || !selectedUserId) {
+      setError("Veuillez sélectionner au moins une racine et un utilisateur")
       return
     }
 
     try {
       if (assignByRoot) {
-        // Vérifier si la racine est déjà affectée
-        const existingAssignment = assignments.find(
-          (a) => a.type === "root" && a.rootId === selectedRootId
+        // Vérifier si les racines sont déjà affectées
+        const existingAssignments = assignments.filter(
+          (a) => a.type === "root" && selectedRootIds.includes(a.rootId)
         )
-        if (existingAssignment) {
-          setError("Cette racine est déjà affectée à un utilisateur")
+        if (existingAssignments.length > 0) {
+          setError("Ces racines sont déjà affectées à un utilisateur. Veuillez les supprimer d'abord.")
           return
         }
 
         // Vérifier si des suffixes sont déjà affectés
         const hasSuffixAssignments = assignments.some(
-          (a) => a.type === "suffix" && a.rootId === selectedRootId
+          (a) => a.type === "suffix" && selectedRootIds.some(rootId => a.rootId === rootId)
         )
         if (hasSuffixAssignments) {
-          setError("Des suffixes de cette racine sont déjà affectés. Veuillez les supprimer d'abord.")
+          setError("Des suffixes de ces racines sont déjà affectés. Veuillez les supprimer d'abord.")
           return
         }
 
+        for (const rootId of selectedRootIds) {
         const newAssignment = await createAssignment(
-          parseInt(selectedRootId),
+            parseInt(rootId),
           null,
           parseInt(selectedUserId)
         )
@@ -157,34 +158,36 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
           {
             id: newAssignment.id.toString(),
             type: "root",
-            rootId: selectedRootId,
+              rootId: rootId,
             userId: selectedUserId,
             pattern: newAssignment.pattern
           },
         ])
+        }
       } else {
         if (selectedSuffixIds.length === 0) {
           setError("Veuillez sélectionner au moins un suffixe")
           return
         }
 
-        // Vérifier si la racine est déjà entièrement affectée
-        const existingRootAssignment = assignments.find(
-          (a) => a.type === "root" && a.rootId === selectedRootId
+        // Vérifier si les racines sont déjà entièrement affectées
+        const existingRootAssignments = assignments.filter(
+          (a) => a.type === "root" && selectedRootIds.includes(a.rootId)
         )
-        if (existingRootAssignment) {
-          setError("Cette racine est déjà entièrement affectée à un utilisateur")
+        if (existingRootAssignments.length > 0) {
+          setError("Ces racines sont déjà entièrement affectées à un utilisateur. Veuillez les supprimer d'abord.")
           return
         }
 
         // Créer les affectations pour chaque suffixe sélectionné
         for (const suffixId of selectedSuffixIds) {
           console.log("Création d'affectation pour le suffixe:", suffixId)
-          console.log("RootId:", selectedRootId)
+          console.log("RootId:", selectedRootIds)
           console.log("UserId:", selectedUserId)
 
+          for (const rootId of selectedRootIds) {
           const newAssignment = await createAssignment(
-            parseInt(selectedRootId),
+              parseInt(rootId),
             parseInt(suffixId),
             parseInt(selectedUserId)
           )
@@ -194,16 +197,18 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
             {
               id: newAssignment.id.toString(),
               type: "suffix",
-              rootId: selectedRootId,
+                rootId: rootId,
               suffixId: suffixId,
               userId: selectedUserId,
               pattern: newAssignment.pattern
             },
           ])
+          }
         }
       }
 
       // Réinitialiser la sélection
+      setSelectedRootIds([])
       setSelectedSuffixIds([])
       setError(null)
       toast.success("Affectation créée avec succès")
@@ -238,12 +243,6 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
     return root ? root.value : "Pas de racine affectée"
   }
 
-  const handleRootChange = (rootId: string) => {
-    setSelectedRootId(rootId)
-    setSelectedSuffixIds([])
-    setError(null)
-  }
-
   const handleSuffixToggle = (suffixId: string) => {
     console.log("handleSuffixToggle", suffixId)
     console.log("Toggle du suffixe:", suffixId)
@@ -266,12 +265,12 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
   }
 
   const handleSelectAllSuffixes = () => {
-    if (!selectedRootId) return
+    if (!selectedRootIds.length) return
 
     const availableSuffixes =
       roots
-        .find((r) => r.id === selectedRootId)
-        ?.suffixes.filter((suffix) => !isSuffixAssigned(selectedRootId, suffix.id))
+        .filter(r => selectedRootIds.includes(r.id))
+        .flatMap(r => r.suffixes.filter(suffix => !isSuffixAssigned(r.id, suffix.id)))
         .map((suffix) => suffix.id) || []
 
     setSelectedSuffixIds(availableSuffixes)
@@ -321,12 +320,12 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
       <div className="flex justify-end mb-4">
         <Button
           onClick={() => setShowNewAssignment(!showNewAssignment)}
-          variant="outline"
+          variant="default"
           className="flex items-center gap-2"
         >
           {showNewAssignment ? (
             <>
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 " />
               Masquer
             </>
           ) : (
@@ -355,29 +354,128 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
-                      <Switch id="assign-mode" checked={assignByRoot} onCheckedChange={setAssignByRoot} />
+                      <Switch 
+                        id="assign-mode" 
+                        checked={assignByRoot} 
+                        onCheckedChange={(checked) => {
+                          setAssignByRoot(checked)
+                          // Réinitialiser toutes les sélections lors du changement de mode
+                          setSelectedRootIds([])
+                          setSelectedSuffixIds([])
+                          setError(null)
+                        }} 
+                      />
                       <Label htmlFor="assign-mode">{assignByRoot ? "Affecter par racine" : "Affecter par suffixe(s)"}</Label>
                     </div>
 
                     <div>
                       <Label htmlFor="root-select" className="block mb-2">
-                        Sélectionner une racine
+                        Sélectionner des racines
                       </Label>
-                      <Select onValueChange={handleRootChange}>
-                        <SelectTrigger id="root-select">
-                          <SelectValue placeholder="Sélectionner une racine" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roots.map((root) => (
-                            <SelectItem key={root.id} value={root.id}>
-                              {root.value} ({root.suffixes.length} suffixe{root.suffixes.length !== 1 ? "s" : ""})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">
+                          {selectedRootIds.length} racine(s) sélectionnée(s)
+                        </span>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              const availableRoots = roots.filter(root => {
+                                const isRootAssigned = assignments.some(
+                                  (a) => a.type === "root" && a.rootId === root.id
+                                )
+                                const hasSuffixAssignments = assignments.some(
+                                  (a) => a.type === "suffix" && a.rootId === root.id
+                                )
+                                // Inclure les racines non affectées et celles avec des suffixes partiellement attribués
+                                return !isRootAssigned && (!hasSuffixAssignments || !assignByRoot)
+                              }).map(r => r.id)
+                              setSelectedRootIds(availableRoots)
+                            }}
+                          >
+                            Tout sélectionner
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setSelectedRootIds([])}
+                          >
+                            Tout désélectionner
+                          </Button>
+                        </div>
+                      </div>
+                      <Card className="border">
+                        <ScrollArea className="h-[200px]">
+                          <div className="p-4 space-y-2">
+                            {roots.map((root) => {
+                              const isRootAssigned = assignments.some(
+                                (a) => a.type === "root" && a.rootId === root.id
+                              )
+                              const hasSuffixAssignments = assignments.some(
+                                (a) => a.type === "suffix" && a.rootId === root.id
+                              )
+                              // Une racine est désactivée seulement si elle est entièrement affectée
+                              // ou si elle a des suffixes attribués ET qu'on est en mode "affecter par racine"
+                              const isDisabled = isRootAssigned || (hasSuffixAssignments && assignByRoot)
+
+                              return (
+                                <div
+                                  key={root.id}
+                                  className={`flex items-center justify-between p-2 rounded-md ${
+                                    isDisabled ? "bg-muted/50" : "hover:bg-muted/30"
+                                  }`}
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    {!isDisabled && (
+                                      <Checkbox
+                                        id={`root-${root.id}`}
+                                        checked={selectedRootIds.includes(root.id)}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedRootIds(prev => [...prev, root.id])
+                                          } else {
+                                            setSelectedRootIds(prev => prev.filter(id => id !== root.id))
+                                          }
+                                          setSelectedSuffixIds([])
+                                          setError(null)
+                                        }}
+                                      />
+                                    )}
+                                    <label
+                                      htmlFor={`root-${root.id}`}
+                                      className={`flex items-center cursor-pointer ${isDisabled ? "opacity-70" : ""}`}
+                                    >
+                                      <span className="font-medium mr-2">{root.value}</span>
+                                      <Badge variant="outline" className="text-xs">
+                                        {root.suffixes.length} suffixe{root.suffixes.length !== 1 ? "s" : ""}
+                                      </Badge>
+                                    </label>
+                                  </div>
+                                  {isRootAssigned && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Racine entièrement attribuée
+                                    </Badge>
+                                  )}
+                                  {hasSuffixAssignments && !isRootAssigned && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {assignByRoot ? "Suffixes attribués" : "Suffixes partiellement attribués"}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )
+                            })}
+                            {roots.length === 0 && (
+                              <div className="text-center py-4 text-muted-foreground">
+                                Aucune racine disponible
+                              </div>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </Card>
                     </div>
 
-                    {!assignByRoot && selectedRootId && (
+                    {!assignByRoot && selectedRootIds.length > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <Label>Sélectionner des suffixes</Label>
@@ -394,35 +492,41 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
                         <Card className="border">
                           <ScrollArea className="h-[200px]">
                             <div className="p-4 space-y-2">
-                              {roots
-                                .find((r) => r.id === selectedRootId)
-                                ?.suffixes.map((suffix) => {
-                                  console.log("suffix", suffix)
-                                  const isAssigned = isSuffixAssigned(selectedRootId, suffix.id)
-                                  const assignedUser = isAssigned ? getAssignedUser(selectedRootId, suffix.id) : null
+                              {selectedRootIds.map(rootId => {
+                                const root = roots.find(r => r.id === rootId)
+                                if (!root) return null
+                                
+                                return (
+                                  <div key={rootId} className="space-y-2">
+                                    <div className="font-medium text-sm text-muted-foreground border-b pb-1">
+                                      Racine: {root.value}
+                                    </div>
+                                    {root.suffixes.map((suffix) => {
+                                      const isAssigned = isSuffixAssigned(rootId, suffix.id)
+                                      const assignedUser = isAssigned ? getAssignedUser(rootId, suffix.id) : null
 
                                   return (
                                     <div
-                                      key={suffix.id}
-                                      className={`flex items-center justify-between p-2 rounded-md ${isAssigned ? "bg-muted/50" : "hover:bg-muted/30"
+                                          key={`${rootId}-${suffix.id}`}
+                                          className={`flex items-center justify-between p-2 rounded-md ml-4 ${
+                                            isAssigned ? "bg-muted/50" : "hover:bg-muted/30"
                                         }`}
                                     >
                                       <div className="flex items-center space-x-3">
                                         {!isAssigned && (
                                           <Checkbox
-                                            id={`${suffix.id}`}
+                                                id={`${rootId}-${suffix.id}`}
                                             checked={selectedSuffixIds.includes(suffix.id)}
                                             onCheckedChange={() => handleSuffixToggle(suffix.id)}
                                           />
                                         )}
                                         <label
-                                          htmlFor={`${suffix.id}`}
+                                              htmlFor={`${rootId}-${suffix.id}`}
                                           className={`flex items-center cursor-pointer ${isAssigned ? "opacity-70" : ""}`}
                                         >
                                           <span className="font-medium mr-2">{suffix.value}</span>
                                           <Badge variant="outline" className="text-xs">
-                                            {roots.find((r) => r.id === selectedRootId)?.value}
-                                            {suffix.value}
+                                                {root.value}{suffix.value}
                                           </Badge>
                                         </label>
                                       </div>
@@ -434,9 +538,20 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
                                     </div>
                                   )
                                 })}
-                              {roots.find((r) => r.id === selectedRootId)?.suffixes.length === 0 && (
+                                  </div>
+                                )
+                              })}
+                              {selectedRootIds.length === 0 && (
                                 <div className="text-center py-4 text-muted-foreground">
-                                  Aucun suffixe disponible pour cette racine
+                                  Veuillez sélectionner au moins une racine
+                                </div>
+                              )}
+                              {selectedRootIds.length > 0 && selectedRootIds.every(rootId => {
+                                const root = roots.find(r => r.id === rootId)
+                                return root && root.suffixes.length === 0
+                              }) && (
+                                <div className="text-center py-4 text-muted-foreground">
+                                  Aucun suffixe disponible pour les racines sélectionnées
                                 </div>
                               )}
                             </div>
@@ -480,41 +595,70 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
                     <Button
                       onClick={handleAddAssignment}
                       className="w-full"
-                      disabled={!selectedRootId || !selectedUserId || (!assignByRoot && selectedSuffixIds.length === 0)}
+                      disabled={!selectedRootIds.length || !selectedUserId || (!assignByRoot && selectedSuffixIds.length === 0)}
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Ajouter l'affectation
                     </Button>
                   </div>
 
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <h3 className="font-medium mb-2">Aperçu de l'affectation</h3>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <h3 className="font-semibold text-blue-900">Aperçu de l'affectation</h3>
+                    </div>
                     <div className="space-y-4">
-                      {selectedRootId ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center">
-                            <Badge variant="outline" className="mr-2">
-                              Racine
+                      {selectedRootIds.length > 0 ? (
+                        <div className="space-y-4">
+                          {/* Section Racines */}
+                          <div className="bg-white rounded-lg p-4 border border-blue-100 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                              <span className="font-medium text-blue-900">Racines sélectionnées</span>
+                              <Badge variant="outline" className="ml-auto bg-blue-50 text-blue-700 border-blue-200">
+                                {selectedRootIds.length} racine{selectedRootIds.length > 1 ? 's' : ''}
                             </Badge>
-                            <span className="font-medium">{roots.find((r) => r.id === selectedRootId)?.value || ""}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedRootIds.map(id => {
+                                const root = roots.find(r => r.id === id)
+                                const assignedSuffixes = assignments.filter(a => 
+                                  a.type === "suffix" && a.rootId === id
+                                ).length
+                                const totalSuffixes = root?.suffixes.length || 0
+                                
+                                return (
+                                  <div key={id} className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                                    <div className="font-medium text-blue-900">{root?.value}</div>
+                                    <div className="text-xs text-blue-600">
+                                      {assignedSuffixes}/{totalSuffixes} suffixes attribués
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
                           </div>
 
+                          {/* Section Suffixes (si applicable) */}
                           {!assignByRoot && selectedSuffixIds.length > 0 && (
-                            <div>
-                              <div className="flex items-center mb-2">
-                                <Badge variant="outline" className="mr-2">
-                                  Suffixes ({selectedSuffixIds.length})
+                            <div className="bg-white rounded-lg p-4 border border-green-100 shadow-sm">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span className="font-medium text-green-900">Suffixes à affecter</span>
+                                <Badge variant="outline" className="ml-auto bg-green-50 text-green-700 border-green-200">
+                                  {selectedSuffixIds.length} suffixe{selectedSuffixIds.length > 1 ? 's' : ''}
                                 </Badge>
                               </div>
-                              <div className="flex flex-wrap gap-2 pl-4">
+                              <div className="flex flex-wrap gap-2">
                                 {selectedSuffixIds.map((suffixId) => {
-                                  const suffix = roots
-                                    .find((r) => r.id === selectedRootId)
-                                    ?.suffixes.find((s) => s.id === suffixId)
+                                  const rootWithSuffix = roots.find(r => 
+                                    r.suffixes.some(s => s.id === suffixId)
+                                  )
+                                  const suffix = rootWithSuffix?.suffixes.find(s => s.id === suffixId)
+                                  
                                   return (
-                                    <Badge key={suffixId} variant="secondary" className="text-xs">
-                                      {roots.find((r) => r.id === selectedRootId)?.value}
-                                      {suffix?.value}
+                                    <Badge key={suffixId} variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                                      {rootWithSuffix?.value}{suffix?.value}
                                     </Badge>
                                   )
                                 })}
@@ -522,53 +666,72 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
                             </div>
                           )}
 
+                          {/* Section Utilisateur */}
                           {selectedUserId && (
-                            <>
-                              <div className="flex items-center justify-center my-2">
-                                <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                            <div className="bg-white rounded-lg p-4 border border-purple-100 shadow-sm">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                <span className="font-medium text-purple-900">Utilisateur cible</span>
                               </div>
-                              <div className="flex items-center">
-                                <Badge variant="outline" className="mr-2">
-                                  Utilisateur
-                                </Badge>
-                                <span className="font-medium">{users.find((u) => u.id.toString() === selectedUserId)?.firstname} {users.find((u) => u.id.toString() === selectedUserId)?.lastname || ""}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                  <span className="text-purple-700 font-semibold text-sm">
+                                    {users.find((u) => u.id.toString() === selectedUserId)?.firstname?.charAt(0)}
+                                    {users.find((u) => u.id.toString() === selectedUserId)?.lastname?.charAt(0)}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-purple-900">
+                                    {users.find((u) => u.id.toString() === selectedUserId)?.firstname} {users.find((u) => u.id.toString() === selectedUserId)?.lastname}
+                                  </div>
+                                  <div className="text-sm text-purple-600">
+                                    {users.find((u) => u.id.toString() === selectedUserId)?.email}
+                                  </div>
+                                </div>
                               </div>
-                            </>
+                            </div>
                           )}
 
-                          <div className="mt-4 pt-4 border-t">
-                            <div className="text-sm text-muted-foreground">
+                          {/* Section Résumé */}
+                          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 text-white">
+                            <div className="flex items-center gap-2 mb-2">
+                              <ArrowRight className="h-4 w-4" />
+                              <span className="font-semibold">Résumé de l'action</span>
+                            </div>
+                            <div className="text-sm opacity-90">
                               {assignByRoot ? (
                                 <p>
-                                  Toutes les factures commençant par{" "}
-                                  <strong>{roots.find((r) => r.id === selectedRootId)?.value}</strong> seront affectées à{" "}
-                                  {selectedUserId ? (
+                                  <strong>{selectedRootIds.length} racine{selectedRootIds.length > 1 ? 's' : ''}</strong> seront entièrement affectée{selectedRootIds.length > 1 ? 's' : ''} à{" "}
                                     <strong>{users.find((u) => u.id.toString() === selectedUserId)?.firstname} {users.find((u) => u.id.toString() === selectedUserId)?.lastname}</strong>
-                                  ) : (
-                                    "l'utilisateur sélectionné"
-                                  )}
-                                  .
+                                  {selectedUserId ? "" : "l'utilisateur sélectionné"}.
+                                  <br />
+                                  <span className="opacity-75">
+                                    Toutes les factures commençant par ces racines seront automatiquement assignées.
+                                  </span>
                                 </p>
                               ) : (
                                 <p>
-                                  {selectedSuffixIds.length === 1 ? "La facture" : `Les ${selectedSuffixIds.length} factures`}{" "}
-                                  sélectionnée{selectedSuffixIds.length > 1 ? "s" : ""} ser
-                                  {selectedSuffixIds.length > 1 ? "ont" : "a"} affectée
-                                  {selectedSuffixIds.length > 1 ? "s" : ""} à{" "}
-                                  {selectedUserId ? (
+                                  <strong>{selectedSuffixIds.length} suffixe{selectedSuffixIds.length > 1 ? 's' : ''}</strong> ser{selectedSuffixIds.length > 1 ? 'ont' : 'a'} affecté{selectedSuffixIds.length > 1 ? 's' : ''} à{" "}
                                     <strong>{users.find((u) => u.id.toString() === selectedUserId)?.firstname} {users.find((u) => u.id.toString() === selectedUserId)?.lastname}</strong>
-                                  ) : (
-                                    "l'utilisateur sélectionné"
-                                  )}
-                                  .
+                                  {selectedUserId ? "" : "l'utilisateur sélectionné"}.
+                                  <br />
+                                  <span className="opacity-75">
+                                    Seules les factures avec ces patterns spécifiques seront assignées.
+                                  </span>
                                 </p>
                               )}
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          Sélectionnez une racine et un utilisateur pour voir l'aperçu
+                        <div className="text-center py-8">
+                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ArrowRight className="h-8 w-8 text-blue-500" />
+                          </div>
+                          <h4 className="font-medium text-blue-900 mb-2">Aucune sélection</h4>
+                          <p className="text-sm text-blue-600">
+                            Sélectionnez au moins une racine et un utilisateur pour voir l'aperçu de l'affectation
+                          </p>
                         </div>
                       )}
                     </div>
@@ -618,7 +781,7 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
                 <Label htmlFor="filter-user" className="mb-2 block">
                   Filtrer par utilisateur
                 </Label>
-                <Select value={filterUserId || ""} onValueChange={(value) => setFilterUserId(value || null)}>
+                <Select value={filterUserId || ""} onValueChange={(value) => setFilterUserId(value === "all" ? null : value)}>
                   <SelectTrigger id="filter-user" className="w-[200px]">
                     <SelectValue placeholder="Tous les utilisateurs" />
                   </SelectTrigger>
@@ -636,7 +799,7 @@ export function InvoiceAssignment({ roots }: InvoiceAssignmentProps) {
                 <Label htmlFor="filter-root" className="mb-2 block">
                   Filtrer par racine
                 </Label>
-                <Select value={filterRootId || ""} onValueChange={(value) => setFilterRootId(value || null)}>
+                <Select value={filterRootId || ""} onValueChange={(value) => setFilterRootId(value === "all" ? null : value)}>
                   <SelectTrigger id="filter-root" className="w-[200px]">
                     <SelectValue placeholder="Toutes les racines" />
                   </SelectTrigger>

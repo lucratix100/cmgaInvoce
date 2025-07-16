@@ -18,6 +18,7 @@ export interface Invoice {
   depotId: number
   totalTtc: number
   statusPayment: InvoicePaymentStatus
+  deliveredAt?: string | Date | null
   depot?: {
     id: number
     name: string

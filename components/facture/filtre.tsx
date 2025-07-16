@@ -307,7 +307,7 @@ export default function Filtre({
     return (
         <>
             {/* Bouton du menu burger pour mobile */}
-            <div className="md:hidden flex justify-between items-center p-4 bg-white border-b">
+            <div className="md:hidden flex justify-between items-center p-4 bg-white border-b ">
                 <Button
                     variant="ghost"
                     size="icon"
@@ -491,7 +491,7 @@ export default function Filtre({
                                         <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Sélectionner un état" />
                                         </SelectTrigger>
-                                        <SelectContent >
+                                        <SelectContent>
                                             {statusOptions.map((option) => (
                                                 <SelectItem key={option.value} value={option.value} className={`${option.bg} hover:bg-primary-50 focus:bg-primary-50 cursor-pointer space-y-2`}>
                                                     <span className={`${option.color} font-medium`}>{option.label}</span>
@@ -654,12 +654,12 @@ export default function Filtre({
                                             <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
                                                 <SelectValue placeholder="Sélectionner un état" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white ">
+                                            <SelectContent className="bg-white">
                                                 {statusOptions.map((option) => (
                                                     <SelectItem
                                                         key={option.value}
                                                         value={option.value}
-                                                        className={`${option.bg} my-1 hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
+                                                        className={`${option.bg} hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
                                                     >
                                                         <span className={`${option.color} font-medium`}>{option.label}</span>
                                                     </SelectItem>
@@ -688,7 +688,7 @@ export default function Filtre({
                                                         <SelectItem
                                                             key={option.value}
                                                             value={option.value}
-                                                            className={`${option.bg} my-1 hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
+                                                            className={`${option.bg} hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
                                                         >
                                                             <span className={`${option.color} font-medium`}>{option.label}</span>
                                                         </SelectItem>

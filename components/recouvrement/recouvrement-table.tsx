@@ -157,7 +157,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
         />
       </div>
       <div className="overflow-x-auto border rounded-lg">
-        <div className="space-y-5 flex flex-col lg:flex-row justify-between items-start lg:items-center p-4 gap-4">
+        <div className="space-y-5 flex flex-col lg:flex-row justify-between items-start lg:items-center  p-4 gap-4">
           {/* Statistiques */}
           {statistics && (
             <div className="flex flex-wrap gap-3 items-center">
@@ -232,7 +232,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                   <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
                   <TableHead className="font-semibold text-primary-900">Date facture</TableHead>
                   <TableHead className="font-semibold text-primary-900">Client</TableHead>
-                  {/* {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Date échéance</TableHead>} */}
+                  <TableHead className="font-semibold text-primary-900">Date de livraison</TableHead>
                   <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
@@ -252,7 +252,15 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <TableCell>{facture.accountNumber}</TableCell>
                     <TableCell>{formatDate(facture.date)}</TableCell>
                     <TableCell>{facture.customer?.name}</TableCell>
-                    {/* {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>{formatDate(facture?.deliveredAt?.toString() || "-")}</TableCell>} */}
+                    <TableCell>
+                      {facture.deliveredAt ? (
+                        <span className="text-green-600 font-medium">
+                          {formatDate(facture.deliveredAt.toString())}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic">Non livrée</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(facture.status)}>
                         {facture.status.replace("_", " ").toUpperCase()}
