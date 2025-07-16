@@ -12,6 +12,7 @@ import { useEffect, useState } from "react"
 import { getDashboardStats, DashboardStats, getAdvancedStats, AdvancedStats } from "@/actions/dashboard-stats"
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts"
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 
 
 // Statistiques globales
@@ -164,7 +165,28 @@ export default function DashboardPage() {
   }, [period, startDate, endDate])
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-[300px]">Chargement des statistiques...</div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="relative">
+          <Image
+            src="/logo.png"
+            alt="CMGA Logo"
+            width={80}
+            height={80}
+            className="animate-pulse"
+            style={{ 
+              animationDuration: '1.5s',
+              transform: 'scale(1)',
+              transition: 'transform 0.3s ease-in-out'
+            }}
+          />
+        </div>
+        <div className="text-lg font-medium text-gray-600 animate-pulse">Chargement des statistiques...</div>
+        <div className="w-32 h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{ animationDuration: '1s' }}></div>
+        </div>
+      </div>
+    )
   }
   if (error || !stats) {
     return <div className="text-center text-red-500 py-8">{error || "Erreur inconnue"}</div>

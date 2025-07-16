@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RootManagement } from "@/components/root-management"
 import { InvoiceAssignment } from "@/components/invoice-assignment"
-import { FileText, Users } from "lucide-react"
+import { DepotAssignment } from "@/components/depot-assignment"
+import { FileText, Users, Building } from "lucide-react"
 import { getRoots, createRoot, updateRoot, deleteRoot } from "@/actions/root-actions"
 import { toast } from "sonner"
 
@@ -91,14 +92,18 @@ export function InvoiceManagementTabs() {
 
   return (
     <Tabs defaultValue="roots" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-200">
+      <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-200">
         <TabsTrigger value="roots" className="flex items-center data-[state=active]:bg-white">
           <FileText className="mr-2 h-4 w-4" />
           Gestion des Racines
         </TabsTrigger>
         <TabsTrigger value="assignment" className="flex items-center data-[state=active]:bg-white">
           <Users className="mr-2 h-4 w-4" />
-          Affectation des Factures
+          Affectation par Racine
+        </TabsTrigger>
+        <TabsTrigger value="depot-assignment" className="flex items-center data-[state=active]:bg-white">
+          <Building className="mr-2 h-4 w-4" />
+          Affectation par Dépôt
         </TabsTrigger>
       </TabsList>
 
@@ -113,7 +118,11 @@ export function InvoiceManagementTabs() {
       </TabsContent>
 
       <TabsContent value="assignment" className="mt-0">
-        <InvoiceAssignment roots={roots} onUpdateRoot={handleUpdateRoot} />
+        <InvoiceAssignment roots={roots} />
+      </TabsContent>
+
+      <TabsContent value="depot-assignment" className="mt-0">
+        <DepotAssignment />
       </TabsContent>
     </Tabs>
   )
