@@ -22,6 +22,7 @@ const ProcessDeliveriesController = () => import('#controllers/process_deliverie
 const DriversController = () => import('#controllers/drivers_controller')
 const InvoicesController = () => import('#controllers/invoices_controller')
 const AssignmentsController = () => import('#controllers/assignments_controller')
+const DepotAssignmentsController = () => import('#controllers/depot_assignments_controller')
 const RootsController = () => import('#controllers/roots_controller')
 const CommercialInitialsController = () => import('#controllers/commercial_initials_controller')
 const BlController = () => import('#controllers/bls_controller')
@@ -123,6 +124,9 @@ router.group(() => {
 router.group(() => {
   router.resource('/users', UsersController)
   router.resource('/assignments', AssignmentsController)
+  router.resource('/depot-assignments', DepotAssignmentsController)
+  router.get('/depot-assignments/depot/:depotId', [DepotAssignmentsController, 'getDepotAssignments'])
+  router.get('/depot-assignments/user/:userId', [DepotAssignmentsController, 'getUserAssignments'])
   router.resource('/roots', RootsController)
   router.resource('/payments', PaymentsController)
   router.resource('/invoice-reminders', InvoiceRemindersController)
