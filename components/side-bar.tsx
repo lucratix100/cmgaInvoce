@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Building, BarChart3, FileText, Truck, Users, ArrowRightLeft, Info } from "lucide-react"
+import { Building, BarChart3, FileText, Truck, Users, ArrowRightLeft, Info, AlertTriangle, Settings } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -90,6 +90,35 @@ export default function SideBar() {
                             Affectations
                         </Link>
                     </Button>
+
+                    {/* Section Recouvrement */}
+                    <div className="pt-4 border-t border-gray-200">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                            Recouvrement
+                        </h3>
+                        
+                        <Button
+                            // variant={isActive("/dashboard/recovery") ? "default" : "ghost"}
+                            className={isActive("/dashboard/recovery") ? "justify-start hover:bg-red-400  bg-red-500" : "justify-start hover:bg-red-50 bg-transparent text-red-500"}
+                            asChild
+                        >
+                            <Link href="/dashboard/recovery" className="text-red-500">
+                                <AlertTriangle className="mr-2 h-4 w-4" />
+                                Factures Urgentes
+                            </Link>
+                        </Button>
+                        
+                        <Button
+                            variant={isActive("/dashboard/recovery/settings") ? "default" : "ghost"}
+                            className={isActive("/dashboard/recovery/settings") ? "justify-start" : "justify-start hover:bg-blue-50"}
+                            asChild
+                        >
+                            <Link href="/dashboard/recovery/settings">
+                                <Settings className="mr-2 h-4 w-4" />
+                                Configuration Délais
+                            </Link>
+                        </Button>
+                    </div>
 
                     <Button
                         variant={isActive("/dashboard/activities") ? "default" : "ghost"}
