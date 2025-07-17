@@ -33,11 +33,11 @@ interface PaimentDialogProps {
   trigger?: React.ReactNode; // Élément déclencheur personnalisé
 }
 
-export default function PaimentDialog({ 
-  invoiceNumber, 
-  payment = null, 
+export default function PaimentDialog({
+  invoiceNumber,
+  payment = null,
   onSuccess,
-  trigger 
+  trigger
 }: PaimentDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,14 +62,14 @@ export default function PaimentDialog({
   // Fonction pour récupérer les informations de la facture et calculer le montant restant
   const fetchInvoiceDetails = async () => {
     if (!invoiceNumber) return;
-    
+
     try {
       setInvoiceLoading(true);
-      
+
       // Utiliser la fonction backend qui calcule tout côté serveur
       const excludePaymentId = isEditMode && payment ? payment.id : undefined;
       const result = await getInvoicePaymentCalculations(invoiceNumber, excludePaymentId);
-      
+
       if (result.error) {
         toast.error(result.error);
         return;
@@ -92,7 +92,7 @@ export default function PaimentDialog({
           montant: remainingAmount.toString()
         }));
       }
-      
+
     } catch (error) {
       console.error('Erreur lors de la récupération des détails de la facture:', error);
       toast.error('Erreur lors de la récupération des informations de la facture');
@@ -211,7 +211,7 @@ export default function PaimentDialog({
 
       resetForm();
       setIsOpen(false);
-      
+
       // Appeler le callback de succès immédiatement après l'invalidation
       if (onSuccess) {
         console.log('🔄 Appel du callback onSuccess');
@@ -230,7 +230,7 @@ export default function PaimentDialog({
     if (trigger) {
       return trigger;
     }
-    
+
     if (isEditMode) {
       return (
         <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
@@ -238,7 +238,7 @@ export default function PaimentDialog({
         </Button>
       );
     }
-    
+
     return (
       <Button size="default" className="bg-green-600 hover:bg-green-700">
         <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -252,93 +252,65 @@ export default function PaimentDialog({
       <DialogTrigger asChild>
         {renderTrigger()}
       </DialogTrigger>
-      <DialogContent className="bg-white">
-        <DialogHeader>
+      <DialogContent className="bg-white max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-3">
           <DialogTitle>
             {isEditMode ? 'Modifier le paiement' : 'Enregistrer un paiement'}
           </DialogTitle>
           <DialogDescription>
             {isEditMode ? 'Modifiez' : 'Enregistrez'} un paiement pour la facture <span className="font-bold text-primary-500">{invoiceNumber}</span>
           </DialogDescription>
-          
-          {/* Affichage du montant restant à payer */}
+
+          {/* Affichage du montant restant à payer - Version compacte */}
           {!invoiceLoading && (
-            <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-              <div className="space-y-2">
+            <div className="mt-2 p-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <div className="space-y-1">
                 {/* Montant restant principal */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-blue-800">
-                      {isEditMode ? 'Montant restant (hors paiement actuel)' : 'Montant restant à payer'}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    {remainingAmount > 0 ? (
-                      <span className="text-lg font-bold text-green-600">
-                        {remainingAmount.toLocaleString('fr-FR')} FCFA
-                      </span>
-                    ) : (
-                      <span className="text-lg font-bold text-orange-600">
-                        0 FCFA
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-sm font-medium text-blue-800">
+                    {isEditMode ? 'Montant restant (hors paiement actuel)' : 'Montant restant à payer'}
+                  </span>
+                  <span className={`text-lg font-bold ${remainingAmount > 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                    {remainingAmount > 0 ? remainingAmount.toLocaleString('fr-FR') : '0'} FCFA
+                  </span>
                 </div>
-                
-                {/* Détails de la facture */}
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-blue-200">
-                  <div className="text-xs">
-                    <span className="text-gray-600">Total facture:</span>
-                    <div className="font-medium text-gray-800">
-                      {totalTTC.toLocaleString('fr-FR')} FCFA
-                    </div>
-                  </div>
-                  <div className="text-xs">
-                    <span className="text-gray-600">
-                      {isEditMode ? 'Autres paiements:' : 'Déjà payé:'}
-                    </span>
-                    <div className="font-medium text-gray-800">
-                      {totalPaid.toLocaleString('fr-FR')} FCFA
-                    </div>
-                  </div>
+
+                {/* Détails de la facture - Version compacte */}
+                <div className="flex justify-between text-xs pt-1 border-t border-blue-200">
+                  <span className="text-gray-600">
+                    Total: {totalTTC.toLocaleString('fr-FR')} FCFA |
+                    {isEditMode ? ' Autres paiements:' : ' Déjà payé:'} {totalPaid.toLocaleString('fr-FR')} FCFA
+                  </span>
+                  <span className="font-medium text-blue-700">{paymentPercentage}%</span>
                 </div>
-                
+
                 {/* Barre de progression */}
-                <div className="pt-2 border-t border-blue-200">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-600">Progression du paiement</span>
-                    <span className="font-medium text-blue-700">{paymentPercentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(paymentPercentage, 100)}%` }}
-                    ></div>
-                  </div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div
+                    className="bg-gradient-to-r from-green-400 to-green-600 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(paymentPercentage, 100)}%` }}
+                  ></div>
                 </div>
-                
+
                 {/* Note explicative pour les modifications */}
                 {isEditMode && (
-                  <div className="pt-2 border-t border-blue-200">
-                    <div className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
-                      <span className="font-medium">Note :</span> Le montant restant affiché exclut le paiement en cours de modification pour un calcul plus précis.
-                    </div>
+                  <div className="text-xs text-blue-700 bg-blue-100 p-1 rounded">
+                    <span className="font-medium">Note :</span> Le montant restant exclut le paiement en cours de modification.
+                  </div>
+                )}
+
+                {remainingAmount === 0 && !isEditMode && (
+                  <div className="text-xs text-orange-600 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>Cette facture semble déjà entièrement payée</span>
                   </div>
                 )}
               </div>
-              
-              {remainingAmount === 0 && !isEditMode && (
-                <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
-                  <span>⚠️</span>
-                  <span>Cette facture semble déjà entièrement payée</span>
-                </div>
-              )}
             </div>
           )}
-          
+
           {invoiceLoading && (
-            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
               <div className="flex items-center gap-2 text-gray-600">
                 <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 <span className="text-sm">Calcul du montant restant...</span>
@@ -347,8 +319,8 @@ export default function PaimentDialog({
           )}
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="space-y-1">
             <Label htmlFor="montant">Montant du paiement (FCFA)</Label>
             <Input
               id="montant"
@@ -370,41 +342,45 @@ export default function PaimentDialog({
               <p className="text-xs text-blue-600">Calcul du montant restant...</p>
             )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="datePaiement">Date du paiement</Label>
-            <Input
-              id="datePaiement"
-              name="datePaiement"
-              type="date"
-              value={formData.datePaiement}
-              onChange={handleChange}
-              disabled={loading}
-              required
-            />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="datePaiement">Date du paiement</Label>
+              <Input
+                id="datePaiement"
+                name="datePaiement"
+                type="date"
+                value={formData.datePaiement}
+                onChange={handleChange}
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="modePaiement">Mode de paiement</Label>
+              <Select
+                value={formData.modePaiement}
+                onValueChange={handleSelectChange}
+                disabled={loading}
+              >
+                <SelectTrigger id="modePaiement">
+                  <SelectValue placeholder="Sélectionnez un mode" />
+                </SelectTrigger>
+                <SelectContent className="bg-white cursor-pointer">
+                  <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.ESPECE}>Espèces</SelectItem>
+                  <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.CHEQUE}>Chèque</SelectItem>
+                  <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.VIREMENT}>Virement</SelectItem>
+                  <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.MOBILE_MONEY}>Mobile Money</SelectItem>
+                  <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.RETOUR}>Retour</SelectItem>
+                  <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.OD}>OD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="modePaiement">Mode de paiement</Label>
-            <Select
-              value={formData.modePaiement}
-              onValueChange={handleSelectChange}
-              disabled={loading}
-            >
-              <SelectTrigger id="modePaiement">
-                <SelectValue placeholder="Sélectionnez un mode de paiement" />
-              </SelectTrigger>
-              <SelectContent className="bg-white cursor-pointer">
-                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.ESPECE}>Espèces</SelectItem>
-                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.CHEQUE}>Chèque</SelectItem>
-                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.VIREMENT}>Virement</SelectItem>
-                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.MOBILE_MONEY}>Mobile Money</SelectItem>
-                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.RETOUR}>Retour</SelectItem>
-                <SelectItem className="cursor-pointer hover:bg-gray-100" value={PaymentMethod.OD}>OD</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
           {/* Champ supplémentaire pour les informations du chèque */}
           {formData.modePaiement === PaymentMethod.CHEQUE && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="chequeInfo">Informations du chèque *</Label>
               <Textarea
                 id="chequeInfo"
@@ -414,7 +390,7 @@ export default function PaimentDialog({
                 onChange={handleChange}
                 disabled={loading}
                 required
-                className="min-h-[80px]"
+                className="min-h-[60px] resize-none"
               />
               <p className="text-xs text-gray-500">
                 Ex: Chèque n°123456 - Banque BICIS - Émis le 15/12/2024
@@ -422,7 +398,7 @@ export default function PaimentDialog({
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
             <Textarea
               id="commentaire"
@@ -431,10 +407,12 @@ export default function PaimentDialog({
               value={formData.commentaire}
               onChange={handleChange}
               disabled={loading}
+              className="min-h-[60px] resize-none"
             />
           </div>
         </div>
-        <AlertDialogFooter>
+
+        <AlertDialogFooter className="pt-3">
           <Button
             variant="outline"
             onClick={() => {

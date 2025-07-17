@@ -15,17 +15,29 @@ import Link from "next/link";
 
 import Logout from "../logout";
 import { depot, user } from "@/types";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Notification from "./notification";
+import { usePathname } from "next/navigation";
 
-
+const NAVBAR_TITLE = {
+  "/dashboard": "Statistiques",
+  "/dashboard/invoices": "Gestion des Factures",
+  "/dashboard/drivers": "Gestion des conducteurs",
+  "/dashboard/users": "Gestion des utilisateurs",
+  "/dashboard/recouvrement": "Gestion des recouvrements",
+  "/dashboard/depots": "Gestion des dépôts",
+  "/dashboard/assignments": "Gestion des affectations",
+  "/dashboard/activities": "Gestion des activités",
+}
 
 function HeaderContent({ user }: { user: user }) {
+  const pathname = usePathname();
+  const title = NAVBAR_TITLE[pathname as keyof typeof NAVBAR_TITLE];
   return (
     <div className="flex h-14 items-center px-4 md:px-6">
       <div className="flex items-center gap-2 text-primary">
         <FileText className="h-6 w-6" />
-        <span className="text-lg font-semibold">Gestion des Factures</span>
+        <span className="text-lg font-semibold">{title}</span>
       </div>
 
       <div className="flex items-center gap-2 ml-auto mr-4">
@@ -83,9 +95,10 @@ function HeaderContent({ user }: { user: user }) {
   );
 }
 
+
 // Composant principal qui utilise Suspense
 export default function Header({ user }: { user: user }) {
-  console.log(user, "headerrrrrr")
+
   return (
     <header className="border-b bg-white shadow-sm sticky top-0 z-50">
       <Suspense
@@ -94,7 +107,7 @@ export default function Header({ user }: { user: user }) {
             <div className="flex items-center gap-2 text-primary">
               <FileText className="h-6 w-6" />
               <span className="text-lg font-semibold">
-                Gestion des Factures
+                {/* {title || "Gestion des Facturessssssss"} */}
               </span>
             </div>
             <div className="ml-auto">

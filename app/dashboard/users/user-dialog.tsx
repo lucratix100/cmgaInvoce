@@ -214,9 +214,9 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
   }
 
   return (
-    <DialogContent className="bg-white">
+    <DialogContent className="bg-white max-h-[90vh] overflow-y-auto">
       <form onSubmit={handleSubmit}>
-        <DialogHeader>
+        <DialogHeader className="pb-2">
           <DialogTitle>
             {isEditing ? "Modifier l'utilisateur" : "Ajouter un nouvel utilisateur"}
           </DialogTitle>
@@ -227,97 +227,110 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
             }
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="firstname">Prénom</Label>
-            <Input
-              id="firstname"
-              value={formData.firstname}
-              onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
-              className={cn(errors.firstname && "border-red-500")}
-              disabled={loading}
-            />
-            {errors.firstname && (
-              <p className="text-sm text-red-500">{errors.firstname.join(', ')}</p>
-            )}
+        <div className="grid gap-2 py-2">
+          {/* Première ligne : Prénom et Nom */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="firstname" className="text-sm">Prénom</Label>
+              <Input
+                id="firstname"
+                value={formData.firstname}
+                onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
+                className={cn(errors.firstname && "border-red-500", "h-8 text-sm")}
+                disabled={loading}
+              />
+              {errors.firstname && (
+                <p className="text-xs text-red-500">{errors.firstname.join(', ')}</p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="lastname" className="text-sm">Nom</Label>
+              <Input
+                id="lastname"
+                value={formData.lastname}
+                onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
+                className={cn(errors.lastname && "border-red-500", "h-8 text-sm")}
+                disabled={loading}
+              />
+              {errors.lastname && (
+                <p className="text-xs text-red-500">{errors.lastname.join(', ')}</p>
+              )}
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="lastname">Nom</Label>
-            <Input
-              id="lastname"
-              value={formData.lastname}
-              onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
-              className={cn(errors.lastname && "border-red-500")}
-              disabled={loading}
-            />
-            {errors.lastname && (
-              <p className="text-sm text-red-500">{errors.lastname.join(', ')}</p>
-            )}
+
+          {/* Deuxième ligne : Email et Téléphone */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-sm">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className={cn(errors.email && "border-red-500", "h-8 text-sm")}
+                disabled={loading}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email.join(', ')}</p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="phone" className="text-sm">Téléphone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className={cn(errors.phone && "border-red-500", "h-8 text-sm")}
+                disabled={loading}
+              />
+              {errors.phone && (
+                <p className="text-xs text-red-500">{errors.phone.join(', ')}</p>
+              )}
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className={cn(errors.email && "border-red-500")}
-              disabled={loading}
-            />
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email.join(', ')}</p>
-            )}
+
+          {/* Troisième ligne : Mot de passe et Confirmation */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="password" className="text-sm">Mot de passe</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className={cn(errors.password && "border-red-500", "h-8 text-sm")}
+                disabled={loading}
+              />
+              {errors.password && (
+                <p className="text-xs text-red-500">{errors.password.join(', ')}</p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="confirmPassword" className="text-sm">Confirmer</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                className={cn(errors.confirmPassword && "border-red-500", "h-8 text-sm")}
+                disabled={loading}
+              />
+              {errors.confirmPassword && (
+                <p className="text-xs text-red-500">{errors.confirmPassword.join(', ')}</p>
+              )}
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="phone">Téléphone</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className={cn(errors.phone && "border-red-500")}
-              disabled={loading}
-            />
-            {errors.phone && (
-              <p className="text-sm text-red-500">{errors.phone.join(', ')}</p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className={cn(errors.password && "border-red-500")}
-              disabled={loading}
-            />
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password.join(', ')}</p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className={cn(errors.confirmPassword && "border-red-500")}
-              disabled={loading}
-            />
-            {errors.confirmPassword && (
-              <p className="text-sm text-red-500">{errors.confirmPassword.join(', ')}</p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="role">Rôle</Label>
+
+          {/* Quatrième ligne : Rôle */}
+          <div className="space-y-1">
+            <Label htmlFor="role" className="text-sm">Rôle</Label>
             <Select
               value={formData.role}
               onValueChange={(value) => setFormData({ ...formData, role: value })}
               disabled={loading}
             >
-              <SelectTrigger className={cn(errors.role && "border-red-500")}>
+              <SelectTrigger className={cn(errors.role && "border-red-500", "h-8 text-sm")}>
                 <SelectValue placeholder="Sélectionner un rôle" />
               </SelectTrigger>
               <SelectContent className="bg-white">
@@ -329,51 +342,55 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
               </SelectContent>
             </Select>
             {errors.role && (
-              <p className="text-sm text-red-500">{errors.role.join(', ')}</p>
+              <p className="text-xs text-red-500">{errors.role.join(', ')}</p>
             )}
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="depot">
-              Dépôt
-              {formData.role && isDepotRequired(formData.role) && (
+
+          {/* Cinquième ligne : Dépôt (conditionnel) */}
+          {formData.role && isDepotRequired(formData.role) && (
+            <div className="space-y-1">
+              <Label htmlFor="depot" className="text-sm">
+                Dépôt
                 <span className="text-red-500 ml-1">*</span>
+              </Label>
+              <Select
+                value={formData.depotId?.toString() || ""}
+                onValueChange={(value) => setFormData({ ...formData, depotId: parseInt(value) })}
+                disabled={loading}
+              >
+                <SelectTrigger className={cn(errors.depotId && "border-red-500", "h-8 text-sm")}>
+                  <SelectValue placeholder="Sélectionner un dépôt" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  {depots.map((depot: any) => (
+                    <SelectItem className="hover:bg-primary-50 cursor-pointer" key={depot.id} value={depot.id.toString()}>
+                      {depot.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.depotId && (
+                <p className="text-xs text-red-500">{errors.depotId.join(', ')}</p>
               )}
-            </Label>
-            <Select
-              value={formData.depotId?.toString() || ""}
-              onValueChange={(value) => setFormData({ ...formData, depotId: parseInt(value) })}
-              disabled={loading}
-            >
-              <SelectTrigger className={cn(errors.depotId && "border-red-500")}>
-                <SelectValue placeholder="Sélectionner un dépôt" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {depots.map((depot: any) => (
-                  <SelectItem className="hover:bg-primary-50 cursor-pointer" key={depot.id} value={depot.id.toString()}>
-                    {depot.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.depotId && (
-              <p className="text-sm text-red-500">{errors.depotId.join(', ')}</p>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
+            </div>
+          )}
+
+          {/* Sixième ligne : Statut actif */}
+          <div className="flex items-center space-x-2 pt-1">
             <Checkbox
               id="isActive"
               checked={formData.isActive}
               onCheckedChange={(checked: boolean) => setFormData({ ...formData, isActive: checked })}
               disabled={loading}
             />
-            <Label htmlFor="isActive">Actif</Label>
+            <Label htmlFor="isActive" className="text-sm">Actif</Label>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="destructive" type="button" onClick={handleClose} disabled={loading}>
+        <DialogFooter className="pt-2">
+          <Button variant="destructive" type="button" onClick={handleClose} disabled={loading} size="sm">
             Annuler
           </Button>
-          <Button variant="default" type="submit" disabled={loading}>
+          <Button variant="default" type="submit" disabled={loading} size="sm">
             {loading ? (isEditing ? "Modification..." : "Création...") : (isEditing ? "Modifier" : "Ajouter")}
           </Button>
         </DialogFooter>
