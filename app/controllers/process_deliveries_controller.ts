@@ -213,13 +213,13 @@ export default class ProcessDeliveriesController {
 
 
             if (isCompleteDelivery) {
-                invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE })
+                invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
                 await invoice.save()
                 return response.status(200).json({ message: 'Facture livrée.' })
             } else {
                 const remainingQty = newBlproducts.reduce((acc: number, curr: any) => acc + (Number(curr.remainingQty) || 0), 0);
                 if (remainingQty === 0) {
-                    invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE })
+                    invoice.merge({ isCompleted: true, status: InvoiceStatus.LIVREE, deliveredAt: DateTime.now() })
                     await invoice.save()
                     return response.status(200).json({ message: 'Facture livrée.' })
                 } else {
@@ -360,8 +360,6 @@ export default class ProcessDeliveriesController {
                 'en attente de confirmation',
                 invoice.id
             )
-
-
             return response.status(200).json({ message: 'En attente de la 2 eme confirmation.' })
 
         }

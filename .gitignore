@@ -12,7 +12,7 @@ tmp
 # Frontend assets compiled code
 public/assets
 
-# Controllers
+# Controllers 
 app/controllers/sage_invoice_controller.ts
 
 # Build tools specific

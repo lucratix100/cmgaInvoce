@@ -53,7 +53,7 @@ export default class Invoice extends BaseModel {
   declare recoveryCustomSettings: HasMany<typeof InvoiceRecoveryCustomSetting>
   @column.dateTime({ autoCreate: false })
   declare deliveredAt: DateTime
-  @column.dateTime({ autoCreate: true })
+  @column.dateTime({ autoCreate: false })
 
   declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
