@@ -67,7 +67,7 @@ export function DepotAssignment() {
           getRecouvrementUsers(),
           getActiveDepots()
         ])
-        
+
         setAssignments(assignmentsData)
         setUsers(usersData)
         setDepots(depotsData)
@@ -153,8 +153,8 @@ export function DepotAssignment() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-end mb-4">
+    <div className="space-y-4">
+      <div className="flex justify-end mb-1">
         <Button
           onClick={() => setShowNewAssignment(!showNewAssignment)}
           variant="default"
@@ -301,7 +301,7 @@ export function DepotAssignment() {
                           <div className="bg-gradient-to-r from-blue-500 to-green-600 rounded-lg p-4 text-white">
                             <div className="text-sm">
                               <p>
-                                <strong>{users.find(u => u.id.toString() === selectedUserId)?.firstname} {users.find(u => u.id.toString() === selectedUserId)?.lastname}</strong> 
+                                <strong>{users.find(u => u.id.toString() === selectedUserId)?.firstname} {users.find(u => u.id.toString() === selectedUserId)?.lastname}</strong>
                                 {" "}aura accès à toutes les factures du dépôt{" "}
                                 <strong>{depots.find(d => d.id.toString() === selectedDepotId)?.name}</strong>.
                               </p>

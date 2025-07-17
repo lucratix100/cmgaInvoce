@@ -31,21 +31,20 @@ import { useInvoice } from "@/hooks/useInvoice";
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
 import { updateInvoiceStatus } from "@/actions/invoice";
+import { Invoice } from "@/types/invoice";
 
 interface InvoiceClientProps {
-  invoiceNumber: string;
+  invoice: any;
   user: any;
 }
 
-export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProps) {
+export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
   const router = useRouter();
-  const { invoice, isLoading, error, refetch } = useInvoice(invoiceNumber);
-  const queryClient = useQueryClient();
 
   // Déterminer l'onglet actif selon le rôle sans useEffect
   const getActiveTab = () => {
     if (!user?.role) return "details";
-    
+
     switch (user.role) {
       case Role.RECOUVREMENT:
         return "paiements";
@@ -67,11 +66,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
   };
 
   // Fonction pour recharger les données après un paiement
-  const handlePaymentSuccess = () => {
-    // Invalider seulement les données de paiement sans recharger la facture complète
-    queryClient.invalidateQueries({ queryKey: ['payments', invoiceNumber] });
-    queryClient.invalidateQueries({ queryKey: ['payment-calculations', invoiceNumber] });
-  };
+
 
   // Fonction pour ouvrir le dialogue de confirmation
   const handleStatusChange = (newStatus: string) => {
@@ -82,20 +77,20 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
   // Fonction pour confirmer le changement de statut
   const confirmStatusChange = async () => {
     if (!invoice || !pendingStatus) return;
-    
+
     setIsUpdatingStatus(true);
     setIsConfirmDialogOpen(false);
-    
+
     try {
       await updateInvoiceStatus(invoice.invoiceNumber, pendingStatus);
-      
+
       const statusText = pendingStatus === 'régule' ? 'régule' : 'non réceptionnée';
       toast.success(`Statut de la facture mis à jour en "${statusText}"`);
-      
+
       // Recharger les données de la facture
-      refetch();
-      // Invalider les requêtes liées aux factures
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      // refetch();
+      // // Invalider les requêtes liées aux factures
+      // queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour du statut:', error);
       toast.error(error.message || 'Erreur lors de la mise à jour du statut');
@@ -114,18 +109,18 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
   // Déterminer le texte et l'action du bouton selon le statut actuel
   const getButtonConfig = () => {
     if (!invoice) return { text: 'REGULE', action: 'régule', disabled: true, color: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200' };
-    
+
     if (invoice.status === 'régule') {
-      return { 
-        text: 'NON RÉCEPTIONNÉE', 
-        action: 'non réceptionnée', 
+      return {
+        text: 'NON RÉCEPTIONNÉE',
+        action: 'non réceptionnée',
         disabled: isUpdatingStatus,
         color: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
       };
     } else {
-      return { 
+      return {
         text: 'Marquer comme REGULE',
-        action: 'régule', 
+        action: 'régule',
         disabled: isUpdatingStatus,
         color: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
       };
@@ -134,14 +129,8 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
 
   const buttonConfig = getButtonConfig();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  if (error || !invoice) {
+
+  if (!invoice) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
         <h3 className="text-lg font-semibold mb-2">Erreur</h3>
@@ -156,7 +145,7 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
   }
 
   return (
-    <div className="w-full  sm:px-6 lg:px-8">
+    <div className="w-full  sm:px-4 lg:px-1">
       <div className="flex  flex-col space-y-2 mt-2">
         <div className="flex items-center w-full space-x-2">
           <div className="flex items-center">
@@ -165,27 +154,27 @@ export default function InvoiceClient({ invoiceNumber, user }: InvoiceClientProp
             </Button>
           </div>
           <div className="flex">
-              {user?.role === Role.ADMIN && (
-                <Button 
-                  className={`flex items-center gap-2 ${buttonConfig.color}`}
-                  onClick={() => handleStatusChange(buttonConfig.action)}
-                  disabled={buttonConfig.disabled}
-                >
-                  {isUpdatingStatus ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Edit className="h-4 w-4"/>
-                  )}
-                  {isUpdatingStatus ? 'Mise à jour...' : buttonConfig.text}
-                </Button>
-              )}
+            {user?.role === Role.ADMIN && (
+              <Button
+                className={`flex items-center gap-2 ${buttonConfig.color}`}
+                onClick={() => handleStatusChange(buttonConfig.action)}
+                disabled={buttonConfig.disabled}
+              >
+                {isUpdatingStatus ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Edit className="h-4 w-4" />
+                )}
+                {isUpdatingStatus ? 'Mise à jour...' : buttonConfig.text}
+              </Button>
+            )}
           </div>
           <div className="flex items-center w-full gap-2 justify-end">
             {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
               <>
-                <PaimentDialog 
+                <PaimentDialog
                   invoiceNumber={invoice.invoiceNumber}
-                  onSuccess={handlePaymentSuccess}
+                // onSuccess={handlePaymentSuccess}
                 />
                 <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsNotificationOpen(true)}>
                   <Bell className="h-4 w-4" /> Ajouter un rappel

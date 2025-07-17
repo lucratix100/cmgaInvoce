@@ -14,7 +14,6 @@ import { getChatUsers } from '@/actions/chatUsers'
 
 export const metadata: Metadata = {
   title: process.env.NODE_ENV === 'development' ? 'DEV MODE' : 'CMGA Delivery',
-  title: 'CMGA Delivery',
   description: 'Suivi livraisons CMGA',
   generator: 'CMGA Delivery',
 }

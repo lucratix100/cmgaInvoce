@@ -208,12 +208,12 @@ export default function Filtre({
             return
         }
 
-        const currentSearch = watchedValues.search?.trim()
+        const currentSearch = watchedValues.search?.trim().toUpperCase()
         const previousSearch = previousValuesRef.current.search
 
         if (currentSearch !== previousSearch) {
             // Préserver tous les paramètres existants et seulement mettre à jour la recherche
-            const params = new URLSearchParams(searchParams.toString())
+            const params = new URLSearchParams(searchParams.toString().toUpperCase())
             if (currentSearch && currentSearch !== '') {
                 params.set('search', currentSearch)
             } else {
@@ -307,7 +307,7 @@ export default function Filtre({
     return (
         <>
             {/* Bouton du menu burger pour mobile */}
-            <div className="md:hidden flex justify-between items-center p-4 bg-white border-b ">
+            <div className="md:hidden flex justify-between items-center p-3 bg-white border-b">
                 <Button
                     variant="ghost"
                     size="icon"
@@ -317,9 +317,9 @@ export default function Filtre({
                     aria-expanded={isMobileMenuOpen}
                     aria-controls="mobile-filter-menu"
                 >
-                    {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                    {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                 </Button>
-                <div className="flex-1 px-4">
+                <div className="flex-1 px-3">
                     <div className="flex gap-2">
                         <div className="relative flex-1">
                             <Controller
@@ -334,6 +334,9 @@ export default function Filtre({
                                         aria-label="Rechercher une facture"
                                         role="searchbox"
                                         onKeyPress={handleKeyPress}
+                                        onChange={(e) => {
+                                            field.onChange(e.target.value.toUpperCase())
+                                        }}
                                     />
                                 )}
                             />
@@ -370,26 +373,26 @@ export default function Filtre({
                 aria-modal="true"
                 aria-label="Menu des filtres"
             >
-                <div className="p-4 space-y-6">
+                <div className="p-4 space-y-4">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-semibold">Filtres</h2>
+                        <h2 className="text-lg font-semibold">Filtres</h2>
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsMobileMenuOpen(false)}
                             aria-label="Fermer le menu des filtres"
                         >
-                            <X className="h-6 w-6" />
+                            <X className="h-5 w-5" />
                         </Button>
                     </div>
 
                     {/* Filtres pour mobile */}
-                    <div className="space-y-4" role="group" aria-label="Options de filtrage">
+                    <div className="space-y-3" role="group" aria-label="Options de filtrage">
                         {/* Sélection du dépôt (admin) */}
                         {(user?.role === Role.ADMIN || user?.role === Role.RECOUVREMENT) && (
-                            <div className="space-y-2" role="group" aria-labelledby="depot-label">
-                                <Label id="depot-label" className="flex items-center gap-2 text-primary-700">
-                                    <Building className="h-4 w-4" />
+                            <div className="space-y-1" role="group" aria-labelledby="depot-label">
+                                <Label id="depot-label" className="flex items-center gap-1 text-primary-700 text-sm">
+                                    <Building className="h-3 w-3" />
                                     Dépôt
                                 </Label>
                                 <Controller
@@ -433,9 +436,9 @@ export default function Filtre({
                         )}
 
                         {/* Dates */}
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-primary-700 text-sm">
-                                <Calendar className="h-4 w-4 flex-shrink-0" />
+                        <div className="space-y-1">
+                            <Label className="flex items-center gap-1 text-primary-700 text-sm">
+                                <Calendar className="h-3 w-3 flex-shrink-0" />
                                 <span>Période</span>
                             </Label>
                             <div className="grid grid-cols-2 gap-2">
@@ -478,9 +481,9 @@ export default function Filtre({
                             </div>
                         </div>
                         {/* État */}
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-primary-700">
-                                <Truck className="h-4 w-4" />
+                        <div className="space-y-1">
+                            <Label className="flex items-center gap-1 text-primary-700 text-sm">
+                                <Truck className="h-3 w-3" />
                                 Etat Livraison
                             </Label>
                             <Controller
@@ -504,9 +507,9 @@ export default function Filtre({
                         </div>
                         {/* État de paiement */}
                         {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-2 text-primary-700">
-                                    <DollarSign className="h-4 w-4" />
+                            <div className="space-y-1">
+                                <Label className="flex items-center gap-1 text-primary-700 text-sm">
+                                    <DollarSign className="h-3 w-3" />
                                     Etat paiement
                                 </Label>
                                 <Controller
@@ -534,9 +537,9 @@ export default function Filtre({
                             </div>
                         )}
                         {/* Champ de recherche pour mobile */}
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-primary-700">
-                                <Search className="h-4 w-4" />
+                        <div className="space-y-1">
+                            <Label className="flex items-center gap-1 text-primary-700 text-sm">
+                                <Search className="h-3 w-3" />
                                 Rechercher
                             </Label>
                             <div className="flex gap-2">
@@ -552,6 +555,9 @@ export default function Filtre({
                                             aria-label="Rechercher une facture"
                                             role="searchbox"
                                             onKeyPress={handleKeyPress}
+                                            onChange={(e) => {
+                                                field.onChange(e.target.value.toUpperCase())
+                                            }}
                                         />
                                     )}
                                 />
@@ -582,23 +588,15 @@ export default function Filtre({
             </div>
             {/* Version desktop */}
             <Card className="hidden md:block border-none shadow-md overflow-hidden bg-white">
-                <CardHeader className="bg-primary-50 pb-1">
-                    <CardTitle className="flex items-center gap-2 text-primary-700">
-                        <div className="flex items-center gap-2 justify-between w-full">
-                            <div className="flex items-center gap-2">
-                            </div>
-                        </div>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                    <div className="flex justify-between items-end gap-4">
+                <CardContent className="p-4">
+                    <div className="flex justify-between items-center gap-4">
                         {/* Section Gauche: Dates et État */}
-                        <div className="flex items-end gap-4">
+                        <div className="flex items-center gap-4">
                             {/* Section Date */}
-                            <div className="flex gap-4">
-                                <div className="space-y-2 w-48">
-                                    <Label htmlFor="start-date" className="flex items-center gap-2 text-primary-700 text-sm">
-                                        <Calendar className="h-4 w-4 flex-shrink-0" />
+                            <div className="flex gap-3">
+                                <div className="space-y-1 w-44">
+                                    <Label htmlFor="start-date" className="flex items-center gap-1 text-primary-700 text-xs">
+                                        <Calendar className="h-3 w-3 flex-shrink-0" />
                                         <span className="truncate">Date début</span>
                                     </Label>
                                     <Controller
@@ -617,10 +615,10 @@ export default function Filtre({
                                         )}
                                     />
                                 </div>
-                                <div className="space-y-2 w-48">
-                                    <Label htmlFor="end-date" className="flex items-center gap-2 text-primary-700 text-sm">
-                                        <Calendar className="h-4 w-4 flex-shrink-0" />
-                                        <span className="truncate">Date fin (optionnel)</span>
+                                <div className="space-y-1 w-44">
+                                    <Label htmlFor="end-date" className="flex items-center gap-1 text-primary-700 text-xs">
+                                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                                        <span className="truncate">Date fin</span>
                                     </Label>
                                     <Controller
                                         name="endDate"
@@ -632,7 +630,7 @@ export default function Filtre({
                                                     const dateString = formatDateToString(date)
                                                     field.onChange(dateString)
                                                 }}
-                                                placeholder="Date fin (optionnel)"
+                                                placeholder="Date fin"
                                                 className="w-full"
                                             />
                                         )}
@@ -641,9 +639,9 @@ export default function Filtre({
                             </div>
 
                             {/* Section État */}
-                            <div className="space-y-2 min-w-[200px]">
-                                <Label className="flex items-center gap-2 text-primary-700">
-                                    <Truck className="h-4 w-4" />
+                            <div className="space-y-1 min-w-[180px]">
+                                <Label className="flex items-center gap-1 text-primary-700 text-xs">
+                                    <Truck className="h-3 w-3" />
                                     Etat Livraison
                                 </Label>
                                 <Controller
@@ -670,9 +668,9 @@ export default function Filtre({
                                 />
                             </div>
                             {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
-                                <div className="space-y-2">
-                                    <Label className="flex items-center gap-2 text-primary-700">
-                                        <DollarSign className="h-4 w-4" />
+                                <div className="space-y-1">
+                                    <Label className="flex items-center gap-1 text-primary-700 text-xs">
+                                        <DollarSign className="h-3 w-3" />
                                         Etat paiement
                                     </Label>
                                     <Controller
@@ -700,9 +698,9 @@ export default function Filtre({
                                 </div>
                             )}
                             {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
-                                <div className="space-y-2">
-                                    <Label className="flex items-center gap-2 text-primary-700">
-                                        <Building className="h-4 w-4 mr-2 text-primary" />
+                                <div className="space-y-1">
+                                    <Label className="flex items-center gap-1 text-primary-700 text-xs">
+                                        <Building className="h-3 w-3 text-primary" />
                                         Dépôt
                                     </Label>
                                     <Controller
@@ -749,7 +747,7 @@ export default function Filtre({
                                     />
                                 </div>
                             )}
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 {/* Utilisation du composant unifié ScanUnified */}
                                 {(user?.role === Role.MAGASINIER ||
                                     user?.role === Role.CHEF_DEPOT ||
@@ -772,9 +770,9 @@ export default function Filtre({
                             </div>
                         </div>
                         {/* Section Droite: Recherche */}
-                        <div className="space-y-2 w-64">
-                            <Label className="flex items-center gap-2 text-primary-700">
-                                <Search className="h-4 w-4" />
+                        <div className="space-y-1 w-56">
+                            <Label className="flex items-center gap-1 text-primary-700 text-xs">
+                                <Search className="h-3 w-3" />
                                 Rechercher
                             </Label>
                             <div className="flex gap-2">
@@ -789,6 +787,9 @@ export default function Filtre({
                                                 placeholder="Rechercher..."
                                                 className="pr-8"
                                                 onKeyPress={handleKeyPress}
+                                                onChange={(e) => {
+                                                    field.onChange(e.target.value.toUpperCase())
+                                                }}
                                             />
                                         )}
                                     />

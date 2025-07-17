@@ -93,15 +93,15 @@ export function InvoiceManagementTabs() {
   return (
     <Tabs defaultValue="roots" className="w-full">
       <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-200">
-        <TabsTrigger value="roots" className="flex items-center data-[state=active]:bg-white">
+        <TabsTrigger value="roots" className="flex items-center data-[state=active]:bg-primary  data-[state=active]:text-white">
           <FileText className="mr-2 h-4 w-4" />
           Gestion des Racines
         </TabsTrigger>
-        <TabsTrigger value="assignment" className="flex items-center data-[state=active]:bg-white">
+        <TabsTrigger value="assignment" className="flex items-center data-[state=active]:bg-primary  data-[state=active]:text-white">
           <Users className="mr-2 h-4 w-4" />
           Affectation par Racine
         </TabsTrigger>
-        <TabsTrigger value="depot-assignment" className="flex items-center data-[state=active]:bg-white">
+        <TabsTrigger value="depot-assignment" className="flex items-center data-[state=active]:bg-primary  data-[state=active]:text-white">
           <Building className="mr-2 h-4 w-4" />
           Affectation par Dépôt
         </TabsTrigger>

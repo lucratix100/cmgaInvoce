@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { Check, Clock, Truck } from "lucide-react"
-import { 
-  BarChart3, FileText, PieChart as PieChartIcon, CircleDollarSign, Users, 
-  CreditCard, DollarSign, Banknote, HelpCircle 
+import {
+  BarChart3, FileText, PieChart as PieChartIcon, CircleDollarSign, Users,
+  CreditCard, DollarSign, Banknote, HelpCircle
 } from "lucide-react"
 import RecentActivities from "@/components/recent-activities"
 import { useEffect, useState } from "react"
@@ -85,7 +85,7 @@ export default function DashboardPage() {
   // Fonction pour obtenir les dates automatiques selon la période
   const getAutoDates = (selectedPeriod: 'daily' | 'weekly' | 'monthly') => {
     const now = new Date()
-    
+
     switch (selectedPeriod) {
       case 'daily':
         const today = now.toISOString().split('T')[0]
@@ -98,16 +98,16 @@ export default function DashboardPage() {
         startOfWeek.setDate(now.getDate() - daysToSubtract)
         const endOfWeek = new Date(startOfWeek)
         endOfWeek.setDate(startOfWeek.getDate() + 6) // +6 jours = dimanche
-        return { 
-          start: startOfWeek.toISOString().split('T')[0], 
-          end: endOfWeek.toISOString().split('T')[0] 
+        return {
+          start: startOfWeek.toISOString().split('T')[0],
+          end: endOfWeek.toISOString().split('T')[0]
         }
       case 'monthly':
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        return { 
-          start: startOfMonth.toISOString().split('T')[0], 
-          end: endOfMonth.toISOString().split('T')[0] 
+        return {
+          start: startOfMonth.toISOString().split('T')[0],
+          end: endOfMonth.toISOString().split('T')[0]
         }
       default:
         return { start: "", end: "" }
@@ -123,10 +123,10 @@ export default function DashboardPage() {
     // Créer un nouveau timer pour retarder l'exécution
     const timer = setTimeout(() => {
       setLoading(true)
-      
+
       let finalStartDate = startDate
       let finalEndDate = endDate
-      
+
       // Si ce n'est pas personnalisé, utiliser les dates automatiques
       if (period !== 'custom') {
         const autoDates = getAutoDates(period)
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           finalStartDate = endDate
         }
       }
-      
+
       getDashboardStats(period === 'custom' ? 'monthly' : period, finalStartDate, finalEndDate)
         .then((data) => {
           setStats(data)
@@ -174,7 +174,7 @@ export default function DashboardPage() {
             width={80}
             height={80}
             className="animate-pulse"
-            style={{ 
+            style={{
               animationDuration: '1.5s',
               transform: 'scale(1)',
               transition: 'transform 0.3s ease-in-out'
@@ -229,7 +229,7 @@ export default function DashboardPage() {
           <option value="monthly">Ce mois</option>
           <option value="custom">Personnalisé</option>
         </select>
-        
+
         {period === 'custom' && (
           <>
             <label className="font-medium ml-4">Date de début :</label>
@@ -264,7 +264,7 @@ export default function DashboardPage() {
             {(tempStartDate || tempEndDate) && (
               <button
                 className="ml-2 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={() => { 
+                onClick={() => {
                   setTempStartDate("")
                   setTempEndDate("")
                   setStartDate("")
@@ -277,16 +277,16 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-      
+
       {/* Affichage du filtre actif */}
       {period !== 'custom' && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-          <strong>Période actuelle :</strong> 
+          <strong>Période actuelle :</strong>
           {(() => {
             const autoDates = getAutoDates(period)
             const startDate = new Date(autoDates.start).toLocaleDateString('fr-FR')
             const endDate = new Date(autoDates.end).toLocaleDateString('fr-FR')
-            
+
             if (period === 'daily') {
               return ` Aujourd'hui (${startDate})`
             } else if (period === 'weekly') {
@@ -297,13 +297,13 @@ export default function DashboardPage() {
           })()}
         </div>
       )}
-      
+
       {period === 'custom' && (tempStartDate || tempEndDate) && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-          <strong>Filtre personnalisé :</strong> 
-          {tempStartDate && tempEndDate ? ` Du ${new Date(tempStartDate).toLocaleDateString('fr-FR')} au ${new Date(tempEndDate).toLocaleDateString('fr-FR')}` : 
-           tempStartDate ? ` Le ${new Date(tempStartDate).toLocaleDateString('fr-FR')}` :
-           ` Le ${new Date(tempEndDate).toLocaleDateString('fr-FR')}`}
+          <strong>Filtre personnalisé :</strong>
+          {tempStartDate && tempEndDate ? ` Du ${new Date(tempStartDate).toLocaleDateString('fr-FR')} au ${new Date(tempEndDate).toLocaleDateString('fr-FR')}` :
+            tempStartDate ? ` Le ${new Date(tempStartDate).toLocaleDateString('fr-FR')}` :
+              ` Le ${new Date(tempEndDate).toLocaleDateString('fr-FR')}`}
           <span className="ml-2 text-blue-600">(Cliquez sur "Appliquer" pour valider)</span>
         </div>
       )}

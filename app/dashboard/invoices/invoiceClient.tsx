@@ -11,6 +11,7 @@ import { useMemo } from "react"
 interface InvoiceClientProps {
   initialData: {
     user: any;
+    depots: any;
   }
 }
 
@@ -46,9 +47,9 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
   const { invoices, statistics, isLoading: invoicesLoading } = useInvoicesWithStatistics(queryParams)
   console.log({ invoices, statistics })
 
-  const { depots, isLoading: depotsLoading } = useDepots()
+  // const { depots, isLoading: depotsLoading } = useDepots()
 
-  const isLoading = invoicesLoading || depotsLoading
+  const isLoading = invoicesLoading
   const isEmpty = !isLoading && invoices.length === 0
 
   if (isLoading) {
@@ -81,7 +82,7 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
                 factures={invoices}
                 user={initialData.user}
                 isLoading={isLoading}
-                depots={depots}
+                depots={initialData.depots}
                 statistics={statistics}
               />
             </div>

@@ -4,8 +4,8 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
-import { Bell, Check, Eye, Loader2, FileX, Download } from "lucide-react"
-import Link from "next/link"
+import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon } from "lucide-react"
+
 import Filtre from "../facture/filtre"
 
 import { useState, useMemo } from "react"
@@ -36,6 +36,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Récupération des paramètres directement depuis l'URL
   const paymentStatus = searchParams.get('paymentStatus') || "tous";
@@ -123,6 +124,25 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     }
   };
 
+  const handleCopyToClipboard = async (text: string, fieldType: string, factureId: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(`${fieldType}-${factureId}`);
+      toast({
+        title: "Copié !",
+        description: `${fieldType} copié dans le presse-papiers.`,
+      });
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (error) {
+      console.error('Erreur lors de la copie:', error);
+      toast({
+        title: "Erreur de copie",
+        description: "Impossible de copier dans le presse-papiers.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filtrage optimisé avec useMemo pour éviter les recalculs inutiles
   const filteredFactures = useMemo(() => {
     return factures.filter((facture) => {
@@ -157,43 +177,38 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
         />
       </div>
       <div className="overflow-x-auto border rounded-lg">
-        <div className="space-y-5 flex flex-col lg:flex-row justify-between items-start lg:items-center  p-4 gap-4">
-          {/* Statistiques */}
-          {statistics && (
-            <div className="flex flex-wrap gap-3 items-center">
-              {/* Total */}
-              <div className="flex items-center gap-3 bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 px-4 py-3 rounded-xl shadow-sm">
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">Total</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-primary-900">{statistics.total.count}</span>
-                    <span className="text-sm text-primary-700">factures</span>
-                  </div>
-                  {/* <span className="text-lg font-semibold text-primary-800">{formatMontant(statistics.total.amount)}</span> */}
-                </div>
-              </div>
+        <div className="p-3">
+          {/* En-tête avec bouton d'export et statistiques */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-4">
 
-              {/* Statistiques par statut */}
-              {Object.entries(statistics.byStatus).map(([status, stats]) => (
-                <div key={status} className={`flex items-center gap-3 border px-4 py-3 rounded-xl shadow-sm ${getStatisticsColor(status)} ${stats.count === 0 ? 'opacity-60' : ''}`}>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-medium uppercase tracking-wide opacity-80">
-                      {status.replace('_', ' ')}
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl font-bold">{stats.count}</span>
-                      <span className="text-sm opacity-80">factures</span>
+              {/* Statistiques compactes */}
+              {statistics && (
+                <div className="flex flex-wrap gap-1">
+                  {/* Total */}
+                  <div className="bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 px-2 py-1 rounded-md shadow-sm min-w-[60px]">
+                    <div className="text-center">
+                      <span className="text-xs font-medium text-primary-600 uppercase tracking-wide block">Total</span>
+                      <span className="text-sm font-bold text-primary-900">{statistics.total.count}</span>
                     </div>
-                    {/* <span className="text-base font-semibold">{formatMontant(stats.amount)}</span> */}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
 
-          {/* Bouton Export */}
-          {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-            <div className="flex-shrink-0">
+                  {/* Statistiques par statut */}
+                  {Object.entries(statistics.byStatus).map(([status, stats]) => (
+                    <div key={status} className={`border px-2 py-1 rounded-md shadow-sm ${getStatisticsColor(status)} ${stats.count === 0 ? 'opacity-60' : ''} min-w-[60px]`}>
+                      <div className="text-center">
+                        <span className="text-xs font-medium uppercase tracking-wide opacity-80 block truncate">
+                          {status.replace('_', ' ')}
+                        </span>
+                        <span className="text-sm font-bold">{stats.count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
               <Button
                 onClick={handleExportExcel}
                 variant="outline"
@@ -208,8 +223,8 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                 )}
                 {isExporting ? 'Export en cours...' : 'Exporter Excel'}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         <div className="max-h-[600px] overflow-y-auto">
           {isLoading ? (
@@ -236,20 +251,76 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                   <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
-                  <TableHead className="font-semibold text-primary-900">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredFactures.map((facture) => (
-                  <TableRow key={facture.id} className=" hover:bg-primary-50/30">
+                  <TableRow
+                    key={facture.id}
+                    className="hover:bg-primary-50/30 cursor-pointer transition-colors duration-200 group"
+                    onClick={() => {
+                      const href = user && user.role !== Role.ADMIN
+                        ? `/factures/${facture.invoiceNumber}`
+                        : `/dashboard/invoices/${facture.invoiceNumber}`;
+                      window.location.href = href;
+                    }}
+                  >
                     <TableCell>
                     </TableCell>
                     <TableCell className="font-medium">
-
-                      {facture.invoiceNumber}
-
+                      <div className="flex items-center gap-2">
+                        <span>{facture.invoiceNumber}</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipContent>
+                              <p>Copier le numéro de facture</p>
+                            </TooltipContent>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyToClipboard(facture.invoiceNumber, "Numéro de facture", facture.id);
+                              }}
+                            >
+                              {copiedField === `Numéro de facture-${facture.id}` ? (
+                                <CheckIcon className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </TableCell>
-                    <TableCell>{facture.accountNumber}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span>{facture.accountNumber}</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipContent>
+                              <p>Copier le numéro de compte</p>
+                            </TooltipContent>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyToClipboard(facture.accountNumber, "Numéro de compte", facture.id);
+                              }}
+                            >
+                              {copiedField === `Numéro de compte-${facture.id}` ? (
+                                <CheckIcon className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableCell>
                     <TableCell>{formatDate(facture.date)}</TableCell>
                     <TableCell>{facture.customer?.name}</TableCell>
                     <TableCell>
@@ -287,23 +358,6 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                         </span>
                       </div>
                     </TableCell>}
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipContent>
-                              <p>Ajouter une notification</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={user && user.role !== Role.ADMIN ? `/factures/${facture.invoiceNumber}` : `/dashboard/invoices/${facture.invoiceNumber}`} className="flex items-center gap-2">
-                            <Eye className="h-4 w-4" />
-                            Détails
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

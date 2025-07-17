@@ -5,13 +5,12 @@ import { useInvoice } from "@/hooks/useInvoice";
 import { Loader2 } from "lucide-react";
 
 interface InvoiceHeaderProps {
-    invoiceNumber: string;
+    invoice: any;
 }
 
-export default function InvoiceHeader({ invoiceNumber }: InvoiceHeaderProps) {
-    const { invoice, isLoading } = useInvoice(invoiceNumber);
+export default function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
 
-    if (isLoading || !invoice) {
+    if (!invoice) {
         return (
             <div className="flex items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />

@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import InvoiceClient from "./invoiceClient"
 import { getCurrentUser } from "@/actions/user"
-
+import { getActiveDepots } from "@/actions/depot"
 async function getInitialData() {
   const cookieStore = await cookies()
   const token = cookieStore.get("accessToken")
@@ -11,13 +11,11 @@ async function getInitialData() {
     redirect("/")
   }
 
-  try {
-    const user = await getCurrentUser()
-    return { user }
-  } catch (error) {
-    console.error("Erreur lors du chargement des données:", error)
-    return { user: null }
-  }
+
+  const user = await getCurrentUser()
+  const depots = await getActiveDepots()
+  return { user, depots }
+
 }
 
 export default async function InvoicePage() {
