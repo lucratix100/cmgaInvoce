@@ -74,8 +74,8 @@ export function InvoiceManagementTabs() {
   const handleDeleteRoot = async (id: string) => {
     try {
       await deleteRoot(parseInt(id))
-      await fetchRoots()
       toast.success('Racine supprimée avec succès')
+      await fetchRoots()
     } catch (error) {
       toast.error('Erreur lors de la suppression de la racine')
       console.error(error)

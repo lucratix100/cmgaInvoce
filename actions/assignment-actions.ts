@@ -27,6 +27,7 @@ export async function getAssignments(): Promise<Assignment[]> {
                 'Accept': 'application/json'
             }
         })
+        console.log(response.data, "response.data")
         return response.data
     } catch (error) {
         console.error('Erreur:', error)
@@ -102,8 +103,6 @@ export async function deleteAssignment(id: number): Promise<void> {
                 'Accept': 'application/json'
             }
         })
-
-
 
         revalidatePath('/dashboard/assignments')
     } catch (error) {

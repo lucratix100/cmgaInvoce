@@ -38,7 +38,7 @@ export async function getRoots(): Promise<Root[]> {
     }
 }
 
-export async function createRoot(name: string): Promise<Root> {
+export async function createRoot(name: string) {
     try {
         const cookieStore = await cookies()
         const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
@@ -82,7 +82,7 @@ export async function updateRoot(id: number, name: string): Promise<Root> {
 }
 
 export async function deleteRoot(id: number): Promise<void> {
-    console.log(id, "id")
+
     try {
         const cookieStore = await cookies()
         const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
@@ -99,14 +99,9 @@ export async function deleteRoot(id: number): Promise<void> {
             }
         })
         revalidatePath('/dashboard/assignments')
-        toast.success('Racine supprimée avec succès')
         return
-    } catch (error: any) {
-        // if (error.response?.status === 500) {
-        //     toast.error('Erreur serveur lors de la suppression de la racine')
-        // } else {
-        //     toast.error('Erreur lors de la suppression de la racine')
-        // }
+    } catch (error: any) {        // }
         console.error('Erreur détaillée:', error)
+        throw error
     }
 } 

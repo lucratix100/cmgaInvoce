@@ -74,6 +74,7 @@ export function RootManagement({
     try {
       await onDeleteRoot(id)
     } catch (error) {
+      toast.error('Erreur lors de la suppression de la racine')
       console.error("Erreur lors de la suppression de la racine:", error)
     }
   }
