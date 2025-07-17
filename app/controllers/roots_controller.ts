@@ -1,13 +1,11 @@
 
-
-import Assignment from "#models/assignment"
 import Root from "#models/root"
 import { HttpContext } from "@adonisjs/core/http"
 
 export default class RootsController {
     async index({ response }: HttpContext) {
         try {
-            const roots = await Root.query().preload('commercialInitials')
+            const roots = await Root.query().preload('commercialInitials').orderBy('created_at', 'desc')
             return response.json(roots)
         } catch (error) {
             console.log(error)
@@ -23,9 +21,7 @@ export default class RootsController {
                 return response.status(400).json({ message: `Root ${name} existe déja` })
             }
             const root = await Root.create({ name })
-            // let pattern = root.name.toUpperCase()
-            // const assignment = await Assignment.create({ rootId: root.id, commercialInitialId: null, pattern })
-            return response.status(201).json(assignment)
+            return response.status(201).json(root)
         } catch (error) {
             console.log(error)
             return response.status(500).json({ message: "Internal server error" })
