@@ -31,6 +31,7 @@ const InvoiceRemindersController = () => import('#controllers/invoice_reminders_
 const UserActivitiesController = () => import('#controllers/user_activities_controller')
 const DashboardController = () => import('#controllers/dashboard_controller')
 const UpdateInvoicesStatusController = () => import('#controllers/update_invoices_status_controller')
+const InvoiceRecoveriesController = () => import('#controllers/invoice_recoveries_controller')
 
 // Contrôleurs pour le chat
 const ConversationsController = () => import('#controllers/conversations_controller')
@@ -86,6 +87,21 @@ router.group(() => {
   router.get('/dashboard/advanced-stats', [DashboardController, 'advancedStats'])
   router.get('/depots/active', [DepotsController, 'getActiveDepots'])
   router.post('/update-invoices-status', [UpdateInvoicesStatusController, 'updateInvoicesStatus'])
+
+  // Routes de recouvrement des factures
+  router.get('/recovery/urgent-invoices', [InvoiceRecoveriesController, 'getUrgentInvoices'])
+  router.get('/recovery/settings', [InvoiceRecoveriesController, 'getRecoverySettings'])
+  router.get('/recovery/settings/by-root', [InvoiceRecoveriesController, 'getRecoverySettingsByRoot'])
+  router.post('/recovery/settings', [InvoiceRecoveriesController, 'updateRecoverySettings'])
+  router.post('/recovery/settings/create', [InvoiceRecoveriesController, 'createRecoverySetting'])
+  router.delete('/recovery/settings/:id', [InvoiceRecoveriesController, 'destroyRecoverySetting'])
+  router.get('/recovery/roots', [InvoiceRecoveriesController, 'getRoots'])
+  router.post('/recovery/invoices/:invoiceId/custom-delay', [InvoiceRecoveriesController, 'updateCustomDelay'])
+  router.post('/recovery/update-urgent-status', [InvoiceRecoveriesController, 'updateUrgentStatus'])
+  router.get('/recovery/test-invoices', [InvoiceRecoveriesController, 'testInvoices'])
+  router.get('/recovery/custom-delays', [InvoiceRecoveriesController, 'getCustomDelays'])
+  router.delete('/recovery/custom-delays/:id', [InvoiceRecoveriesController, 'deleteCustomDelay'])
+  router.post('/recovery/check-expired-delays', [InvoiceRecoveriesController, 'checkExpiredDelays'])
 
   // Routes du chat
   router.get('/chat/users', [ChatUsersController, 'index'])

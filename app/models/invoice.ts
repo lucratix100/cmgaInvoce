@@ -7,6 +7,7 @@ import Bl from './bl.js'
 import { InvoicePaymentStatus, InvoiceStatus } from '../enum/index.js'
 import Payment from './payment.js'
 import UserActivitie from './user_activitie.js'
+import InvoiceRecoveryCustomSetting from './invoice_recovery_custom_setting.js'
 
 
 export default class Invoice extends BaseModel {
@@ -34,6 +35,10 @@ export default class Invoice extends BaseModel {
   declare statusPayment: InvoicePaymentStatus
   @column()
   declare order: any | null
+  @column()
+  declare isUrgent: boolean
+  @column.dateTime({ autoCreate: false })
+  declare lastPaymentDate: DateTime | null
   @belongsTo(() => Depot)
   declare depot: BelongsTo<typeof Depot>
   @belongsTo(() => Customer)
@@ -44,6 +49,8 @@ export default class Invoice extends BaseModel {
   declare payments: HasMany<typeof Payment>
   @hasMany(() => UserActivitie)
   declare userActivities: HasMany<typeof UserActivitie>
+  @hasMany(() => InvoiceRecoveryCustomSetting)
+  declare recoveryCustomSettings: HasMany<typeof InvoiceRecoveryCustomSetting>
   @column.dateTime({ autoCreate: false })
   declare deliveredAt: DateTime
   @column.dateTime({ autoCreate: true })
@@ -51,6 +58,4 @@ export default class Invoice extends BaseModel {
   declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
-  @column()
-  declare isPaid: boolean
 }

@@ -4,6 +4,7 @@ import Invoice from '../models/invoice.js'
 import { InvoicePaymentStatus } from '../enum/index.js'
 import UserActivityService from '#services/user_activity_service'
 import NotificationService from '#services/notification_service'
+import { DateTime } from 'luxon'
 
 export default class PaymentsController {
   /**
@@ -347,15 +348,32 @@ export default class PaymentsController {
     console.log('totalPaid:', totalPaid)
     console.log('totalTTC:', totalTTC)
 
+    // Récupérer le dernier paiement pour mettre à jour lastPaymentDate
+    const lastPayment = await Payment.query()
+      .where('invoice_id', invoiceId)
+      .orderBy('payment_date', 'desc')
+      .first()
+
     if (totalPaid >= totalTTC) {
       console.log('Facture entièrement payée (avec surplus possible).')
-      await invoice.merge({ statusPayment: InvoicePaymentStatus.PAYE }).save()
+      await invoice.merge({ 
+        statusPayment: InvoicePaymentStatus.PAYE,
+        isUrgent: false, // Réinitialiser le statut urgent
+        lastPaymentDate: lastPayment ? DateTime.fromJSDate(lastPayment.paymentDate) : null
+      }).save()
     } else if (totalPaid > 0 && totalPaid < totalTTC) {
       console.log('Paiement partiel effectué.')
-      await invoice.merge({ statusPayment: InvoicePaymentStatus.PAIEMENT_PARTIEL }).save()
+      await invoice.merge({ 
+        statusPayment: InvoicePaymentStatus.PAIEMENT_PARTIEL,
+        isUrgent: false, // Réinitialiser le statut urgent car nouveau paiement
+        lastPaymentDate: lastPayment ? DateTime.fromJSDate(lastPayment.paymentDate) : null
+      }).save()
     } else {
       console.log('Aucun paiement effectué.')
-      await invoice.merge({ statusPayment: InvoicePaymentStatus.NON_PAYE }).save()
+      await invoice.merge({ 
+        statusPayment: InvoicePaymentStatus.NON_PAYE,
+        lastPaymentDate: null
+      }).save()
     }
   }
 }

@@ -61,6 +61,7 @@
     "@types/socket.io": "^3.0.1",
     "@vinejs/vine": "^3.0.0",
     "adonis-autoswagger": "^3.73.0",
+    "exceljs": "^4.4.0",
     "fast-csv": "^5.0.2",
     "jsonwebtoken": "^9.0.2",
     "luxon": "^3.5.0",
