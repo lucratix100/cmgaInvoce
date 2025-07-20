@@ -5,6 +5,8 @@ import Assignment from '#models/assignment'
 import DepotAssignment from '#models/depot_assignment'
 import Bl from '#models/bl'
 import UserActivityService from '#services/user_activity_service'
+import NotificationService from '#services/notification_service'
+import { DateTime } from 'luxon'
 
 
 
@@ -128,6 +130,12 @@ export default class InvoicesController {
             }
 
             const invoices = await query
+                .preload('customer')
+                .preload('payments')
+                .preload('bls', (blQuery) => {
+                    blQuery.preload('driver')
+                        .orderBy('created_at', 'desc')
+                })
 
             // const formattedInvoices = invoices.map(invoice => ({
             //     id: invoice.id,
@@ -144,6 +152,18 @@ export default class InvoicesController {
             const formattedInvoices = invoices.map(invoice => {
                 const totalPaid = invoice.payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
                 const remainingAmount = Number(invoice.totalTTC) - totalPaid
+                
+                // Récupérer le dernier BL validé
+                const lastValidatedBl = invoice.bls && invoice.bls.length > 0
+                    ? invoice.bls
+                        .filter(bl => bl.status === 'validée')
+                        .sort((a, b) => {
+                            const dateA = a.createdAt ? a.createdAt.toMillis() : 0
+                            const dateB = b.createdAt ? b.createdAt.toMillis() : 0
+                            return dateB - dateA
+                        })[0]
+                    : null
+                
                 return {
                     id: invoice.id,
                     invoiceNumber: invoice.invoiceNumber,
@@ -159,6 +179,14 @@ export default class InvoicesController {
                     statusPayment: invoice.statusPayment,
                     totalTtc: invoice.totalTTC,
                     deliveredAt: invoice.deliveredAt,
+                    lastValidatedBl: lastValidatedBl ? {
+                        id: lastValidatedBl.id,
+                        createdAt: lastValidatedBl.createdAt.toISO(),
+                        driver: lastValidatedBl.driver ? {
+                            firstname: lastValidatedBl.driver.firstname,
+                            lastname: lastValidatedBl.driver.lastname
+                        } : null
+                    } : null,
                     remainingAmount: invoice.status === InvoiceStatus.RETOUR ? invoice.totalTTC : remainingAmount
                 }
             })
@@ -1155,6 +1183,148 @@ export default class InvoicesController {
             console.error('❌ Erreur lors du calcul des montants de paiement:', error)
             return response.status(500).json({ 
                 error: 'Erreur lors du calcul des montants de paiement' 
+            })
+        }
+    }
+
+    /**
+     * Marque une facture comme "LIVREE" (pour les utilisateurs admin et recouvrement)
+     */
+    async markAsDeliveredWithReturn({ params, request, response, auth }: HttpContext) {
+        try {
+            const currentUser = await auth.authenticate()
+            const { comment } = request.only(['comment'])
+
+            // Vérifier les permissions
+            if (currentUser.role !== Role.ADMIN && currentUser.role !== Role.RECOUVREMENT) {
+                return response.status(403).json({
+                    error: 'Vous n\'avez pas les permissions pour effectuer cette action'
+                })
+            }
+
+            // Récupérer la facture
+            const invoice = await Invoice.query()
+                .where('invoice_number', params.invoice_number)
+                .preload('customer')
+                .preload('depot')
+                .first()
+
+            if (!invoice) {
+                return response.status(404).json({
+                    error: 'Facture non trouvée'
+                })
+            }
+
+            // Vérifier que la facture est en cours de livraison
+            if (invoice.status !== InvoiceStatus.EN_COURS) {
+                return response.status(400).json({
+                    error: 'Seules les factures en cours de livraison peuvent être marquées comme "LIVREE"'
+                })
+            }
+
+            // Vérifier que la facture est payée
+            if (invoice.statusPayment !== 'payé') {
+                return response.status(400).json({
+                    error: 'Seules les factures payées peuvent être marquées comme "LIVREE"'
+                })
+            }
+
+            // Vérifier les permissions spécifiques pour l'utilisateur RECOUVREMENT
+            if (currentUser.role === Role.RECOUVREMENT) {
+                let hasAccess = false
+                let patterns: string[] = []
+                let assignedDepots: number[] = []
+
+                // Vérifier les affectations par dépôt
+                const depotAssignments = await DepotAssignment.query()
+                    .where('user_id', currentUser.id)
+                    .where('is_active', true)
+                
+                assignedDepots = depotAssignments.map(da => da.depotId)
+                
+                if (assignedDepots.includes(invoice.depotId)) {
+                    hasAccess = true
+                } else {
+                    // Vérifier les affectations par racine
+                    const assignedInvoices = await Assignment
+                        .query()
+                        .where('user_id', currentUser.id)
+                        .where('is_active', true)
+                    
+                    patterns = assignedInvoices.map(a => a.pattern)
+                    
+                    // Vérifier si le numéro de compte correspond à un pattern assigné
+                    for (const pattern of patterns) {
+                        if (invoice.accountNumber.match(new RegExp(`^\\d+${pattern}`))) {
+                            hasAccess = true
+                            break
+                        }
+                    }
+                }
+
+                if (!hasAccess) {
+                    return response.status(403).json({
+                        error: 'Vous n\'avez pas accès à cette facture'
+                    })
+                }
+            }
+
+            // Marquer la facture comme "LIVREE"
+            await invoice.merge({
+                status: InvoiceStatus.LIVREE,
+                isCompleted: true,
+                deliveredAt: DateTime.now()
+            })
+            await invoice.save()
+
+            // Enregistrer l'activité
+            await UserActivityService.logActivity(
+                Number(currentUser.id),
+                UserActivityService.ACTIONS.MARK_AS_DELIVERED_WITH_RETURN,
+                currentUser.role,
+                invoice.id,
+                {
+                    invoiceNumber: invoice.invoiceNumber,
+                    comment: comment || '',
+                    previousStatus: InvoiceStatus.EN_COURS,
+                    newStatus: InvoiceStatus.LIVREE
+                }
+            )
+
+            // Notifier les admins si c'est un utilisateur recouvrement
+            if (currentUser.role === Role.RECOUVREMENT) {
+                await NotificationService.notifyAdminsForImportantActions(
+                    '📦 Facture marquée comme "LIVREE"',
+                    `La facture ${invoice.invoiceNumber} a été marquée comme "LIVREE" par ${currentUser.firstname} ${currentUser.lastname}${comment ? ` - Commentaire: ${comment}` : ''}`,
+                    invoice.id,
+                    {
+                        invoiceNumber: invoice.invoiceNumber,
+                        customerName: invoice.customer?.name || 'Client inconnu',
+                        modifiedBy: `${currentUser.firstname} ${currentUser.lastname}`,
+                        previousStatus: InvoiceStatus.EN_COURS,
+                        newStatus: InvoiceStatus.LIVREE,
+                        comment: comment || '',
+                        type: 'invoice_delivered_with_return'
+                    }
+                )
+            }
+
+            return response.status(200).json({
+                success: true,
+                message: 'Facture marquée comme "LIVREE" avec succès',
+                invoice: {
+                    id: invoice.id,
+                    invoiceNumber: invoice.invoiceNumber,
+                    status: invoice.status,
+                    deliveredAt: invoice.deliveredAt,
+                    comment: comment || ''
+                }
+            })
+
+        } catch (error) {
+            console.error('Erreur lors du marquage de la facture comme "LIVREE":', error)
+            return response.status(500).json({
+                error: 'Erreur lors du marquage de la facture'
             })
         }
     }

@@ -76,5 +76,6 @@ export default class UserActivityService {
     DELETE_BL: 'Suppression BL',
     CONFIRM_DELIVERY: 'Confirmation livraison',
     PROCESS_DELIVERY: 'Traitement livraison',
+    MARK_AS_DELIVERED_WITH_RETURN: 'Marquage livrée avec retour',
   } as const
 } 

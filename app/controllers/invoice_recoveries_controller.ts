@@ -40,13 +40,15 @@ export default class InvoiceRecoveriesController {
         defaultDays
       })
 
-      // Récupérer toutes les factures non payées ET livrées avec leurs paiements
+      // Récupérer toutes les factures non payées avec leurs BLs et paiements
       const unpaidInvoices = await Invoice.query()
         .whereNot('statusPayment', 'payé') // Exclure les factures complètement payées
-        .whereNotNull('deliveredAt') // Ne considérer que les factures livrées
         .preload('customer')
         .preload('depot')
         .preload('recoveryCustomSettings')
+        .preload('bls', (query) => {
+          query.where('status', 'validée').orderBy('createdAt', 'desc')
+        })
         .preload('payments', (query) => {
           query.orderBy('paymentDate', 'desc')
         })
@@ -55,6 +57,12 @@ export default class InvoiceRecoveriesController {
 
       // Filtrer les factures urgentes
       const urgentInvoices = unpaidInvoices.filter(invoice => {
+        // Ne considérer que les factures qui ont au moins un BL valide
+        if (!invoice.bls || invoice.bls.length === 0) {
+          console.log(`Facture ${invoice.invoiceNumber}: Aucun BL valide trouvé, ignorée`)
+          return false
+        }
+
         // Vérifier s'il y a un délai personnalisé pour cette facture
         const customSetting = invoice.recoveryCustomSettings[0]
         if (customSetting) {
@@ -75,6 +83,16 @@ export default class InvoiceRecoveriesController {
 
       // Mettre à jour le statut urgent des factures
       for (const invoice of unpaidInvoices) {
+        // Ne considérer que les factures qui ont au moins un BL valide
+        if (!invoice.bls || invoice.bls.length === 0) {
+          // Si la facture n'a plus de BL valide mais était marquée comme urgente, la désactiver
+          if (invoice.isUrgent) {
+            await invoice.merge({ isUrgent: false }).save()
+            console.log(`Facture ${invoice.invoiceNumber}: Statut urgent désactivé (aucun BL valide)`)
+          }
+          continue
+        }
+
         const customSetting = invoice.recoveryCustomSettings[0]
         let daysThreshold: number
         
@@ -124,10 +142,20 @@ export default class InvoiceRecoveriesController {
         ? lastPayment.paymentDate 
         : DateTime.fromJSDate(lastPayment.paymentDate)
     } else {
-      // Sinon, utiliser la date de livraison (garantie d'exister car on filtre les factures livrées)
-      referenceDate = invoice.deliveredAt instanceof DateTime 
-        ? invoice.deliveredAt 
-        : DateTime.fromJSDate(invoice.deliveredAt)
+      // Sinon, utiliser la date du dernier BL valide
+      const lastValidBl = invoice.bls && invoice.bls.length > 0 ? invoice.bls[0] : null
+      
+      if (lastValidBl) {
+        // Utiliser la date de création du dernier BL valide
+        referenceDate = lastValidBl.createdAt instanceof DateTime 
+          ? lastValidBl.createdAt 
+          : DateTime.fromJSDate(lastValidBl.createdAt)
+      } else {
+        // Fallback sur deliveredAt si aucun BL valide n'existe
+        referenceDate = invoice.deliveredAt instanceof DateTime 
+          ? invoice.deliveredAt 
+          : DateTime.fromJSDate(invoice.deliveredAt)
+      }
     }
     
     // Calculer la date limite pour cette facture
@@ -140,8 +168,10 @@ export default class InvoiceRecoveriesController {
       daysThreshold,
       isUrgent: referenceDate < invoiceCutoffDate,
       deliveredAt: invoice.deliveredAt,
+      lastValidBlDate: invoice.bls && invoice.bls.length > 0 ? invoice.bls[0].createdAt : null,
       date: invoice.date,
-      paymentsCount: invoice.payments.length
+      paymentsCount: invoice.payments.length,
+      validBlsCount: invoice.bls ? invoice.bls.length : 0
     })
     
     // La facture est urgente si la date de référence est plus ancienne que le seuil
