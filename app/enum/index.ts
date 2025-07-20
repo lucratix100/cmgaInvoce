@@ -14,8 +14,7 @@ export enum InvoiceStatus {
   LIVREE = 'livrée',
   RETOUR = 'retour',
   REGULE = 'régule',
-  // Nouvelles valeurs que vous pouvez ajouter ici :
-  // ANNULEE = 'annulée',
+  ANNULEE = 'annulée',
   // EN_ATTENTE_PAIEMENT = 'en attente de paiement',
   // PARTIELLEMENT_LIVREE = 'partiellement livrée',
 }

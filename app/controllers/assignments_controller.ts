@@ -24,7 +24,7 @@ export default class AssignmentsController {
             const commercialInitial = await CommercialInitial.find(commercialInitialId)
             if (!commercialInitial) {
                 let pattern = root.name
-                const assignment = await Assignment.create({ rootId, commercialInitialId: null, pattern: pattern.toUpperCase(), userId })
+                const assignment = await Assignment.create({ rootId, commercialInitialId: null, pattern: pattern.toUpperCase(), userId, isActive: true })
                 return response.status(201).json(assignment)
             }
             let pattern = (root.name + commercialInitial.name).toUpperCase()

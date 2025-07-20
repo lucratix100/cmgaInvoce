@@ -6,14 +6,14 @@ export default class extends BaseSchema {
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
       // Vérifier si la colonne is_urgent existe déjà
-      if (!this.schema.hasColumn(this.tableName, 'is_urgent')) {
-        table.boolean('is_urgent').defaultTo(false) // Marquer les factures urgentes
-      }
-      
+      // if (!this.schema.hasColumn(this.tableName, 'is_urgent')) {
+      table.boolean('is_urgent').defaultTo(false) // Marquer les factures urgentes
+      // }
+
       // Vérifier si la colonne last_payment_date existe déjà
-      if (!this.schema.hasColumn(this.tableName, 'last_payment_date')) {
-        table.timestamp('last_payment_date').nullable() // Date du dernier paiement
-      }
+      // if (!this.schema.hasColumn(this.tableName, 'last_payment_date')) {
+      table.timestamp('last_payment_date').nullable() // Date du dernier paiement
+      // }
     })
   }
 

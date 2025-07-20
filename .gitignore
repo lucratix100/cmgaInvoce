@@ -12,6 +12,9 @@ tmp
 # Frontend assets compiled code
 public/assets
 
+# Controllers 
+app/controllers/sage_invoice_controller.ts
+
 # Build tools specific
 npm-debug.log
 yarn-error.log
