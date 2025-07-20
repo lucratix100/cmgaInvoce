@@ -244,7 +244,7 @@ export const processDelivery = async (
     products: { reference: string, quantiteLivree: number }[],
     isCompleteDelivery: boolean = false,
     driverId?: number,
-    magasinierId?: num
+    magasinierId?: number
 ) => {
     try {
         const cookieStore = await cookies()
