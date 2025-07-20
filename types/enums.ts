@@ -4,7 +4,8 @@ export enum InvoiceStatus {
     EN_COURS = 'en cours de livraison',
     LIVREE = 'livrée',
     RETOUR = 'retour',
-    REGULE = 'régule'
+    REGULE = 'régule',
+    ANNULEE = 'annulée'
 }
 
 export enum InvoicePaymentStatus {

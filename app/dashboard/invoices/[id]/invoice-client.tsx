@@ -11,6 +11,7 @@ import {
   Truck,
   Loader2,
   Edit,
+  X,
 } from "lucide-react";
 import PaimentDialog from "@/components/paiment-dialog";
 import Notification from "@/components/notification-dialog";
@@ -30,8 +31,9 @@ import { Role } from "@/types/roles";
 import { useInvoice } from "@/hooks/useInvoice";
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
-import { updateInvoiceStatus } from "@/actions/invoice";
+import { updateInvoiceStatus, updateInvoiceById } from "@/actions/invoice";
 import { Invoice } from "@/types/invoice";
+import { InvoicePaymentStatus, InvoiceStatus } from "@/types/enums";
 
 interface InvoiceClientProps {
   invoice: any;
@@ -59,6 +61,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string>('');
 
   const handleBack = () => {
@@ -74,6 +77,24 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
     setIsConfirmDialogOpen(true);
   };
 
+  // Fonction pour ouvrir le dialogue de confirmation d'annulation
+  const handleCancelInvoiceClick = () => {
+    setIsCancelDialogOpen(true);
+  };
+
+  const handleCancelInvoice = async (invoiceId: number) => {
+    setIsUpdatingStatus(true);
+    setIsCancelDialogOpen(false);
+    try {
+      await updateInvoiceById({ id: invoiceId, status: InvoiceStatus.ANNULEE });
+      toast.success('Facture annulée avec succès');
+    } catch (error: any) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast.error(error.message || 'Erreur lors de la mise à jour du statut');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  }
   // Fonction pour confirmer le changement de statut
   const confirmStatusChange = async () => {
     if (!invoice || !pendingStatus) return;
@@ -155,18 +176,32 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
           </div>
           <div className="flex">
             {user?.role === Role.ADMIN && (
-              <Button
-                className={`flex items-center gap-2 ${buttonConfig.color}`}
-                onClick={() => handleStatusChange(buttonConfig.action)}
-                disabled={buttonConfig.disabled}
-              >
-                {isUpdatingStatus ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Edit className="h-4 w-4" />
-                )}
-                {isUpdatingStatus ? 'Mise à jour...' : buttonConfig.text}
-              </Button>
+              <>
+                <Button
+                  className={`flex items-center gap-2 ${buttonConfig.color}`}
+                  onClick={() => handleStatusChange(buttonConfig.action)}
+                  disabled={buttonConfig.disabled}
+                >
+                  {isUpdatingStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Edit className="h-4 w-4" />
+                  )}
+                  {isUpdatingStatus ? 'Mise à jour...' : buttonConfig.text}
+                </Button>
+                {invoice.status !== InvoiceStatus.ANNULEE && invoice.statusPayment !== InvoicePaymentStatus.PAYE && <Button
+                  className={`flex items-center gap-2 bg-red-500 text-white hover:bg-red-600`}
+                  onClick={handleCancelInvoiceClick}
+                  disabled={isUpdatingStatus}
+                >
+                  {isUpdatingStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="h-4 w-4" />
+                  )}
+                  {isUpdatingStatus ? 'Mise à jour...' : 'Annuler la facture'}
+                </Button>}
+              </>
             )}
           </div>
           <div className="flex items-center w-full gap-2 justify-end">
@@ -214,6 +249,29 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
               </Button>
               <Button onClick={confirmStatusChange}>
                 Confirmer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialogue de confirmation pour l'annulation de facture */}
+        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          <DialogContent className="bg-white">
+            <DialogHeader>
+              <DialogTitle>Confirmation d'annulation</DialogTitle>
+              <DialogDescription>
+                Êtes-vous sûr de vouloir annuler la facture {invoice.invoiceNumber} ? Cette action est irréversible.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button
+                onClick={() => handleCancelInvoice(invoice.id)}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Confirmer l'annulation
               </Button>
             </DialogFooter>
           </DialogContent>

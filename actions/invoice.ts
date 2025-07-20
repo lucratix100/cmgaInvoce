@@ -1,6 +1,7 @@
 'use server'
 
 import axios from 'axios'
+import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 
 interface SearchParams {
@@ -154,6 +155,27 @@ export const getInvoiceByDateRange = async (startDate: string, endDate: string) 
 
 }
 
+export const updateInvoiceById = async (data: any) => {
+    console.log('updateInvoiceById data:', data)
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+        const response = await axios.put(`${process.env.API_URL}invoices/${data.id}`, data, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        })
+        revalidatePath(`/dashboard/invoices/${data.id}`)
+        return response.data
+    } catch (error: any) {
+        console.log("Erreur lors de la mise à jour de la facture:", error)
+        if (error.response?.status === 404) {
+            throw new Error('Cette facture n\'existe pas')
+        }
+        throw new Error('Erreur lors de la mise à jour de la facture')
+    }
+}
 export const getInvoiceByNumber = async (invoiceNumber: string) => {
     try {
         const cookieStore = await cookies()
@@ -288,7 +310,7 @@ export const getInvoicePaymentCalculations = async (invoiceNumber: string, exclu
     try {
         const cookieStore = await cookies()
         const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
-        
+
         // Construire les paramètres de requête
         const params: any = {}
         if (excludePaymentId) {
