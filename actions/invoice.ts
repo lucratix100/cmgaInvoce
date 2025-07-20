@@ -193,6 +193,35 @@ export const updateInvoiceStatus = async (invoiceNumber: string, status: string)
     }
 }
 
+export const markInvoiceAsDeliveredWithReturn = async (invoiceNumber: string, comment?: string) => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+        const response = await axios.post(`${process.env.API_URL}invoice/${invoiceNumber}/mark-delivered-with-return`, 
+            { comment }, 
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            }
+        )
+        return response.data
+    } catch (error: any) {
+        console.log("Erreur lors du marquage de la facture comme 'LIVREE':", error)
+        if (error.response?.status === 404) {
+            throw new Error('Cette facture n\'existe pas')
+        }
+        if (error.response?.status === 400) {
+            throw new Error(error.response.data.error || 'Erreur de validation')
+        }
+        if (error.response?.status === 403) {
+            throw new Error('Vous n\'avez pas les permissions pour effectuer cette action')
+        }
+        throw new Error('Erreur lors du marquage de la facture')
+    }
+}
+
 export const createBlForInvoice = async (
     invoiceNumber: string,
     products: { reference: string, quantiteLivree: number }[]
@@ -215,7 +244,7 @@ export const processDelivery = async (
     products: { reference: string, quantiteLivree: number }[],
     isCompleteDelivery: boolean = false,
     driverId?: number,
-    magasinierId?: number
+    magasinierId?: num
 ) => {
     try {
         const cookieStore = await cookies()

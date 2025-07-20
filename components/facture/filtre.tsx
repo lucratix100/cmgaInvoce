@@ -637,66 +637,7 @@ export default function Filtre({
                                     />
                                 </div>
                             </div>
-
-                            {/* Section État */}
-                            <div className="space-y-1 min-w-[180px]">
-                                <Label className="flex items-center gap-1 text-primary-700 text-xs">
-                                    <Truck className="h-3 w-3" />
-                                    Etat Livraison
-                                </Label>
-                                <Controller
-                                    name="status"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Select value={field.value} onValueChange={field.onChange}>
-                                            <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
-                                                <SelectValue placeholder="Sélectionner un état" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-white">
-                                                {statusOptions.map((option) => (
-                                                    <SelectItem
-                                                        key={option.value}
-                                                        value={option.value}
-                                                        className={`${option.bg} hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
-                                                    >
-                                                        <span className={`${option.color} font-medium`}>{option.label}</span>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
-                            </div>
-                            {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
-                                <div className="space-y-1">
-                                    <Label className="flex items-center gap-1 text-primary-700 text-xs">
-                                        <DollarSign className="h-3 w-3" />
-                                        Etat paiement
-                                    </Label>
-                                    <Controller
-                                        name="paymentStatus"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Select value={field.value} onValueChange={field.onChange}>
-                                                <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
-                                                    <SelectValue placeholder="Sélectionner un état" />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-white">
-                                                    {paiementOptions.map((option) => (
-                                                        <SelectItem
-                                                            key={option.value}
-                                                            value={option.value}
-                                                            className={`${option.bg} hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
-                                                        >
-                                                            <span className={`${option.color} font-medium`}>{option.label}</span>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    />
-                                </div>
-                            )}
+                            {/* Section Dépôt */}
                             {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
                                 <div className="space-y-1">
                                     <Label className="flex items-center gap-1 text-primary-700 text-xs">
@@ -747,6 +688,69 @@ export default function Filtre({
                                     />
                                 </div>
                             )}
+
+                            {/* Section État */}
+                            <div className="space-y-1 min-w-[180px]">
+                                <Label className="flex items-center gap-1 text-primary-700 text-xs">
+                                    <Truck className="h-3 w-3" />
+                                    Etat Livraison
+                                </Label>
+                                <Controller
+                                    name="status"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
+                                                <SelectValue placeholder="Sélectionner un état" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-white">
+                                                {statusOptions.map((option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                        className={`${option.bg} hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
+                                                    >
+                                                        <span className={`${option.color} font-medium`}>{option.label}</span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+
+                            {/* Section Etat de paiement */}
+                            {(user?.role === Role.RECOUVREMENT || user?.role === Role.ADMIN) && (
+                                <div className="space-y-1">
+                                    <Label className="flex items-center gap-1 text-primary-700 text-xs">
+                                        <DollarSign className="h-3 w-3" />
+                                        Etat paiement
+                                    </Label>
+                                    <Controller
+                                        name="paymentStatus"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                <SelectTrigger className="transition-all hover:border-primary-300 focus:border-primary focus:ring-primary">
+                                                    <SelectValue placeholder="Sélectionner un état" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-white">
+                                                    {paiementOptions.map((option) => (
+                                                        <SelectItem
+                                                            key={option.value}
+                                                            value={option.value}
+                                                            className={`${option.bg} hover:bg-primary-50 focus:bg-primary-50 cursor-pointer`}
+                                                        >
+                                                            <span className={`${option.color} font-medium`}>{option.label}</span>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                </div>
+                            )}
+                            
                             <div className="space-y-1">
                                 {/* Utilisation du composant unifié ScanUnified */}
                                 {(user?.role === Role.MAGASINIER ||

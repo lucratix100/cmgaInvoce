@@ -44,6 +44,14 @@ export type Invoice = {
     totalTtc: number;
     statusPayment: InvoicePaymentStatus;
     remainingAmount: number;
+    lastValidatedBl?: {
+        id: number;
+        createdAt: string;
+        driver?: {
+            firstname: string;
+            lastname: string;
+        } | null;
+    } | null;
     depot?: {
         id: number;
         name: string;

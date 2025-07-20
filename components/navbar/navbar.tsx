@@ -28,6 +28,8 @@ const NAVBAR_TITLE = {
   "/dashboard/depots": "Gestion des dépôts",
   "/dashboard/assignments": "Gestion des affectations",
   "/dashboard/activities": "Gestion des activités",
+  "/dashboard/recovery": "Gestion des urgences",
+  "/dashboard/recovery/settings": "Paramètres des urgences",
 }
 
 function HeaderContent({ user }: { user: user }) {

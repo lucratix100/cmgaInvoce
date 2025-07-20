@@ -2,11 +2,19 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { TabsContent } from "@radix-ui/react-tabs"
-import { Badge, FileText } from "lucide-react"
+import { Badge, FileText, RotateCcw, Loader2 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Invoice, InvoiceProduct } from "@/lib/types"
 import Paiment from "./paiment"
 import { Role } from "@/types/roles"
+import { InvoiceStatus } from "@/types/enums"
+import { markInvoiceAsDeliveredWithReturn } from "@/actions/invoice"
+import { useState } from "react"
+import { toast } from "sonner"
 
 interface DetailProps {
   invoice: Invoice;
@@ -15,12 +23,40 @@ interface DetailProps {
 
 export default function Detail({ invoice, userRole }: DetailProps) {
   console.log("invoiceDetail", invoice)
+  const [isMarkAsReturnDialogOpen, setIsMarkAsReturnDialogOpen] = useState(false);
+  const [returnComment, setReturnComment] = useState("");
+  const [isMarkingAsReturn, setIsMarkingAsReturn] = useState(false);
+
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'XOF'
     }).format(amount)
   }
+
+  const handleMarkAsDeliveredWithReturn = async () => {
+    try {
+      setIsMarkingAsReturn(true);
+      await markInvoiceAsDeliveredWithReturn(invoice.invoiceNumber, returnComment);
+      
+      toast.success("Facture marquée comme 'LIVREE' avec succès");
+      
+      // Recharger la page pour mettre à jour les données
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors du marquage de la facture");
+    } finally {
+      setIsMarkingAsReturn(false);
+      setIsMarkAsReturnDialogOpen(false);
+      setReturnComment("");
+    }
+  };
+
+  // const canMarkAsDeliveredWithReturn = () => {
+  //   return invoice.status === InvoiceStatus.EN_COURS && 
+  //          invoice.statusPayment === 'payé' &&
+  //          (userRole === Role.ADMIN || userRole === Role.RECOUVREMENT);
+  // };
 
   if (!invoice?.order) return null;
 
@@ -89,10 +125,63 @@ export default function Detail({ invoice, userRole }: DetailProps) {
                 <span>TOTAL TTC</span>
                 <span>{formatAmount(invoice.totalTtc)}</span>
               </div>
+              
+              {/* Bouton pour marquer comme livrée avec retour
+              {canMarkAsDeliveredWithReturn() && (
+                <div className="pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsMarkAsReturnDialogOpen(true)}
+                    className="w-full hover:bg-red-100 hover:text-red-700 text-red-600 border-red-200"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Marquer comme livrée
+                  </Button>
+                </div>
+              )} */}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogue de confirmation pour marquer comme livrée avec retour */}
+      <Dialog open={isMarkAsReturnDialogOpen} onOpenChange={setIsMarkAsReturnDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marquer comme livrée</DialogTitle>
+            <DialogDescription>
+              Veuillez entrer un commentaire pour la livraison.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="comment" className="text-right">
+                Commentaire
+              </Label>
+              <Textarea
+                id="comment"
+                value={returnComment}
+                onChange={(e) => setReturnComment(e.target.value)}
+                className="col-span-3"
+                placeholder="Commentaire sur la livraison..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMarkAsReturnDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleMarkAsDeliveredWithReturn} disabled={isMarkingAsReturn}>
+              {isMarkingAsReturn ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-2 h-4 w-4" />
+              )}
+              {isMarkingAsReturn ? 'Marquage en cours...' : 'Marquer comme livrée'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TabsContent>
   )
 }

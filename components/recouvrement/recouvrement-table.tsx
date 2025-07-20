@@ -8,13 +8,15 @@ import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon } 
 
 import Filtre from "../facture/filtre"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Invoice } from "@/lib/types"
 import { useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
 import { exportFilteredToExcel } from "@/lib/excel-export"
 import { toast } from "@/components/ui/use-toast"
 import { InvoiceStatus } from "@/types/enums"
+import { getPaymentHistory } from "@/actions/payment"
+import { PaymentMethod } from "@/types/enums"
 
 interface RecouvrementTableProps {
   factures: Invoice[];
@@ -37,12 +39,41 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [returnPaymentsData, setReturnPaymentsData] = useState<Record<string, number>>({});
 
   // Récupération des paramètres directement depuis l'URL
   const paymentStatus = searchParams.get('paymentStatus') || "tous";
   const deliveryStatus = searchParams.get('status') || "tous";
   const searchQuery = searchParams.get('search') || "";
   const selectedDepot = searchParams.get('depot') || "tous";
+
+  // Récupérer les paiements de retour pour toutes les factures
+  useEffect(() => {
+    const fetchReturnPayments = async () => {
+      const returnPayments: Record<string, number> = {};
+      
+      for (const facture of factures) {
+        try {
+          const payments = await getPaymentHistory(facture.invoiceNumber);
+          const totalReturnPayments = payments
+            .filter((payment: any) => payment.paymentMethod === PaymentMethod.RETOUR)
+            .reduce((sum: number, payment: any) => sum + payment.amount, 0);
+          
+          if (totalReturnPayments > 0) {
+            returnPayments[facture.invoiceNumber] = totalReturnPayments;
+          }
+        } catch (error) {
+          console.error(`Erreur lors de la récupération des paiements pour ${facture.invoiceNumber}:`, error);
+        }
+      }
+      
+      setReturnPaymentsData(returnPayments);
+    };
+
+    if (factures.length > 0) {
+      fetchReturnPayments();
+    }
+  }, [factures]);
 
   const formatMontant = (montant: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(montant);
@@ -254,7 +285,10 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredFactures.map((facture) => (
+                {filteredFactures.map((facture) => {
+                  const totalReturnPayments = returnPaymentsData[facture.invoiceNumber] || 0;
+                  
+                  return (
                   <TableRow
                     key={facture.id}
                     className="hover:bg-primary-50/30 cursor-pointer transition-colors duration-200 group"
@@ -324,8 +358,14 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <TableCell>{formatDate(facture.date)}</TableCell>
                     <TableCell>{facture.customer?.name}</TableCell>
                     <TableCell>
-                      {facture.deliveredAt ? (
-                        <span className="text-green-600 font-medium">
+                      {facture.lastValidatedBl ? (
+                        <div className="flex flex-col">
+                          <span className="text-xs text-gray-500 2xl:text-sm text-primary-700">
+                            {formatDate(facture.lastValidatedBl.createdAt)}
+                          </span>
+                        </div>
+                      ) : facture.deliveredAt ? (
+                        <span className="text-green-600 font-medium 2xl:text-sm text-green-700">
                           {formatDate(facture.deliveredAt.toString())}
                         </span>
                       ) : (
@@ -353,13 +393,19 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                                   +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
                                 </span>
                               )}
+                                {totalReturnPayments > 0 && (
+                                  <span className="text-red-600 text-xs font-semibold ml-1">
+                                    -{formatMontant(totalReturnPayments)}
+                                  </span>
+                                )}
                             </>
                             : formatMontant(facture.remainingAmount || 0)}
                         </span>
                       </div>
                     </TableCell>}
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

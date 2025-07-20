@@ -125,6 +125,17 @@ export default function Paiment({ invoice, user }: PaimentProps) {
   // Utiliser les données calculées côté backend
   const { totalPaid, remainingAmount, surplus, paymentPercentage } = calculations;
 
+  const loading = paymentsLoading || calculationsLoading;
+
+  const sortedPayments = [...payments].sort(
+    (a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
+  );
+
+  // Calculer le total des paiements de retour
+  const totalReturnPayments = sortedPayments
+    .filter(p => p.paymentMethod === PaymentMethod.RETOUR)
+    .reduce((sum, p) => sum + p.amount, 0);
+
   const handleDeletePayment = (payment: Payment) => {
     if (!canModifyPayment(payment)) {
       if (user?.role === Role.RECOUVREMENT && isPaid) {
@@ -220,12 +231,6 @@ export default function Paiment({ invoice, user }: PaimentProps) {
     console.error("Erreur lors de la récupération des calculs:", calculationsError);
   }
 
-  const loading = paymentsLoading || calculationsLoading;
-
-  const sortedPayments = [...payments].sort(
-    (a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
-  );
-
   return (
     <TabsContent value="paiements" className="space-y-4">
       <Card className="border-none shadow-md bg-white">
@@ -237,7 +242,7 @@ export default function Paiment({ invoice, user }: PaimentProps) {
         </CardHeader>
         <CardContent className="p-4">
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               <Card className="bg-gradient-to-br from-primary-50 to-white border-none shadow-sm">
                 <CardHeader className="pb-1 pt-2">
                   <CardTitle className="text-xs text-muted-foreground">Montant total</CardTitle>
@@ -255,6 +260,11 @@ export default function Paiment({ invoice, user }: PaimentProps) {
                 <CardContent className="pt-0">
                   <div className="text-lg font-bold">
                     {formatAmount(totalPaid)}
+                    {sortedPayments.some(p => p.paymentMethod === PaymentMethod.RETOUR) && (
+                      <div className="text-xs text-red-600 mt-1">
+                        Inclut des paiements de retour
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -276,6 +286,18 @@ export default function Paiment({ invoice, user }: PaimentProps) {
                   <CardContent className="pt-0">
                     <div className="text-lg font-bold text-blue-700">
                       {formatAmount(surplus)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {totalReturnPayments > 0 && (
+                <Card className="bg-gradient-to-br from-red-50 to-white border-none shadow-sm">
+                  <CardHeader className="pb-1 pt-2">
+                    <CardTitle className="text-xs text-red-700">Paiements de retour</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="text-lg font-bold text-red-700">
+                      {formatAmount(totalReturnPayments)}
                     </div>
                   </CardContent>
                 </Card>
@@ -331,7 +353,9 @@ export default function Paiment({ invoice, user }: PaimentProps) {
                         return (
                           <TableRow key={payment.id} className="text-sm">
                             <TableCell className="py-1">{new Date(payment.paymentDate).toLocaleDateString('fr-FR')}</TableCell>
-                            <TableCell className="font-medium">{formatAmount(payment.amount)}</TableCell>
+                            <TableCell className={`font-medium ${payment.paymentMethod === PaymentMethod.RETOUR ? "text-red-600" : ""}`}>
+                              {formatAmount(payment.amount)}
+                            </TableCell>
                             <TableCell className={remainingAfterThisPayment === 0 ? "text-green-600 font-medium" : ""}>
                               {paidUpToThisPayment >= invoice.totalTtc
                                 ? "Payé"
@@ -340,7 +364,9 @@ export default function Paiment({ invoice, user }: PaimentProps) {
                             <TableCell className={surplusFromThisPayment > 0 ? "text-blue-600 font-medium" : ""}>
                               {surplusFromThisPayment > 0 ? formatAmount(surplusFromThisPayment) : "-"}
                             </TableCell>
-                            <TableCell>{payment.paymentMethod}</TableCell>
+                            <TableCell className={payment.paymentMethod === PaymentMethod.RETOUR ? "text-red-600 font-medium" : ""}>
+                              {payment.paymentMethod}
+                            </TableCell>
                             <TableCell className="text-xs">
                               {isCheckPayment ? payment.chequeInfo || 'N/A' : "-"}
                             </TableCell>

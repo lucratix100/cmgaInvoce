@@ -355,7 +355,6 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
           <DialogHeader>
             <DialogTitle>Modifier le délai de recouvrement</DialogTitle>
           </DialogHeader>
-          
           <div className="space-y-4">
             <div>
               <Label htmlFor="customDelay">Délai en jours</Label>
