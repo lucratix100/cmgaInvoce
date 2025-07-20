@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,6 +49,98 @@ interface CustomDelay {
   }
 }
 
+// Composant pour un délai individuel
+function SettingItem({
+  setting,
+  onUpdate,
+  onDelete,
+  isUpdating,
+  getDelayColor,
+  getDelayIcon
+}: {
+  setting: RecoverySetting
+  onUpdate: (setting: RecoverySetting, newDays: number) => Promise<void>
+  onDelete: (setting: RecoverySetting) => Promise<void>
+  isUpdating: boolean
+  getDelayColor: (rootId: number | null) => string
+  getDelayIcon: (rootId: number | null) => React.ReactElement
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleSave = () => {
+    if (inputRef.current) {
+      const newDays = parseInt(inputRef.current.value)
+      if (!isNaN(newDays) && newDays > 0) {
+        onUpdate(setting, newDays)
+        inputRef.current.value = ''
+      } else {
+        toast.error('Veuillez entrer un délai valide')
+      }
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-lg text-white ${getDelayColor(setting.rootId)}`}>
+          {getDelayIcon(setting.rootId)}
+        </div>
+        <div>
+          <h3 className="font-medium text-gray-900 flex items-center gap-2">
+            {setting.rootId === null ? 'Délai global' : `Racine ${setting.root?.name || setting.rootId}`}
+            <Badge variant={setting.rootId === null ? "default" : "secondary"}>
+              {setting.rootId === null ? 'Global' : 'Spécifique'}
+            </Badge>
+          </h3>
+          <p className="text-sm text-gray-600 flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            Délai actuel: {setting.defaultDays} jours
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Input
+          ref={inputRef}
+          type="number"
+          placeholder="Nouveau délai"
+          className="w-24"
+          min="1"
+          onKeyPress={handleKeyPress}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSave}
+          disabled={isUpdating}
+          className="hover:bg-blue-50 hover:border-blue-300"
+        >
+          {isUpdating ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onDelete(setting)}
+          disabled={isUpdating}
+          className="hover:bg-red-50 hover:border-red-300 text-red-600"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function RecoverySettingsClient({ initialData, rootsData, customDelaysData, user }: RecoverySettingsClientProps) {
   const [settings, setSettings] = useState<RecoverySetting[]>(initialData.settings || [])
   const [roots, setRoots] = useState<Root[]>(rootsData.data || [])
@@ -58,7 +150,8 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
     defaultDays: '30'
   })
   const [isLoading, setIsLoading] = useState(false)
-  
+  const [updatingSettings, setUpdatingSettings] = useState<Set<number>>(new Set())
+
   // États pour la recherche
   const [rootSearch, setRootSearch] = useState('')
   const [customDelaySearch, setCustomDelaySearch] = useState('')
@@ -67,12 +160,12 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
   const hasInfoMessage = initialData.message && !initialData.settings?.length
 
   // Filtrer les racines basées sur la recherche
-  const filteredRoots = roots.filter(root => 
+  const filteredRoots = roots.filter(root =>
     root.name.toLowerCase().includes(rootSearch.toLowerCase())
   )
 
   // Filtrer les délais personnalisés basés sur la recherche
-  const filteredCustomDelays = customDelays.filter(delay => 
+  const filteredCustomDelays = customDelays.filter(delay =>
     delay.invoice.invoiceNumber.toLowerCase().includes(customDelaySearch.toLowerCase()) ||
     delay.invoice.accountNumber.toLowerCase().includes(customDelaySearch.toLowerCase()) ||
     (delay.invoice.customer?.name && delay.invoice.customer.name.toLowerCase().includes(customDelaySearch.toLowerCase()))
@@ -80,28 +173,42 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
 
   // Mettre à jour un délai existant
   const handleUpdateSetting = async (setting: RecoverySetting, newDays: number) => {
+    if (!newDays || newDays <= 0) {
+      toast.error('Veuillez entrer un délai valide (nombre positif)')
+      return
+    }
+
     try {
       setIsLoading(true)
-      
-      await updateRecoverySettings({
+      setUpdatingSettings(prev => new Set(prev).add(setting.id))
+
+      const response = await updateRecoverySettings({
         rootId: setting.rootId,
         defaultDays: newDays
       })
-      
-      // Mettre à jour l'état local
-      setSettings(prev => prev.map(s => 
-        s.id === setting.id 
-          ? { ...s, defaultDays: newDays }
-          : s
-      ))
-      
-      toast.success('Délai mis à jour avec succès')
-      
+
+      // Mettre à jour l'état local avec la réponse du serveur
+      if (response.success && response.setting) {
+        setSettings(prev => prev.map(s =>
+          s.id === setting.id
+            ? { ...s, ...response.setting }
+            : s
+        ))
+        toast.success('Délai mis à jour avec succès')
+      } else {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la mise à jour du délai')
       console.error(error)
     } finally {
       setIsLoading(false)
+      setUpdatingSettings(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(setting.id)
+        return newSet
+      })
     }
   }
 
@@ -109,17 +216,17 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
   const handleDeleteSetting = async (setting: RecoverySetting) => {
     try {
       setIsLoading(true)
-      
+
       await deleteRecoverySetting(setting.id)
-      
+
       // Mettre à jour l'état local
       setSettings(prev => prev.filter(s => s.id !== setting.id))
-      
+
       toast.success('Délai supprimé avec succès')
-      
+
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error)
-      
+
       // Afficher le message d'erreur spécifique si disponible
       const errorMessage = error.message || 'Erreur lors de la suppression du délai'
       toast.error(errorMessage)
@@ -132,14 +239,14 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
   const handleDeleteCustomDelay = async (customDelay: CustomDelay) => {
     try {
       setIsLoading(true)
-      
+
       await deleteCustomDelay(customDelay.id)
-      
+
       // Mettre à jour l'état local
       setCustomDelays(prev => prev.filter(d => d.id !== customDelay.id))
-      
+
       toast.success('Délai personnalisé supprimé avec succès')
-      
+
     } catch (error: any) {
       console.error('Erreur lors de la suppression du délai personnalisé:', error)
       toast.error(error.message || 'Erreur lors de la suppression du délai personnalisé')
@@ -157,7 +264,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
 
     try {
       setIsLoading(true)
-      
+
       const promises = newSetting.rootIds.map(async (rootId) => {
         const actualRootId = rootId === 'global' ? null : parseInt(rootId)
         return updateRecoverySettings({
@@ -167,18 +274,18 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
       })
 
       const results = await Promise.all(promises)
-      
+
       // Ajouter les nouveaux settings à l'état local
       setSettings(prev => [...prev, ...results.map((r: any) => r.setting)])
-      
+
       // Réinitialiser le formulaire
       setNewSetting({
         rootIds: [],
         defaultDays: '30'
       })
-      
+
       toast.success(`${results.length} délai(x) ajouté(s) avec succès`)
-      
+
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de l\'ajout des délais')
       console.error(error)
@@ -232,21 +339,21 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
   const handleCheckExpiredDelays = async () => {
     try {
       setIsLoading(true)
-      
+
       await checkExpiredDelays()
-      
+
       // Recharger les délais personnalisés après la vérification
       const customDelaysResponse = await fetch('/api/recovery/custom-delays', {
         credentials: 'include'
       })
       const customDelaysData = await customDelaysResponse.json()
-      
+
       if (customDelaysData.success) {
         setCustomDelays(customDelaysData.data)
       }
-      
+
       toast.success('Vérification des délais expirés terminée')
-      
+
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la vérification des délais expirés')
       console.error(error)
@@ -266,7 +373,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
               Configurez les délais de recouvrement par défaut pour optimiser votre gestion
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <Button
               onClick={handleCheckExpiredDelays}
@@ -312,7 +419,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
 
       {/* Interface horizontale avec deux panneaux */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* Panneau de gauche : Configuration */}
         <Card className="border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
           <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
@@ -331,7 +438,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                 <Label className="text-sm font-medium text-gray-700 mb-3 block">
                   Sélectionner les racines
                 </Label>
-                
+
                 {/* Recherche des racines */}
                 <div className="relative mb-3">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -347,20 +454,18 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                 {/* Liste des racines avec scroll */}
                 <div className="max-h-64 overflow-y-auto border rounded-lg p-2 space-y-2">
                   {/* Option globale */}
-                  <div className={`flex items-center space-x-2 p-3 border rounded-lg transition-colors ${
-                    isRootConfigured('global') 
-                      ? 'bg-gray-100 border-gray-200 opacity-60' 
-                      : 'hover:bg-blue-50'
-                  }`}>
+                  <div className={`flex items-center space-x-2 p-3 border rounded-lg transition-colors ${isRootConfigured('global')
+                    ? 'bg-gray-100 border-gray-200 opacity-60'
+                    : 'hover:bg-blue-50'
+                    }`}>
                     <Checkbox
                       id="global"
                       checked={newSetting.rootIds.includes('global')}
                       onCheckedChange={(checked) => handleRootSelection('global', checked as boolean)}
                       disabled={isRootConfigured('global')}
                     />
-                    <Label htmlFor="global" className={`flex items-center gap-2 ${
-                      isRootConfigured('global') ? 'cursor-not-allowed' : 'cursor-pointer'
-                    }`}>
+                    <Label htmlFor="global" className={`flex items-center gap-2 ${isRootConfigured('global') ? 'cursor-not-allowed' : 'cursor-pointer'
+                      }`}>
                       <Globe className={`h-4 w-4 ${isRootConfigured('global') ? 'text-gray-400' : 'text-blue-600'}`} />
                       <span className={`font-medium ${isRootConfigured('global') ? 'text-gray-500' : ''}`}>
                         Délai global
@@ -373,20 +478,18 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
 
                   {/* Options des racines */}
                   {filteredRoots.map((root) => (
-                    <div key={root.id} className={`flex items-center space-x-2 p-3 border rounded-lg transition-colors ${
-                      isRootConfigured(root.id.toString()) 
-                        ? 'bg-gray-100 border-gray-200 opacity-60' 
-                        : 'hover:bg-green-50'
-                    }`}>
+                    <div key={root.id} className={`flex items-center space-x-2 p-3 border rounded-lg transition-colors ${isRootConfigured(root.id.toString())
+                      ? 'bg-gray-100 border-gray-200 opacity-60'
+                      : 'hover:bg-green-50'
+                      }`}>
                       <Checkbox
                         id={`root-${root.id}`}
                         checked={newSetting.rootIds.includes(root.id.toString())}
                         onCheckedChange={(checked) => handleRootSelection(root.id.toString(), checked as boolean)}
                         disabled={isRootConfigured(root.id.toString())}
                       />
-                      <Label htmlFor={`root-${root.id}`} className={`flex items-center gap-2 ${
-                        isRootConfigured(root.id.toString()) ? 'cursor-not-allowed' : 'cursor-pointer'
-                      }`}>
+                      <Label htmlFor={`root-${root.id}`} className={`flex items-center gap-2 ${isRootConfigured(root.id.toString()) ? 'cursor-not-allowed' : 'cursor-pointer'
+                        }`}>
                         <Building2 className={`h-4 w-4 ${isRootConfigured(root.id.toString()) ? 'text-gray-400' : 'text-green-600'}`} />
                         <span className={`font-medium ${isRootConfigured(root.id.toString()) ? 'text-gray-500' : ''}`}>
                           Racine {root.name}
@@ -399,7 +502,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                       </Label>
                     </div>
                   ))}
-                  
+
                   {filteredRoots.length === 0 && rootSearch && (
                     <div className="text-center py-4 text-gray-500">
                       Aucune racine trouvée pour "{rootSearch}"
@@ -407,7 +510,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                   )}
                 </div>
               </div>
-              
+
               {/* Délai en jours */}
               <div>
                 <Label htmlFor="defaultDays" className="text-sm font-medium text-gray-700">
@@ -426,10 +529,10 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                   />
                 </div>
               </div>
-              
+
               {/* Bouton d'ajout */}
               <div>
-                <Button 
+                <Button
                   onClick={handleAddSettings}
                   disabled={isLoading || newSetting.rootIds.length === 0 || !newSetting.defaultDays}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 w-full"
@@ -486,69 +589,15 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                     </h3>
                     <div className="space-y-4">
                       {settings.filter(setting => setting).map((setting) => (
-                        <div key={setting.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-lg text-white ${getDelayColor(setting.rootId)}`}>
-                              {getDelayIcon(setting.rootId)}
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                                {setting.rootId === null ? 'Délai global' : `Racine ${setting.root?.name || setting.rootId}`}
-                                <Badge variant={setting.rootId === null ? "default" : "secondary"}>
-                                  {setting.rootId === null ? 'Global' : 'Spécifique'}
-                                </Badge>
-                              </h3>
-                              <p className="text-sm text-gray-600 flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Délai actuel: {setting.defaultDays} jours
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="Nouveau délai"
-                              className="w-24"
-                              min="1"
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  const input = e.target as HTMLInputElement
-                                  const newDays = parseInt(input.value)
-                                  if (!isNaN(newDays) && newDays > 0) {
-                                    handleUpdateSetting(setting, newDays)
-                                    input.value = ''
-                                  }
-                                }
-                              }}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const input = document.querySelector(`input[placeholder="Nouveau délai"]`) as HTMLInputElement
-                                const newDays = parseInt(input.value)
-                                if (!isNaN(newDays) && newDays > 0) {
-                                  handleUpdateSetting(setting, newDays)
-                                  input.value = ''
-                                }
-                              }}
-                              disabled={isLoading}
-                              className="hover:bg-blue-50 hover:border-blue-300"
-                            >
-                              <Save className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteSetting(setting)}
-                              disabled={isLoading}
-                              className="hover:bg-red-50 hover:border-red-300 text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                        <SettingItem
+                          key={setting.id}
+                          setting={setting}
+                          onUpdate={handleUpdateSetting}
+                          onDelete={handleDeleteSetting}
+                          isUpdating={updatingSettings.has(setting.id)}
+                          getDelayColor={getDelayColor}
+                          getDelayIcon={getDelayIcon}
+                        />
                       ))}
                     </div>
                   </div>
@@ -561,7 +610,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                       <FileText className="h-5 w-5 text-gray-600" />
                       Délais personnalisés par facture
                     </h3>
-                    
+
                     {/* Recherche des délais personnalisés */}
                     <div className="relative mb-4">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -604,7 +653,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -618,7 +667,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                           </div>
                         </div>
                       ))}
-                      
+
                       {filteredCustomDelays.length === 0 && customDelaySearch && (
                         <div className="text-center py-8 text-gray-500">
                           Aucun délai personnalisé trouvé pour "{customDelaySearch}"

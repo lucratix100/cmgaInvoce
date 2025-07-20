@@ -1,5 +1,4 @@
-"use client"
-
+'use client'
 import { Card } from "@/components/ui/card"
 import { FileText, User, Phone, Calendar, Truck, Building, Badge, Copy, Check } from "lucide-react"
 import { InvoiceStatus, InvoicePaymentStatus } from "@/types/enums"

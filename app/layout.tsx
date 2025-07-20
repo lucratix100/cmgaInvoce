@@ -5,7 +5,6 @@ import { getCurrentUser } from '@/actions/user'
 import Header from '@/components/navbar/navbar'
 import SideBar from '@/components/side-bar'
 import { Role } from '@/types/roles'
-import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import QueryProvider from '@/components/providers/query-provider'
 import { ChatProvider } from '@/components/chat/chat-provider'
@@ -16,6 +15,32 @@ export const metadata: Metadata = {
   title: process.env.NODE_ENV === 'development' ? 'DEV MODE' : 'CMGA Delivery',
   description: 'Suivi livraisons CMGA',
   generator: 'CMGA Delivery',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CMGA Delivery',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+  },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#000000',
 }
 
 export default async function RootLayout({

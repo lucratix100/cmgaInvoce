@@ -6,7 +6,6 @@ import { redirect } from "next/navigation"
 
 export default async function RecoverySettingsPage() {
   const user = await getCurrentUser()
-
   // Vérifier que l'utilisateur est admin
   if (user?.role !== Role.ADMIN) {
     redirect('/dashboard')
@@ -20,7 +19,7 @@ export default async function RecoverySettingsPage() {
   ])
 
   return (
-    <RecoverySettingsClient 
+    <RecoverySettingsClient
       initialData={settingsData}
       rootsData={rootsData}
       customDelaysData={customDelaysData}
