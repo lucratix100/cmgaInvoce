@@ -56,6 +56,7 @@ export type Invoice = {
         id: number;
         name: string;
     } | null;
+    totalReturnPayments?: number;
 }
 export type Bl = {
     id: string;

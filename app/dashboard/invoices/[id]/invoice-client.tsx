@@ -228,9 +228,9 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
       <div className="flex  flex-col space-y-2 mt-2">
         <div className="flex items-center w-full space-x-2">
           <div className="flex items-center">
-            <Button onClick={handleBack} className="flex items-center gap-2">
+            {/* <Button onClick={handleBack} className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />Retour aux factures
-            </Button>
+            </Button> */}
           </div>
           <div className="flex">
             {user?.role === Role.ADMIN && (
@@ -248,7 +248,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
                   {isUpdatingStatus ? 'Mise à jour...' : buttonConfig.text}
                 </Button>
                 {invoice.status !== InvoiceStatus.ANNULEE && invoice.statusPayment !== InvoicePaymentStatus.PAYE && <Button
-                  className={`flex items-center gap-2 bg-red-500 text-white hover:bg-red-600`}
+                  className={`flex ml-2 items-center gap-2 bg-red-400 text-white hover:bg-red-600 `}
                   onClick={handleCancelInvoiceClick}
                   disabled={isUpdatingStatus}
                 >

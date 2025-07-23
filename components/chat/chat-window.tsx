@@ -115,7 +115,7 @@ export default function ChatWindow({ user, accessToken }: ChatWindowProps) {
     if (!selectedConversation || !accessToken) return
 
     // Connexion au WebSocket
-    socketRef.current = io('http://localhost:3333/chat', {
+    socketRef.current = io('http://192.168.10.10:3333/chat', {
       auth: { token: accessToken }
     })
 

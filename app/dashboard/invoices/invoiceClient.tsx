@@ -7,6 +7,7 @@ import { useInvoicesWithStatistics } from "@/hooks/useInvoicesWithStatistics"
 import { useDepots } from "@/hooks/useDepots"
 import { useSearchParams } from "next/navigation"
 import { useMemo } from "react"
+import { useQueryClient } from '@tanstack/react-query';
 
 interface InvoiceClientProps {
   initialData: {
@@ -17,6 +18,7 @@ interface InvoiceClientProps {
 
 export default function InvoiceClient({ initialData }: InvoiceClientProps) {
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient();
 
   // Utiliser useMemo pour éviter les re-créations inutiles des paramètres
   const queryParams = useMemo(() => {
@@ -52,6 +54,22 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
   const isLoading = invoicesLoading
   const isEmpty = !isLoading && invoices.length === 0
 
+  // Fonction pour refetch après paiement avec mise à jour optimiste
+  const handlePaymentSuccess = (updatedFacture, invoiceNumber) => {
+    // 1. Optimistic update du cache
+    queryClient.setQueryData(['invoices-with-statistics', queryParams], (oldData) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        invoices: oldData.invoices.map(f =>
+          f.invoiceNumber === invoiceNumber ? { ...f, ...updatedFacture } : f
+        ),
+      };
+    });
+    // 2. Invalidation pour resynchroniser avec le serveur
+    queryClient.invalidateQueries({ queryKey: ['invoices-with-statistics'] });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -84,6 +102,7 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
                 isLoading={isLoading}
                 depots={initialData.depots}
                 statistics={statistics}
+                onPaymentSuccess={handlePaymentSuccess}
               />
             </div>
           </Card>

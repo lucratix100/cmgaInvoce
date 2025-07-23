@@ -1,17 +1,18 @@
 'use client'
 import { Card } from "@/components/ui/card"
-import { FileText, User, Phone, Calendar, Truck, Building, Badge, Copy, Check } from "lucide-react"
+import { FileText, User, Phone, Calendar, Truck, Building, Badge, Copy, Check, ArrowLeft } from "lucide-react"
 import { InvoiceStatus, InvoicePaymentStatus } from "@/types/enums"
 import { Invoice } from "@/types/invoice"
 import { useState } from "react"
-
+import { Button } from "../ui/button"
+import { useRouter } from "next/navigation"
 interface HeaderProps {
   invoice: Invoice
 }
 
 export default function Header({ invoice }: HeaderProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
-
+  const router = useRouter();
   if (!invoice) return null;
 
   const copyToClipboard = async (text: string, field: string) => {
@@ -22,6 +23,10 @@ export default function Header({ invoice }: HeaderProps) {
     } catch (err) {
       console.error('Erreur lors de la copie:', err);
     }
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   const getLivraisonBadge = (status: InvoiceStatus) => {
@@ -53,10 +58,12 @@ export default function Header({ invoice }: HeaderProps) {
         return <span className="text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded px-2 py-0.5">{status}</span>
     }
   }
-
   return (
     <Card className="border border-gray-200 bg-white shadow-sm">
       <div className="p-4">
+        <Button onClick={handleBack} className="p-2 mb-2 flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />Retour aux factures
+        </Button>
         {/* Ligne unique avec toutes les informations */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">

@@ -1,22 +1,24 @@
 "use client"
 
+import React, { useState, useMemo, useEffect, useRef } from "react"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
-import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon } from "lucide-react"
+import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon, PlusCircle, CheckCircle, XCircle } from "lucide-react"
 
 import Filtre from "../facture/filtre"
+import PaiementInlineForm from "./PaiementInlineForm";
 
-import { useState, useMemo, useEffect } from "react"
 import { Invoice } from "@/lib/types"
 import { useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
 import { exportFilteredToExcel } from "@/lib/excel-export"
 import { toast } from "@/components/ui/use-toast"
 import { InvoiceStatus } from "@/types/enums"
-import { getPaymentHistory } from "@/actions/payment"
+import { getPaymentHistory, addPayment } from "@/actions/payment"
 import { PaymentMethod } from "@/types/enums"
+import { useRouter } from "next/navigation";
 
 interface RecouvrementTableProps {
   factures: Invoice[];
@@ -30,9 +32,12 @@ interface RecouvrementTableProps {
     };
     byStatus: Record<string, { count: number; amount: number }>;
   };
+  onPaymentSuccess?: (updatedFacture: Invoice, invoiceNumber: string) => void;
 }
 
-export default function RecouvrementTable({ factures, user, isLoading = false, depots, statistics }: RecouvrementTableProps) {
+export default function RecouvrementTable({ factures: invoices, user, isLoading = false, depots, statistics, onPaymentSuccess }: RecouvrementTableProps) {
+  const factures = invoices;
+  const router = useRouter();
   console.log({ factures })
   const searchParams = useSearchParams()
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -41,39 +46,27 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [returnPaymentsData, setReturnPaymentsData] = useState<Record<string, number>>({});
 
+  // Ajout des états pour le formulaire de paiement inline
+  const [openPaymentRow, setOpenPaymentRow] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [paymentComment, setPaymentComment] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
+
+  // Ajout d'un état pour le feedback de succès/erreur par ligne
+  const [successRow, setSuccessRow] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>("");
+
+  // Tri date de livraison
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+
   // Récupération des paramètres directement depuis l'URL
   const paymentStatus = searchParams.get('paymentStatus') || "tous";
   const deliveryStatus = searchParams.get('status') || "tous";
   const searchQuery = searchParams.get('search') || "";
   const selectedDepot = searchParams.get('depot') || "tous";
 
-  // Récupérer les paiements de retour pour toutes les factures
-  useEffect(() => {
-    const fetchReturnPayments = async () => {
-      const returnPayments: Record<string, number> = {};
-      
-      for (const facture of factures) {
-        try {
-          const payments = await getPaymentHistory(facture.invoiceNumber);
-          const totalReturnPayments = payments
-            .filter((payment: any) => payment.paymentMethod === PaymentMethod.RETOUR)
-            .reduce((sum: number, payment: any) => sum + payment.amount, 0);
-          
-          if (totalReturnPayments > 0) {
-            returnPayments[facture.invoiceNumber] = totalReturnPayments;
-          }
-        } catch (error) {
-          console.error(`Erreur lors de la récupération des paiements pour ${facture.invoiceNumber}:`, error);
-        }
-      }
-      
-      setReturnPaymentsData(returnPayments);
-    };
-
-    if (factures.length > 0) {
-      fetchReturnPayments();
-    }
-  }, [factures]);
+  // Supprimer le useEffect de récupération des paiements de retour
 
   const formatMontant = (montant: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(montant);
@@ -87,13 +80,48 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
     });
   };
 
+  const calculateInvoiceAge = (facture: Invoice) => {
+    // Déterminer la date de référence (livraison ou dernier BL)
+    let referenceDate: Date | null = null;
+    
+    if (facture.lastValidatedBl?.createdAt) {
+      referenceDate = new Date(facture.lastValidatedBl.createdAt);
+    } else if (facture.deliveredAt) {
+      referenceDate = new Date(facture.deliveredAt);
+    }
+    
+    if (!referenceDate) {
+      return null; // Pas de date de livraison
+    }
+    
+    const today = new Date();
+    const diffTime = today.getTime() - referenceDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+
+  const getAgeColor = (age: number) => {
+    if (age <= 2) return "text-green-600";
+    if (age <= 7) return "text-amber-600";
+    if (age <= 15) return "text-orange-600";
+    return "text-red-600";
+  };
+
+  const formatAge = (age: number) => {
+    if (age === 0) return "Aujourd'hui";
+    if (age === 1) return "1 jour";
+    return `${age} jours`;
+  };
+
   const getStatusColor = (status: string) => {
     const colors = {
       // Statuts de livraison selon l'enum InvoiceStatus
       "EN ATTENTE DE LIVRAISON": "bg-amber-100 text-amber-700 border-amber-200",
       "EN COURS DE LIVRAISON": "bg-blue-100 text-blue-700 border-blue-200",
       "LIVRÉE": "bg-green-100 text-green-800 border-green-200",
-      "RETOUR": "bg-red-100 text-red-700 border-red-200",
+      "RETOUR": "text-gray-800  bg-transparent border-gray-300",
+      "ANNULÉE": "text-gray-800  bg-transparent border-gray-300",
       "RÉGULE": "bg-purple-100 text-purple-700 border-purple-200",
       // Statuts de paiement
       "PAYÉ": "bg-green-100 w-[80px] items-center justify-center rounded-none text-green-700 border-green-200",
@@ -157,7 +185,32 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
 
   const handleCopyToClipboard = async (text: string, fieldType: string, factureId: number) => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Vérifier si on est en contexte sécurisé (HTTPS ou localhost)
+      const isSecureContext = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      
+      if (isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+        // Utiliser l'API moderne si disponible et en contexte sécurisé
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Méthode de fallback pour les contextes non sécurisés (comme IP locale)
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (!successful) {
+          throw new Error('Fallback copy method failed');
+        }
+      }
+      
       setCopiedField(`${fieldType}-${factureId}`);
       toast({
         title: "Copié !",
@@ -168,7 +221,7 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
       console.error('Erreur lors de la copie:', error);
       toast({
         title: "Erreur de copie",
-        description: "Impossible de copier dans le presse-papiers.",
+        description: "Impossible de copier dans le presse-papiers. Vérifiez que votre navigateur autorise l'accès au presse-papiers.",
         variant: "destructive",
       });
     }
@@ -192,6 +245,74 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
       return matchesPaymentStatus && matchesDeliveryStatus && matchesDepot;
     });
   }, [factures, paymentStatus, deliveryStatus, selectedDepot]);
+
+  // Tri sur la date de livraison
+  const sortedFactures = useMemo(() => {
+    let data = [...filteredFactures];
+    if (sortOrder) {
+      data.sort((a, b) => {
+        const dateA = a.lastValidatedBl?.createdAt
+          ? new Date(a.lastValidatedBl.createdAt).getTime()
+          : a.deliveredAt
+            ? new Date(a.deliveredAt).getTime()
+            : 0;
+        const dateB = b.lastValidatedBl?.createdAt
+          ? new Date(b.lastValidatedBl.createdAt).getTime()
+          : b.deliveredAt
+            ? new Date(b.deliveredAt).getTime()
+            : 0;
+        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+      });
+    }
+    return data;
+  }, [filteredFactures, sortOrder]);
+
+  const montantInputRef = useRef<HTMLInputElement>(null);
+  const [paymentProgress, setPaymentProgress] = useState<number>(0);
+
+  useEffect(() => {
+    if (openPaymentRow && montantInputRef.current) {
+      montantInputRef.current.focus();
+      // Pré-remplir avec le montant restant
+      const facture = factures.find(f => f.invoiceNumber === openPaymentRow);
+      if (facture) {
+        setPaymentAmount(facture.remainingAmount.toString());
+      }
+    }
+  }, [openPaymentRow, factures]);
+
+  const paymentRowRef = useRef<HTMLTableCellElement>(null);
+
+  // Fermer le formulaire si clic en dehors
+  useEffect(() => {
+    if (!openPaymentRow) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (paymentRowRef.current && !paymentRowRef.current.contains(event.target as Node)) {
+        setOpenPaymentRow(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openPaymentRow]);
+
+  // Callback pour rafraîchir la page après paiement
+  const handlePaymentSuccess = (updatedFacture: Invoice, invoiceNumber: string) => {
+    setOpenPaymentRow(null);
+    setTimeout(() => setSuccessRow(null), 2000);
+    if (onPaymentSuccess) {
+      onPaymentSuccess(updatedFacture, invoiceNumber);
+    } else {
+      router.refresh();
+    }
+  };
+
+  // Ajoute une fonction pour la couleur de fond du rond d'âge
+  const getAgeBgColor = (age: number) => {
+    if (age <= 2) return "bg-green-100 text-green-800";
+    if (age <= 7) return "bg-amber-100 text-amber-800";
+    if (age <= 15) return "bg-orange-100 text-orange-800";
+    return "bg-red-100 text-red-800";
+  };
 
   return (
     <>
@@ -278,26 +399,52 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                   <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
                   <TableHead className="font-semibold text-primary-900">Date facture</TableHead>
                   <TableHead className="font-semibold text-primary-900">Client</TableHead>
-                  <TableHead className="font-semibold text-primary-900">Date de livraison</TableHead>
+                  <TableHead className="font-semibold text-primary-900">
+                    Date de livraison
+                    <button
+                      type="button"
+                      className="ml-1 text-xl text-primary-700 hover:text-primary-900 focus:outline-none"
+                      onClick={() =>
+                        setSortOrder((prev) =>
+                          prev === "asc" ? "desc" : prev === "desc" ? null : "asc"
+                        )
+                      }
+                      title="Trier par date de livraison"
+                    >
+                      {sortOrder === "asc" ? "▲" : sortOrder === "desc" ? "▼" : "⇅"}
+                    </button>
+                  </TableHead>
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                    <TableHead className="font-semibold text-primary-900">Âge</TableHead>
+                  )}
                   <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                    <TableHead className="font-semibold text-primary-900">Action</TableHead>
+                  )}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                    <TableHead className="font-semibold text-primary-900">Détail</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredFactures.map((facture) => {
-                  const totalReturnPayments = returnPaymentsData[facture.invoiceNumber] || 0;
-                  
+                {sortedFactures.map((facture) => {
+                  const totalReturnPayments = facture.totalReturnPayments || 0;
+                  const isPaymentOpen = openPaymentRow === facture.invoiceNumber;
+                  const montantPaye = facture.totalTtc - facture.remainingAmount;
                   return (
+                    <React.Fragment key={facture.id}>
                   <TableRow
                     key={facture.id}
-                    className="hover:bg-primary-50/30 cursor-pointer transition-colors duration-200 group"
-                    onClick={() => {
-                      const href = user && user.role !== Role.ADMIN
-                        ? `/factures/${facture.invoiceNumber}`
-                        : `/dashboard/invoices/${facture.invoiceNumber}`;
-                      window.location.href = href;
-                    }}
+                    className={
+                      isPaymentOpen
+                        ? "z-10 ring-2 ring-primary-400 shadow-xl bg-white"
+                        : openPaymentRow
+                          ? "opacity-50 pointer-events-none blur-[1.5px] select-none"
+                          : "hover:bg-primary-50/30 transition-colors duration-200 group"
+                    }
+                    style={{ transition: 'all 0.2s' }}
                   >
                     <TableCell>
                     </TableCell>
@@ -358,27 +505,48 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                     <TableCell>{formatDate(facture.date)}</TableCell>
                     <TableCell>{facture.customer?.name}</TableCell>
                     <TableCell>
-                      {facture.lastValidatedBl ? (
-                        <div className="flex flex-col">
-                          <span className="text-xs text-gray-500 2xl:text-sm text-primary-700">
-                            {formatDate(facture.lastValidatedBl.createdAt)}
-                          </span>
-                        </div>
-                      ) : facture.deliveredAt ? (
-                        <span className="text-green-600 font-medium 2xl:text-sm text-green-700">
+                          {facture.lastValidatedBl ? (
+                            <div className="flex flex-col">
+                              <span className="text-xs text-gray-500 2xl:text-sm text-primary-700">
+                                {formatDate(facture.lastValidatedBl.createdAt)}
+                              </span>
+                            </div>
+                          ) : facture.deliveredAt ? (
+                            <span className="text-green-600 font-medium 2xl:text-sm text-green-700">
                           {formatDate(facture.deliveredAt.toString())}
                         </span>
                       ) : (
                         <span className="text-gray-400 italic">Non livrée</span>
                       )}
                     </TableCell>
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                      <TableCell>
+                        {(() => {
+                          // Ne pas afficher l'âge pour RETOUR, REGULE, ou si la facture est payée
+                          if ([InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) || 
+                              facture.statusPayment?.toLowerCase() === 'payé') {
+                            return <span className="text-gray-400 italic">-</span>;
+                          }
+                          const age = calculateInvoiceAge(facture);
+                          if (age === null) {
+                            return <span className="text-gray-400 italic">-</span>;
+                          }
+                          // Afficher un rond coloré avec fond et texte foncé
+                          return (
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm ${getAgeBgColor(age)}`}>
+                              {age}
+                            </span>
+                          );
+                        })()}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Badge className={getStatusColor(facture.status)}>
                         {facture.status.replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>
                     {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
-                      {facture.status !== InvoiceStatus.RETOUR ? <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
+                      {facture.status !== InvoiceStatus.RETOUR && facture.status !== InvoiceStatus.ANNULEE ? <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
                         {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
                       </Badge> : "-"}
                     </TableCell>}
@@ -393,17 +561,64 @@ export default function RecouvrementTable({ factures, user, isLoading = false, d
                                   +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
                                 </span>
                               )}
-                                {totalReturnPayments > 0 && (
-                                  <span className="text-red-600 text-xs font-semibold ml-1">
-                                    -{formatMontant(totalReturnPayments)}
-                                  </span>
-                                )}
                             </>
                             : formatMontant(facture.remainingAmount || 0)}
+                              {totalReturnPayments > 0 && (
+                                <span className="text-red-600 text-xs font-semibold ml-1">
+                                  -{formatMontant(totalReturnPayments)}
+                                </span>
+                              )}
                         </span>
                       </div>
                     </TableCell>}
+                        {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                          <TableCell>
+                            {!isPaymentOpen ? (
+                              ![InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) ? (
+                                <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={e => {e.stopPropagation(); setOpenPaymentRow(facture.invoiceNumber); setPaymentAmount(""); setPaymentMethod(""); setPaymentComment(""); setErrorMsg("");}}>
+                                  <PlusCircle className="w-4 h-4 mr-1 text-primary-600" /> Ajouter paiement
+                                </Button>
+                              ) : (
+                                <span className="text-gray-400 italic flex justify-center">-</span>
+                              )
+                            ) : null}
+                            {successRow === facture.invoiceNumber && (
+                              <span className="flex items-center text-green-600 text-xs mt-1 animate-fade-in">
+                                <CheckCircle className="w-4 h-4 mr-1" /> Paiement ajouté !
+                              </span>
+                            )}
+                          </TableCell>
+                        )}
+                        {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-blue-700 hover:text-blue-900"
+                              onClick={e => {
+                                e.stopPropagation();
+                                const href = user && user.role !== Role.ADMIN
+                                  ? `/factures/${facture.invoiceNumber}`
+                                  : `/dashboard/invoices/${facture.invoiceNumber}`;
+                                window.location.href = href;
+                              }}
+                              title="Voir le détail de la facture"
+                            >
+                              <Eye className="w-5 h-5" />
+                            </Button>
+                          </TableCell>
+                        )}
                   </TableRow>
+                      {isPaymentOpen && (
+                        <PaiementInlineForm
+                          facture={facture}
+                          isOpen={isPaymentOpen}
+                          onClose={() => setOpenPaymentRow(null)}
+                          montantPaye={montantPaye}
+                          onSuccess={(updatedFacture) => handlePaymentSuccess(updatedFacture, facture.invoiceNumber)}
+                        />
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </TableBody>

@@ -11,6 +11,7 @@ import {
   Truck,
   Loader2,
   CheckCheck,
+  X,
 } from "lucide-react";
 import PaimentDialog from "@/components/paiment-dialog";
 import Notification from "@/components/notification-dialog";
@@ -35,6 +36,7 @@ import { toast } from "sonner";
 import { markInvoiceAsDeliveredWithReturn } from "@/actions/invoice";
 import { getPaymentHistory } from "@/actions/payment";
 import { InvoiceStatus, PaymentMethod } from "@/types/enums";
+import { updateInvoiceById } from "@/actions/invoice";
 
 interface InvoiceClientProps {
   invoice: Invoice;
@@ -48,6 +50,9 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
   const [isMarkAsReturnDialogOpen, setIsMarkAsReturnDialogOpen] = useState(false);
   const [returnComment, setReturnComment] = useState("");
   const [isMarkingAsReturn, setIsMarkingAsReturn] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const showSavePaymentButton = [InvoiceStatus.ANNULEE, InvoiceStatus.RETOUR, InvoiceStatus.REGULE].includes(invoice.status) ;
 
   // Récupérer les paiements pour vérifier s'il y a des paiements de type RETOUR
   const { data: payments = [] } = useQuery({
@@ -107,6 +112,27 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
     }
   };
 
+  // Fonction pour ouvrir le dialogue de confirmation d'annulation
+  const handleCancelInvoiceClick = () => {
+    setIsCancelDialogOpen(true);
+  };
+
+  // Fonction pour annuler la facture
+  const handleCancelInvoice = async (invoiceId: number) => {
+    setIsUpdatingStatus(true);
+    setIsCancelDialogOpen(false);
+    try {
+      await updateInvoiceById({ id: invoiceId, status: InvoiceStatus.ANNULEE });
+      toast.success('Facture annulée avec succès');
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast.error(error.message || 'Erreur lors de la mise à jour du statut');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   // Vérifier si on peut marquer comme livrée avec retour
   const canMarkAsDeliveredWithReturn = () => {
     if (!invoice) return false;
@@ -117,6 +143,7 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
     
     // Vérifier que la facture est payée
     const isPaid = invoice.statusPayment === 'payé';
+
     
     // Vérifier qu'il y a au moins un paiement de type RETOUR
     const hasReturnPayment = payments.some((payment: any) => 
@@ -133,16 +160,14 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
     <div className=" w-full px-4 sm:px-6 lg:px-8">
       <div className="flex  flex-col space-y-2 mt-2">
         <div className="flex items-center space-x-4">
-          <Button onClick={handleBack} className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" /> Retour aux factures
-          </Button>
           <div className="flex items-center w-full gap-2 justify-end">
             {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
               <>
-                <PaimentDialog 
+                {!showSavePaymentButton && (<PaimentDialog 
                   invoiceNumber={invoice.invoiceNumber} 
                   onSuccess={handlePaymentSuccess}
                 />
+                )}
                 {canMarkAsDeliveredWithReturn() && (
                   <Button
                     variant="outline"
@@ -151,6 +176,21 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
                   >
                     <CheckCheck className="h-4 w-4 mr-2" />
                     Marquer livrée
+                  </Button>
+                )}
+                {/* AJOUT : Bouton annuler la facture */}
+                {invoice.status !== InvoiceStatus.ANNULEE && invoice.statusPayment !== "payé" && (
+                  <Button
+                    className="flex ml-2 items-center gap-2 bg-red-400 text-white hover:bg-red-600"
+                    onClick={handleCancelInvoiceClick}
+                    disabled={isUpdatingStatus}
+                  >
+                    {isUpdatingStatus ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <X className="h-4 w-4" />
+                    )}
+                    {isUpdatingStatus ? 'Mise à jour...' : 'Annuler la facture'}
                   </Button>
                 )}
                 <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsNotificationOpen(true)}>
@@ -169,6 +209,28 @@ export default function InvoiceClient({ invoice, user }: InvoiceClientProps) {
                         // Rafraîchir les données si nécessaire
                       }}
                     />
+                  </DialogContent>
+                </Dialog>
+                {/* AJOUT : Dialogue de confirmation d'annulation */}
+                <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                  <DialogContent className="bg-white">
+                    <DialogHeader>
+                      <DialogTitle>Confirmation d'annulation</DialogTitle>
+                      <DialogDescription>
+                        Êtes-vous sûr de vouloir annuler la facture {invoice.invoiceNumber} ? Cette action est irréversible.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                        Annuler
+                      </Button>
+                      <Button
+                        onClick={() => handleCancelInvoice(invoice.id)}
+                        className="bg-red-500 text-white hover:bg-red-600"
+                      >
+                        Confirmer l'annulation
+                      </Button>
+                    </DialogFooter>
                   </DialogContent>
                 </Dialog>
               </>

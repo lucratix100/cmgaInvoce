@@ -140,6 +140,40 @@ const formatTotalTTC = (totalTtc: any) => {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
 };
 
+// Fonction pour formater la date de livraison
+const formatDeliveryDate = (deliveredAt: any, bls: any[], status: string) => {
+  // Si la facture est complètement livrée, utiliser deliveredAt
+  if (status === 'livrée' && deliveredAt) {
+    try {
+      return new Date(deliveredAt).toLocaleDateString('fr-FR');
+    } catch (error) {
+      return '';
+    }
+  }
+  
+  // Si la facture n'est pas complètement livrée mais qu'il y a des BL livrés
+  if (bls && bls.length > 0) {
+    const validBls = bls.filter(bl => bl.status === 'validée');
+    if (validBls.length > 0) {
+      // Trier les BL par date de création (du plus récent au plus ancien)
+      const sortedBls = validBls.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      const lastBl = sortedBls[0]; // Le plus récent
+      if (lastBl && lastBl.createdAt) {
+        try {
+          return new Date(lastBl.createdAt).toLocaleDateString('fr-FR') + ' (BL partiel)';
+        } catch (error) {
+          return '';
+        }
+      }
+    }
+  }
+  
+  return '';
+};
+
 // Fonction pour calculer la progression de paiement
 // const calculatePaymentProgress = (totalTtc: any, remainingAmount: any) => {
 //   const total = Number(totalTtc);
@@ -193,9 +227,11 @@ export const exportToExcel = async (data: ExcelExportData) => {
       'Téléphone client': facture.customer?.phone || 'Non renseigné',
       'Montant total TTC': formatTotalTTC(facture.totalTtc),
       'État livraison': facture.status.replace("_", " ").toUpperCase(),
+      'Date de livraison': formatDeliveryDate(facture.deliveredAt, details.bls, facture.status),
       'Informations BL': formatBlInfo(details.bls),
       'Chauffeur': formatDriverInfo(details.bls) || 'Pas encore lié à un BL',
       'Escompte': formatODPaymentInfo(details.payments),
+      
     };
 
     // Ajouter les colonnes spécifiques au recouvrement si l'utilisateur a les droits
@@ -234,9 +270,10 @@ export const exportToExcel = async (data: ExcelExportData) => {
     { wch: 15 }, // Téléphone client
     { wch: 18 }, // Montant total TTC
     { wch: 20 }, // État livraison
+    { wch: 15 }, // Date de livraison
     { wch: 35 }, // Informations BL
     { wch: 25 }, // Chauffeur
-    { wch: 40 }, // Paiements OD
+    { wch: 15 }, // Escompte
   ];
 
   // Ajouter les largeurs pour les colonnes spécifiques au recouvrement

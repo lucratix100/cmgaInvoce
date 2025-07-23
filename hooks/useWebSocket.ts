@@ -75,7 +75,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
       const io = socketIO.default || socketIO
       
       // Créer la connexion WebSocket en utilisant API_URL
-      const socket = io(process.env.API_URL || 'http://localhost:3333', {
+      const socket = io(process.env.API_URL || 'http://192.168.10.10:3333', {
         auth: {
           token: accessToken
         },
