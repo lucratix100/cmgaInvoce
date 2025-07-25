@@ -17,19 +17,19 @@ export default class InvoicesController {
         const user = await auth.authenticate()
         try {
             const { status, search, startDate, endDate, depot } = request.qs()
-            
+
             let patterns: string[] = []
             let assignedDepots: number[] = []
-            
+
             // Si l'utilisateur est RECOUVREMENT, on récupère ses affectations
             if (user.$original.role === Role.RECOUVREMENT) {
                 // 1. Vérifier d'abord les affectations par dépôt (priorité)
                 const depotAssignments = await DepotAssignment.query()
                     .where('user_id', user.$original.id)
                     .where('is_active', true)
-                
+
                 assignedDepots = depotAssignments.map(da => da.depotId)
-                
+
                 // 2. Récupérer les affectations par racine (pour la logique de filtrage)
                 const assignedInvoices = await Assignment
                     .query()
@@ -48,7 +48,7 @@ export default class InvoicesController {
                     })
                 }
             }
-            
+
             let query = Invoice.query()
                 .preload('customer')
                 .preload('payments')
@@ -57,12 +57,12 @@ export default class InvoicesController {
                 .whereHas('depot', (depotQuery) => {
                     depotQuery.where('isActive', true)
                 })
-                
+
             // Filtre sur le statut
             if (status && Object.values(InvoiceStatus).includes(status)) {
                 query = query.where('status', status)
             }
-            
+
             // Filtrage par dépôt
             if (depot && depot !== 'tous') {
                 query = query.where('depot_id', depot)
@@ -70,7 +70,7 @@ export default class InvoicesController {
                 // Si pas ADMIN ou RECOUVREMENT, on filtre sur le dépôt de l'utilisateur
                 query = query.where('depot_id', user.$original.depotId)
             }
-            
+
             // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
             if (user.$original.role === Role.RECOUVREMENT) {
                 if (assignedDepots.length > 0) {
@@ -79,21 +79,21 @@ export default class InvoicesController {
                 } else if (patterns.length > 0) {
                     // Si pas d'affectation par dépôt, utiliser les patterns de racine
                     // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                    
+
                     // Récupérer tous les dépôts affectés à d'autres utilisateurs
                     const allDepotAssignments = await DepotAssignment.query()
                         .where('is_active', true)
                         .whereNot('user_id', user.$original.id)
-                    
+
                     const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                    
+
                     query = query.where((builder) => {
                         // Appliquer les patterns de racine
                         patterns.forEach((prefix, index) => {
                             const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                             builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                         })
-                        
+
                         // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                         if (excludedDepotIds.length > 0) {
                             builder.whereNotIn('depot_id', excludedDepotIds)
@@ -155,7 +155,10 @@ export default class InvoicesController {
                             return dateB - dateA
                         })[0]
                     : null
-                
+
+
+                console.log(invoice.deliveredAt ? Math.floor(Math.abs(invoice.deliveredAt.diffNow().as('days'))) : 0, "deliveredSince");
+
                 return {
                     id: invoice.id,
                     invoiceNumber: invoice.invoiceNumber,
@@ -171,6 +174,7 @@ export default class InvoicesController {
                     statusPayment: invoice.statusPayment,
                     totalTtc: invoice.totalTTC,
                     deliveredAt: invoice.deliveredAt,
+                    deliveredSince: invoice.deliveredAt ? Math.floor(Math.abs(invoice.deliveredAt.diffNow().as('days'))) : 0,
                     lastValidatedBl: lastValidatedBl ? {
                         id: lastValidatedBl.id,
                         createdAt: lastValidatedBl.createdAt.toISO(),
@@ -223,16 +227,16 @@ export default class InvoicesController {
         const user = await ctx.auth.authenticate()
         let patterns: string[] = []
         let assignedDepots: number[] = []
-        
+
         // Si l'utilisateur est RECOUVREMENT, on récupère ses affectations
         if (user.$original.role === Role.RECOUVREMENT) {
             // 1. Vérifier d'abord les affectations par dépôt (priorité)
             const depotAssignments = await DepotAssignment.query()
                 .where('user_id', user.$original.id)
                 .where('is_active', true)
-            
+
             assignedDepots = depotAssignments.map(da => da.depotId)
-            
+
             // 2. Récupérer les affectations par racine
             const assignedInvoices = await Assignment
                 .query()
@@ -253,7 +257,7 @@ export default class InvoicesController {
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
-        
+
         // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
         if (user.$original.role === Role.RECOUVREMENT) {
             if (assignedDepots.length > 0) {
@@ -262,21 +266,21 @@ export default class InvoicesController {
             } else if (patterns.length > 0) {
                 // Si pas d'affectation par dépôt, utiliser les patterns de racine
                 // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                
+
                 // Récupérer tous les dépôts affectés à d'autres utilisateurs
                 const allDepotAssignments = await DepotAssignment.query()
                     .where('is_active', true)
                     .whereNot('user_id', user.$original.id)
-                
+
                 const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                
+
                 query = query.where((builder) => {
                     // Appliquer les patterns de racine
                     patterns.forEach((prefix, index) => {
                         const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                         builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                     })
-                    
+
                     // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                     if (excludedDepotIds.length > 0) {
                         builder.whereNotIn('depot_id', excludedDepotIds)
@@ -284,7 +288,7 @@ export default class InvoicesController {
                 })
             }
         }
-        
+
         const invoice = await query.where('id', ctx.params.id).first()
         if (!invoice) {
             return ctx.response.status(404).json({ message: 'Invoice not found' })
@@ -300,25 +304,25 @@ export default class InvoicesController {
 
         const user = await ctx.auth.authenticate()
         try {
-        let query = Invoice.query()
-            .whereHas('depot', (depotQuery) => {
-                depotQuery.where('isActive', true)
-            })
-        if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
-            query = query.where('depot_id', user.$original.depotId)
-        }
-        const invoice = await query.where('id', ctx.params.id).first()
-        if (!invoice) {
-            return ctx.response.status(404).json({ message: 'Invoice not found' })
-        }
+            let query = Invoice.query()
+                .whereHas('depot', (depotQuery) => {
+                    depotQuery.where('isActive', true)
+                })
+            if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
+                query = query.where('depot_id', user.$original.depotId)
+            }
+            const invoice = await query.where('id', ctx.params.id).first()
+            if (!invoice) {
+                return ctx.response.status(404).json({ message: 'Invoice not found' })
+            }
             if (ctx.request.body().status.toUpperCase() === InvoiceStatus.ANNULEE) {
                 invoice.merge({ status: InvoiceStatus.ANNULEE, totalTTC: 0, statusPayment: InvoicePaymentStatus.NON_PAYE })
             }
 
-        invoice.merge(ctx.request.body())
+            invoice.merge(ctx.request.body())
 
-        await invoice.save()
-        return invoice
+            await invoice.save()
+            return invoice
         } catch (error) {
             console.error('Erreur détaillée:', error)
             return ctx.response.status(500).json({
@@ -348,9 +352,9 @@ export default class InvoicesController {
             const depotAssignments = await DepotAssignment.query()
                 .where('user_id', user.$original.id)
                 .where('is_active', true)
-            
+
             assignedDepots = depotAssignments.map(da => da.depotId)
-            
+
             // 2. Récupérer les affectations par racine
             const assignedInvoices = await Assignment
                 .query()
@@ -358,13 +362,13 @@ export default class InvoicesController {
                 .where('is_active', true)
 
             patterns = assignedInvoices.map(a => a.pattern)
-            
+
             // Si l'utilisateur RECOUVREMENT n'a aucune affectation, retourner un tableau vide
             if (assignedDepots.length === 0 && patterns.length === 0) {
                 return ctx.response.json([])
             }
         }
-        
+
         let query = Invoice.query()
             .whereHas('depot', (depotQuery) => {
                 depotQuery.where('isActive', true)
@@ -372,7 +376,7 @@ export default class InvoicesController {
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
-        
+
         // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
         if (user.$original.role === Role.RECOUVREMENT) {
             if (assignedDepots.length > 0) {
@@ -381,21 +385,21 @@ export default class InvoicesController {
             } else if (patterns.length > 0) {
                 // Si pas d'affectation par dépôt, utiliser les patterns de racine
                 // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                
+
                 // Récupérer tous les dépôts affectés à d'autres utilisateurs
                 const allDepotAssignments = await DepotAssignment.query()
                     .where('is_active', true)
                     .whereNot('user_id', user.$original.id)
-                
+
                 const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                
+
                 query = query.where((builder) => {
                     // Appliquer les patterns de racine
                     patterns.forEach((prefix, index) => {
                         const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                         builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                     })
-                    
+
                     // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                     if (excludedDepotIds.length > 0) {
                         builder.whereNotIn('depot_id', excludedDepotIds)
@@ -419,9 +423,9 @@ export default class InvoicesController {
                 const depotAssignments = await DepotAssignment.query()
                     .where('user_id', user.$original.id)
                     .where('is_active', true)
-                
+
                 assignedDepots = depotAssignments.map(da => da.depotId)
-                
+
                 // 2. Récupérer les affectations par racine
                 const assignedInvoices = await Assignment
                     .query()
@@ -429,7 +433,7 @@ export default class InvoicesController {
                     .where('is_active', true)
 
                 patterns = assignedInvoices.map(a => a.pattern)
-                
+
                 // Si l'utilisateur RECOUVREMENT n'a aucune affectation, retourner un tableau vide
                 if (assignedDepots.length === 0 && patterns.length === 0) {
                     return ctx.response.json([])
@@ -443,7 +447,7 @@ export default class InvoicesController {
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
-            
+
             // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
             if (user.$original.role === Role.RECOUVREMENT) {
                 if (assignedDepots.length > 0) {
@@ -452,21 +456,21 @@ export default class InvoicesController {
                 } else if (patterns.length > 0) {
                     // Si pas d'affectation par dépôt, utiliser les patterns de racine
                     // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                    
+
                     // Récupérer tous les dépôts affectés à d'autres utilisateurs
                     const allDepotAssignments = await DepotAssignment.query()
                         .where('is_active', true)
                         .whereNot('user_id', user.$original.id)
-                    
+
                     const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                    
+
                     query = query.where((builder) => {
                         // Appliquer les patterns de racine
                         patterns.forEach((prefix, index) => {
                             const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                             builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                         })
-                        
+
                         // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                         if (excludedDepotIds.length > 0) {
                             builder.whereNotIn('depot_id', excludedDepotIds)
@@ -474,7 +478,7 @@ export default class InvoicesController {
                     })
                 }
             }
-            
+
             const invoices = await query.where('depot_id', ctx.params.id)
             return invoices
         } catch (error) {
@@ -495,9 +499,9 @@ export default class InvoicesController {
             const depotAssignments = await DepotAssignment.query()
                 .where('user_id', user.$original.id)
                 .where('is_active', true)
-            
+
             assignedDepots = depotAssignments.map(da => da.depotId)
-            
+
             // 2. Récupérer les affectations par racine
             const assignedInvoices = await Assignment
                 .query()
@@ -505,13 +509,13 @@ export default class InvoicesController {
                 .where('is_active', true)
 
             patterns = assignedInvoices.map(a => a.pattern)
-            
+
             // Si l'utilisateur RECOUVREMENT n'a aucune affectation, retourner un tableau vide
             if (assignedDepots.length === 0 && patterns.length === 0) {
                 return ctx.response.json([])
             }
         }
-        
+
         let query = Invoice.query()
             .whereHas('depot', (depotQuery) => {
                 depotQuery.where('isActive', true)
@@ -519,7 +523,7 @@ export default class InvoicesController {
         if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
             query = query.where('depot_id', user.$original.depotId)
         }
-        
+
         // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
         if (user.$original.role === Role.RECOUVREMENT) {
             if (assignedDepots.length > 0) {
@@ -528,21 +532,21 @@ export default class InvoicesController {
             } else if (patterns.length > 0) {
                 // Si pas d'affectation par dépôt, utiliser les patterns de racine
                 // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                
+
                 // Récupérer tous les dépôts affectés à d'autres utilisateurs
                 const allDepotAssignments = await DepotAssignment.query()
                     .where('is_active', true)
                     .whereNot('user_id', user.$original.id)
-                
+
                 const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                
+
                 query = query.where((builder) => {
                     // Appliquer les patterns de racine
                     patterns.forEach((prefix, index) => {
                         const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                         builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                     })
-                    
+
                     // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                     if (excludedDepotIds.length > 0) {
                         builder.whereNotIn('depot_id', excludedDepotIds)
@@ -550,7 +554,7 @@ export default class InvoicesController {
                 })
             }
         }
-        
+
         const invoices = await query.where('status', ctx.params.status)
         return invoices
     }
@@ -566,9 +570,9 @@ export default class InvoicesController {
             const depotAssignments = await DepotAssignment.query()
                 .where('user_id', user.$original.id)
                 .where('is_active', true)
-            
+
             assignedDepots = depotAssignments.map(da => da.depotId)
-            
+
             // 2. Récupérer les affectations par racine
             const assignedInvoices = await Assignment
                 .query()
@@ -576,7 +580,7 @@ export default class InvoicesController {
                 .where('is_active', true)
 
             patterns = assignedInvoices.map(a => a.pattern)
-            
+
             // Si l'utilisateur RECOUVREMENT n'a aucune affectation, retourner un tableau vide
             if (assignedDepots.length === 0 && patterns.length === 0) {
                 return response.json([])
@@ -603,7 +607,7 @@ export default class InvoicesController {
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
-            
+
             // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
             if (user.$original.role === Role.RECOUVREMENT) {
                 if (assignedDepots.length > 0) {
@@ -612,21 +616,21 @@ export default class InvoicesController {
                 } else if (patterns.length > 0) {
                     // Si pas d'affectation par dépôt, utiliser les patterns de racine
                     // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                    
+
                     // Récupérer tous les dépôts affectés à d'autres utilisateurs
                     const allDepotAssignments = await DepotAssignment.query()
                         .where('is_active', true)
                         .whereNot('user_id', user.$original.id)
-                    
+
                     const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                    
+
                     query = query.where((builder) => {
                         // Appliquer les patterns de racine
                         patterns.forEach((prefix, index) => {
                             const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                             builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                         })
-                        
+
                         // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                         if (excludedDepotIds.length > 0) {
                             builder.whereNotIn('depot_id', excludedDepotIds)
@@ -691,9 +695,9 @@ export default class InvoicesController {
             const depotAssignments = await DepotAssignment.query()
                 .where('user_id', user.$original.id)
                 .where('is_active', true)
-            
+
             assignedDepots = depotAssignments.map(da => da.depotId)
-            
+
             // 2. Récupérer les affectations par racine
             const assignedInvoices = await Assignment
                 .query()
@@ -701,7 +705,7 @@ export default class InvoicesController {
                 .where('is_active', true)
 
             patterns = assignedInvoices.map(a => a.pattern)
-            
+
             // Si l'utilisateur RECOUVREMENT n'a aucune affectation, retourner un tableau vide
             if (assignedDepots.length === 0 && patterns.length === 0) {
                 return response.json([])
@@ -719,7 +723,7 @@ export default class InvoicesController {
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
-            
+
             // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
             if (user.$original.role === Role.RECOUVREMENT) {
                 if (assignedDepots.length > 0) {
@@ -728,21 +732,21 @@ export default class InvoicesController {
                 } else if (patterns.length > 0) {
                     // Si pas d'affectation par dépôt, utiliser les patterns de racine
                     // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                    
+
                     // Récupérer tous les dépôts affectés à d'autres utilisateurs
                     const allDepotAssignments = await DepotAssignment.query()
                         .where('is_active', true)
                         .whereNot('user_id', user.$original.id)
-                    
+
                     const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                    
+
                     query = query.where((builder) => {
                         // Appliquer les patterns de racine
                         patterns.forEach((prefix, index) => {
                             const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                             builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                         })
-                        
+
                         // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                         if (excludedDepotIds.length > 0) {
                             builder.whereNotIn('depot_id', excludedDepotIds)
@@ -750,7 +754,7 @@ export default class InvoicesController {
                     })
                 }
             }
-            
+
             const invoice = await query.firstOrFail()
             if (!invoice) {
                 return response.status(404).json({
@@ -799,9 +803,9 @@ export default class InvoicesController {
             const depotAssignments = await DepotAssignment.query()
                 .where('user_id', user.$original.id)
                 .where('is_active', true)
-            
+
             assignedDepots = depotAssignments.map(da => da.depotId)
-            
+
             // 2. Récupérer les affectations par racine
             const assignedInvoices = await Assignment
                 .query()
@@ -834,21 +838,21 @@ export default class InvoicesController {
                 } else if (patterns.length > 0) {
                     // Si pas d'affectation par dépôt, utiliser les patterns de racine
                     // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                    
+
                     // Récupérer tous les dépôts affectés à d'autres utilisateurs
                     const allDepotAssignments = await DepotAssignment.query()
                         .where('is_active', true)
                         .whereNot('user_id', user.$original.id)
-                    
+
                     const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                    
+
                     query = query.where((builder) => {
                         // Appliquer les patterns de racine
                         patterns.forEach((prefix, index) => {
                             const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                             builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                         })
-                        
+
                         // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                         if (excludedDepotIds.length > 0) {
                             builder.whereNotIn('depot_id', excludedDepotIds)
@@ -889,9 +893,9 @@ export default class InvoicesController {
                 const depotAssignments = await DepotAssignment.query()
                     .where('user_id', user.$original.id)
                     .where('is_active', true)
-                
+
                 assignedDepots = depotAssignments.map(da => da.depotId)
-                
+
                 // 2. Récupérer les affectations par racine
                 const assignedInvoices = await Assignment
                     .query()
@@ -899,7 +903,7 @@ export default class InvoicesController {
                     .where('is_active', true)
 
                 patterns = assignedInvoices.map(a => a.pattern)
-                
+
                 // Si l'utilisateur RECOUVREMENT n'a aucune affectation, retourner un tableau vide
                 if (assignedDepots.length === 0 && patterns.length === 0) {
                     return ctx.response.status(404).json({ message: 'Facture non trouvée.' })
@@ -914,7 +918,7 @@ export default class InvoicesController {
             if (user.$original.role !== Role.ADMIN && user.$original.role !== Role.RECOUVREMENT) {
                 query = query.where('depot_id', user.$original.depotId)
             }
-            
+
             // Filtrage par affectations (dépôt en priorité, puis racine avec exclusion des dépôts affectés)
             if (user.$original.role === Role.RECOUVREMENT) {
                 if (assignedDepots.length > 0) {
@@ -923,21 +927,21 @@ export default class InvoicesController {
                 } else if (patterns.length > 0) {
                     // Si pas d'affectation par dépôt, utiliser les patterns de racine
                     // MAIS exclure les factures qui sont dans des dépôts affectés à d'autres utilisateurs
-                    
+
                     // Récupérer tous les dépôts affectés à d'autres utilisateurs
                     const allDepotAssignments = await DepotAssignment.query()
                         .where('is_active', true)
                         .whereNot('user_id', user.$original.id)
-                    
+
                     const excludedDepotIds = allDepotAssignments.map(da => da.depotId)
-                    
+
                     query = query.where((builder) => {
                         // Appliquer les patterns de racine
                         patterns.forEach((prefix, index) => {
                             const method = index === 0 ? 'whereRaw' : 'orWhereRaw'
                             builder[method]('account_number ~ ?', [`^\\d+${prefix}`])
                         })
-                        
+
                         // Exclure les factures dans les dépôts affectés à d'autres utilisateurs
                         if (excludedDepotIds.length > 0) {
                             builder.whereNotIn('depot_id', excludedDepotIds)
@@ -945,7 +949,7 @@ export default class InvoicesController {
                     })
                 }
             }
-            
+
             query = query.preload('customer')
             const invoice = await query.firstOrFail()
 
@@ -1123,7 +1127,7 @@ export default class InvoicesController {
             }
 
             // Filtrer les paiements si un ID d'exclusion est fourni
-            const payments = excludePaymentId 
+            const payments = excludePaymentId
                 ? invoice.payments.filter(payment => payment.id !== Number(excludePaymentId))
                 : invoice.payments
 
@@ -1168,8 +1172,8 @@ export default class InvoicesController {
             })
         } catch (error) {
             console.error('❌ Erreur lors du calcul des montants de paiement:', error)
-            return response.status(500).json({ 
-                error: 'Erreur lors du calcul des montants de paiement' 
+            return response.status(500).json({
+                error: 'Erreur lors du calcul des montants de paiement'
             })
         }
     }
@@ -1226,9 +1230,9 @@ export default class InvoicesController {
                 const depotAssignments = await DepotAssignment.query()
                     .where('user_id', currentUser.id)
                     .where('is_active', true)
-                
+
                 assignedDepots = depotAssignments.map(da => da.depotId)
-                
+
                 if (assignedDepots.includes(invoice.depotId)) {
                     hasAccess = true
                 } else {
@@ -1237,9 +1241,9 @@ export default class InvoicesController {
                         .query()
                         .where('user_id', currentUser.id)
                         .where('is_active', true)
-                    
+
                     patterns = assignedInvoices.map(a => a.pattern)
-                    
+
                     // Vérifier si le numéro de compte correspond à un pattern assigné
                     for (const pattern of patterns) {
                         if (invoice.accountNumber.match(new RegExp(`^\\d+${pattern}`))) {
