@@ -59,15 +59,17 @@ export default class InvoiceRecoveriesController {
       const urgentInvoices = unpaidInvoices.filter(invoice => {
         // Ne considérer que les factures qui ont au moins un BL valide
         if (!invoice.bls || invoice.bls.length === 0) {
-          console.log(`Facture ${invoice.invoiceNumber}: Aucun BL valide trouvé, ignorée`)
           return false
         }
 
-        // Vérifier s'il y a un délai personnalisé pour cette facture
-        const customSetting = invoice.recoveryCustomSettings[0]
-        if (customSetting) {
-          console.log(`Facture ${invoice.invoiceNumber} (${invoice.accountNumber}): Délai personnalisé ${customSetting.customDays} jours`)
-          return this.isInvoiceUrgent(invoice, customSetting.customDays)
+        // Vérifier s'il y a des délais personnalisés pour cette facture
+        if (invoice.recoveryCustomSettings && invoice.recoveryCustomSettings.length > 0) {
+          // Utiliser le délai personnalisé le plus récent (le dernier créé)
+          const latestCustomSetting = invoice.recoveryCustomSettings
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+          
+          console.log(`Facture ${invoice.invoiceNumber} (${invoice.accountNumber}): Délai personnalisé ${latestCustomSetting.customDays} jours (le plus récent)`)
+          return this.isInvoiceUrgent(invoice, latestCustomSetting.customDays)
         }
 
         // Vérifier s'il y a un délai spécifique pour la racine de cette facture
@@ -93,11 +95,14 @@ export default class InvoiceRecoveriesController {
           continue
         }
 
-        const customSetting = invoice.recoveryCustomSettings[0]
         let daysThreshold: number
         
-        if (customSetting) {
-          daysThreshold = customSetting.customDays
+        // Vérifier s'il y a des délais personnalisés pour cette facture
+        if (invoice.recoveryCustomSettings && invoice.recoveryCustomSettings.length > 0) {
+          // Utiliser le délai personnalisé le plus récent (le dernier créé)
+          const latestCustomSetting = invoice.recoveryCustomSettings
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+          daysThreshold = latestCustomSetting.customDays
         } else {
           const rootSetting = this.getRootSettingForInvoice(invoice, allRecoverySettings)
           daysThreshold = rootSetting ? rootSetting.defaultDays : defaultDays
@@ -409,28 +414,20 @@ export default class InvoiceRecoveriesController {
       // Vérifier que la facture existe
       const invoice = await Invoice.findOrFail(invoiceId)
 
-      // Mettre à jour ou créer le paramètre personnalisé
-      let customSetting = await InvoiceRecoveryCustomSetting.query()
-        .where('invoiceId', invoiceId)
-        .first()
-
-      if (customSetting) {
-        customSetting.merge({ customDays })
-        await customSetting.save()
-      } else {
-        customSetting = await InvoiceRecoveryCustomSetting.create({
-          invoiceId,
-          customDays
-        })
-      }
+      // Créer un nouveau paramètre personnalisé (permet plusieurs délais par facture)
+      const customSetting = await InvoiceRecoveryCustomSetting.create({
+        invoiceId,
+        customDays
+      })
 
       return response.json({
         success: true,
-        data: customSetting
+        data: customSetting,
+        message: 'Nouveau délai personnalisé ajouté avec succès'
       })
 
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du délai personnalisé:', error)
+      console.error('Erreur lors de l\'ajout du délai personnalisé:', error)
       return response.status(500).json({
         error: 'Erreur interne du serveur'
       })
@@ -474,11 +471,14 @@ export default class InvoiceRecoveriesController {
       let updatedCount = 0
 
       for (const invoice of unpaidInvoices) {
-        const customSetting = invoice.recoveryCustomSettings[0]
         let daysThreshold: number
         
-        if (customSetting) {
-          daysThreshold = customSetting.customDays
+        // Vérifier s'il y a des délais personnalisés pour cette facture
+        if (invoice.recoveryCustomSettings && invoice.recoveryCustomSettings.length > 0) {
+          // Utiliser le délai personnalisé le plus récent (le dernier créé)
+          const latestCustomSetting = invoice.recoveryCustomSettings
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+          daysThreshold = latestCustomSetting.customDays
         } else {
           const rootSetting = this.getRootSettingForInvoice(invoice, allRecoverySettings)
           daysThreshold = rootSetting ? rootSetting.defaultDays : defaultDays
@@ -752,16 +752,79 @@ export default class InvoiceRecoveriesController {
         })
       }
 
-      // Importer et exécuter la tâche
-      const CheckExpiredCustomDelays = (await import('../tasks/check_expired_custom_delays.js')).default
-      const task = new CheckExpiredCustomDelays()
-      
-      // Exécuter la tâche
-      await task.run()
+      console.log('🔍 Début de la vérification des délais personnalisés expirés...')
+
+      // Récupérer tous les délais personnalisés avec les informations de facture
+      const customDelays = await InvoiceRecoveryCustomSetting.query()
+        .preload('invoice', (query) => {
+          query.preload('customer')
+            .preload('payments', (paymentsQuery) => {
+              paymentsQuery.orderBy('paymentDate', 'desc')
+            })
+        })
+
+      let expiredCount = 0
+      const expiredDelays: any[] = []
+
+      for (const customDelay of customDelays) {
+        const invoice = customDelay.invoice
+        
+        // Déterminer la date de référence pour le calcul du délai
+        let referenceDate: DateTime
+        
+        if (invoice.payments.length > 0) {
+          // S'il y a des paiements, utiliser la date du dernier paiement
+          const lastPayment = invoice.payments[0]
+          referenceDate = lastPayment.paymentDate instanceof DateTime 
+            ? lastPayment.paymentDate 
+            : DateTime.fromJSDate(lastPayment.paymentDate)
+        } else {
+          // Sinon, utiliser la date de livraison
+          referenceDate = invoice.deliveredAt instanceof DateTime 
+            ? invoice.deliveredAt 
+            : DateTime.fromJSDate(invoice.deliveredAt)
+        }
+        
+        // Calculer la date limite pour cette facture
+        const invoiceCutoffDate = DateTime.now().minus({ days: customDelay.customDays })
+        
+        // Vérifier si le délai a expiré
+        if (referenceDate < invoiceCutoffDate) {
+          expiredDelays.push({
+            customDelay,
+            invoice,
+            referenceDate: referenceDate.toISO(),
+            cutoffDate: invoiceCutoffDate.toISO(),
+            daysExpired: Math.floor(DateTime.now().diff(referenceDate, 'days').days) - customDelay.customDays
+          })
+        }
+      }
+
+      console.log(`📊 ${expiredDelays.length} délai(s) personnalisé(s) expiré(s) trouvé(s)`)
+
+      // Traiter chaque délai expiré
+      for (const expiredData of expiredDelays) {
+        const { customDelay, invoice, daysExpired } = expiredData
+        
+        try {
+          // Supprimer le délai personnalisé expiré
+          await customDelay.delete()
+          expiredCount++
+
+          console.log(`🗑️ Délai personnalisé supprimé pour la facture ${invoice.invoiceNumber}`)
+
+        } catch (error) {
+          console.error(`❌ Erreur lors du traitement du délai expiré pour la facture ${invoice.invoiceNumber}:`, error)
+        }
+      }
+
+      console.log(`✅ Vérification terminée. ${expiredCount} délai(s) personnalisé(s) supprimé(s)`)
 
       return response.json({
         success: true,
-        message: 'Vérification des délais expirés exécutée avec succès'
+        message: `Vérification terminée. ${expiredCount} délai(s) personnalisé(s) supprimé(s)`,
+        expiredCount,
+        totalChecked: customDelays.length
       })
 
     } catch (error) {
