@@ -365,7 +365,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
   return (
     <div className="space-y-6">
       {/* En-tête avec gradient */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-lg p-6 text-white">
+      {/* <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-lg p-3 text-white">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Configuration des Délais</h1>
@@ -396,7 +396,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
             <Settings className="h-8 w-8 text-blue-200" />
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Message d'information */}
       {hasInfoMessage && (

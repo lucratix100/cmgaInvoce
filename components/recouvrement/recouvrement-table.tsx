@@ -5,7 +5,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
-import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon, PlusCircle, CheckCircle, XCircle } from "lucide-react"
+import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon, PlusCircle, CheckCircle, XCircle, ChevronUp, ChevronDown } from "lucide-react"
 
 import Filtre from "../facture/filtre"
 import PaiementInlineForm from "./PaiementInlineForm";
@@ -15,8 +15,7 @@ import { useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
 import { exportFilteredToExcel } from "@/lib/excel-export"
 import { toast } from "@/components/ui/use-toast"
-import { InvoiceStatus } from "@/types/enums"
-import { getPaymentHistory, addPayment } from "@/actions/payment"
+import { InvoiceStatus, InvoicePaymentStatus } from "@/types/enums"
 import { PaymentMethod } from "@/types/enums"
 import { useRouter } from "next/navigation";
 
@@ -57,8 +56,11 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
   const [successRow, setSuccessRow] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  // Tri date de livraison
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+  // Tri multi-colonnes
+  const [sortConfig, setSortConfig] = useState<{
+    column: string | null;
+    order: "asc" | "desc" | null;
+  }>({ column: null, order: null });
 
   // Récupération des paramètres directement depuis l'URL
   const paymentStatus = searchParams.get('paymentStatus') || "tous";
@@ -80,39 +82,9 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
     });
   };
 
-  const calculateInvoiceAge = (facture: Invoice) => {
-    // Déterminer la date de référence (livraison ou dernier BL)
-    let referenceDate: Date | null = null;
-    
-    if (facture.lastValidatedBl?.createdAt) {
-      referenceDate = new Date(facture.lastValidatedBl.createdAt);
-    } else if (facture.deliveredAt) {
-      referenceDate = new Date(facture.deliveredAt);
-    }
-    
-    if (!referenceDate) {
-      return null; // Pas de date de livraison
-    }
-    
-    const today = new Date();
-    const diffTime = today.getTime() - referenceDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  };
 
-  const getAgeColor = (age: number) => {
-    if (age <= 2) return "text-green-600";
-    if (age <= 7) return "text-amber-600";
-    if (age <= 15) return "text-orange-600";
-    return "text-red-600";
-  };
 
-  const formatAge = (age: number) => {
-    if (age === 0) return "Aujourd'hui";
-    if (age === 1) return "1 jour";
-    return `${age} jours`;
-  };
+
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -185,32 +157,44 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
 
   const handleCopyToClipboard = async (text: string, fieldType: string, factureId: number) => {
     try {
+      // Vérifier si on est côté client et si les APIs sont disponibles
+      if (typeof window === 'undefined') {
+        throw new Error('Fonction copie non disponible côté serveur');
+      }
+
       // Vérifier si on est en contexte sécurisé (HTTPS ou localhost)
       const isSecureContext = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      
-      if (isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
-        // Utiliser l'API moderne si disponible et en contexte sécurisé
-        await navigator.clipboard.writeText(text);
+
+      // Vérifier si l'API Clipboard moderne est disponible
+      if (isSecureContext && typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (clipboardError) {
+          // Si l'API Clipboard échoue, utiliser le fallback
+          console.warn('API Clipboard échouée, utilisation du fallback:', clipboardError);
+          throw clipboardError;
+        }
       } else {
-        // Méthode de fallback pour les contextes non sécurisés (comme IP locale)
+        // Méthode de fallback pour les contextes non sécurisés ou APIs non disponibles
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
         textArea.style.top = '-999999px';
         textArea.style.opacity = '0';
+        textArea.style.pointerEvents = 'none';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-        
+
         if (!successful) {
           throw new Error('Fallback copy method failed');
         }
       }
-      
+
       setCopiedField(`${fieldType}-${factureId}`);
       toast({
         title: "Copié !",
@@ -246,26 +230,64 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
     });
   }, [factures, paymentStatus, deliveryStatus, selectedDepot]);
 
-  // Tri sur la date de livraison
+  // Fonction pour gérer le tri
+  const handleSort = (column: string) => {
+    setSortConfig((prev) => {
+      if (prev.column === column) {
+        if (prev.order === "asc") return { column, order: "desc" };
+        if (prev.order === "desc") return { column: null, order: null };
+        return { column, order: "asc" };
+      }
+      return { column, order: "asc" };
+    });
+  };
+
+  // Tri multi-colonnes
   const sortedFactures = useMemo(() => {
     let data = [...filteredFactures];
-    if (sortOrder) {
+    if (sortConfig.column && sortConfig.order) {
       data.sort((a, b) => {
-        const dateA = a.lastValidatedBl?.createdAt
-          ? new Date(a.lastValidatedBl.createdAt).getTime()
-          : a.deliveredAt
-            ? new Date(a.deliveredAt).getTime()
-            : 0;
-        const dateB = b.lastValidatedBl?.createdAt
-          ? new Date(b.lastValidatedBl.createdAt).getTime()
-          : b.deliveredAt
-            ? new Date(b.deliveredAt).getTime()
-            : 0;
-        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+        let valueA: any;
+        let valueB: any;
+
+        switch (sortConfig.column) {
+          case "invoiceDate":
+            valueA = new Date(a.date).getTime();
+            valueB = new Date(b.date).getTime();
+            break;
+          case "deliveryDate":
+            valueA = a.lastValidatedBl?.createdAt
+              ? new Date(a.lastValidatedBl.createdAt).getTime()
+              : a.deliveredAt
+                ? new Date(a.deliveredAt).getTime()
+                : 0;
+            valueB = b.lastValidatedBl?.createdAt
+              ? new Date(b.lastValidatedBl.createdAt).getTime()
+              : b.deliveredAt
+                ? new Date(b.deliveredAt).getTime()
+                : 0;
+            break;
+          case "age":
+            valueA = a.deliveredSince || 0;
+            valueB = b.deliveredSince || 0;
+            break;
+          case "remainingAmount":
+            valueA = a.remainingAmount || 0;
+            valueB = b.remainingAmount || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (sortConfig.order === "asc") {
+          return valueA - valueB;
+        } else {
+          return valueB - valueA;
+        }
       });
     }
     return data;
-  }, [filteredFactures, sortOrder]);
+  }, [filteredFactures, sortConfig]);
 
   const montantInputRef = useRef<HTMLInputElement>(null);
   const [paymentProgress, setPaymentProgress] = useState<number>(0);
@@ -397,29 +419,89 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                   </TableHead>
                   <TableHead className="font-semibold text-primary-900">Numéro facture</TableHead>
                   <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
-                  <TableHead className="font-semibold text-primary-900">Date facture</TableHead>
+                  <TableHead className="font-semibold text-primary-900">
+                    <div className="flex items-center justify-between">
+                      <span>Date facture</span>
+                      <button
+                        type="button"
+                        className="text-primary-700 hover:text-primary-900 focus:outline-none"
+                        onClick={() => handleSort("invoiceDate")}
+                        title="Trier par date de facturation"
+                      >
+                        {sortConfig.column === "invoiceDate" && sortConfig.order === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : sortConfig.column === "invoiceDate" && sortConfig.order === "desc" ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4 opacity-30" />
+                        )}
+                      </button>
+                    </div>
+                  </TableHead>
                   <TableHead className="font-semibold text-primary-900">Client</TableHead>
                   <TableHead className="font-semibold text-primary-900">
-                    Date de livraison
-                    <button
-                      type="button"
-                      className="ml-1 text-xl text-primary-700 hover:text-primary-900 focus:outline-none"
-                      onClick={() =>
-                        setSortOrder((prev) =>
-                          prev === "asc" ? "desc" : prev === "desc" ? null : "asc"
-                        )
-                      }
-                      title="Trier par date de livraison"
-                    >
-                      {sortOrder === "asc" ? "▲" : sortOrder === "desc" ? "▼" : "⇅"}
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <span>Date de livraison</span>
+                      <button
+                        type="button"
+                        className="text-primary-700 hover:text-primary-900 focus:outline-none"
+                        onClick={() => handleSort("deliveryDate")}
+                        title="Trier par date de livraison"
+                      >
+                        {sortConfig.column === "deliveryDate" && sortConfig.order === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : sortConfig.column === "deliveryDate" && sortConfig.order === "desc" ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4 opacity-30" />
+                        )}
+                      </button>
+                    </div>
                   </TableHead>
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-                    <TableHead className="font-semibold text-primary-900">Âge</TableHead>
+                    <TableHead className="font-semibold text-primary-900">
+                      <div className="flex items-center justify-between">
+                        <span>Âge</span>
+                        <button
+                          type="button"
+                          className="text-primary-700 hover:text-primary-900 focus:outline-none"
+                          onClick={() => handleSort("age")}
+                          title="Trier par âge"
+                        >
+                          {sortConfig.column === "age" && sortConfig.order === "asc" ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : sortConfig.column === "age" && sortConfig.order === "desc" ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronUp className="h-4 w-4 opacity-30" />
+                          )}
+                        </button>
+                      </div>
+                    </TableHead>
                   )}
                   <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
-                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                    <TableHead className="font-semibold text-primary-900">
+                      <div className="flex items-center justify-between">
+                        <span>Montant restant à payer</span>
+                        <button
+                          type="button"
+                          className="text-primary-700 hover:text-primary-900 focus:outline-none"
+                          onClick={() => handleSort("remainingAmount")}
+                          title="Trier par montant restant"
+                        >
+                          {sortConfig.column === "remainingAmount" && sortConfig.order === "asc" ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : sortConfig.column === "remainingAmount" && sortConfig.order === "desc" ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronUp className="h-4 w-4 opacity-30" />
+                          )}
+                        </button>
+                      </div>
+                    </TableHead>
+                  )}
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
                     <TableHead className="font-semibold text-primary-900">Action</TableHead>
                   )}
@@ -435,76 +517,76 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                   const montantPaye = facture.totalTtc - facture.remainingAmount;
                   return (
                     <React.Fragment key={facture.id}>
-                  <TableRow
-                    key={facture.id}
-                    className={
-                      isPaymentOpen
-                        ? "z-10 ring-2 ring-primary-400 shadow-xl bg-white"
-                        : openPaymentRow
-                          ? "opacity-50 pointer-events-none blur-[1.5px] select-none"
-                          : "hover:bg-primary-50/30 transition-colors duration-200 group"
-                    }
-                    style={{ transition: 'all 0.2s' }}
-                  >
-                    <TableCell>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <span>{facture.invoiceNumber}</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipContent>
-                              <p>Copier le numéro de facture</p>
-                            </TooltipContent>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyToClipboard(facture.invoiceNumber, "Numéro de facture", facture.id);
-                              }}
-                            >
-                              {copiedField === `Numéro de facture-${facture.id}` ? (
-                                <CheckIcon className="h-3 w-3 text-green-600" />
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{facture.accountNumber}</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipContent>
-                              <p>Copier le numéro de compte</p>
-                            </TooltipContent>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyToClipboard(facture.accountNumber, "Numéro de compte", facture.id);
-                              }}
-                            >
-                              {copiedField === `Numéro de compte-${facture.id}` ? (
-                                <CheckIcon className="h-3 w-3 text-green-600" />
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatDate(facture.date)}</TableCell>
-                    <TableCell>{facture.customer?.name}</TableCell>
-                    <TableCell>
+                      <TableRow
+                        key={facture.id}
+                        className={
+                          isPaymentOpen
+                            ? "z-10 ring-2 ring-primary-400 shadow-xl bg-white"
+                            : openPaymentRow
+                              ? "opacity-50 pointer-events-none blur-[1.5px] select-none"
+                              : "hover:bg-primary-50/30 transition-colors duration-200 group"
+                        }
+                        style={{ transition: 'all 0.2s' }}
+                      >
+                        <TableCell>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <span>{facture.invoiceNumber}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipContent>
+                                  <p>Copier le numéro de facture</p>
+                                </TooltipContent>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyToClipboard(facture.invoiceNumber, "Numéro de facture", facture.id);
+                                  }}
+                                >
+                                  {copiedField === `Numéro de facture-${facture.id}` ? (
+                                    <CheckIcon className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span>{facture.accountNumber}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipContent>
+                                  <p>Copier le numéro de compte</p>
+                                </TooltipContent>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyToClipboard(facture.accountNumber, "Numéro de compte", facture.id);
+                                  }}
+                                >
+                                  {copiedField === `Numéro de compte-${facture.id}` ? (
+                                    <CheckIcon className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatDate(facture.date)}</TableCell>
+                        <TableCell>{facture.customer?.name}</TableCell>
+                        <TableCell>
                           {facture.lastValidatedBl ? (
                             <div className="flex flex-col">
                               <span className="text-xs text-gray-500 2xl:text-sm text-primary-700">
@@ -513,69 +595,61 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                             </div>
                           ) : facture.deliveredAt ? (
                             <span className="text-green-600 font-medium 2xl:text-sm text-green-700">
-                          {formatDate(facture.deliveredAt.toString())}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 italic">Non livrée</span>
-                      )}
-                    </TableCell>
-                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-                      <TableCell>
-                        {(() => {
-                          // Ne pas afficher l'âge pour RETOUR, REGULE, ou si la facture est payée
-                          if ([InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) || 
-                              facture.statusPayment?.toLowerCase() === 'payé') {
-                            return <span className="text-gray-400 italic">-</span>;
-                          }
-                          const age = calculateInvoiceAge(facture);
-                          if (age === null) {
-                            return <span className="text-gray-400 italic">-</span>;
-                          }
-                          // Afficher un rond coloré avec fond et texte foncé
-                          return (
-                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm ${getAgeBgColor(age)}`}>
-                              {age}
+                              {formatDate(facture.deliveredAt.toString())}
                             </span>
-                          );
-                        })()}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <Badge className={getStatusColor(facture.status)}>
-                        {facture.status.replace("_", " ").toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
-                      {facture.status !== InvoiceStatus.RETOUR && facture.status !== InvoiceStatus.ANNULEE ? <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
-                        {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
-                      </Badge> : "-"}
-                    </TableCell>}
-                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-lg flex items-center gap-1">
-                          {facture.statusPayment?.toUpperCase() === "PAYÉ"
-                            ? <>
-                              {formatMontant(0)}
-                              {facture.remainingAmount < 0 && (
-                                <span className="text-green-600 text-xs font-semibold ml-1">
-                                  +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
+                          ) : (
+                            <span className="text-gray-400 italic">Non livrée</span>
+                          )}
+                        </TableCell>
+                        {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                          <TableCell>
+                            {facture.status === InvoiceStatus.LIVREE && facture.statusPayment === InvoicePaymentStatus.NON_PAYE ? (
+                              <>
+                                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm bg-red-100 text-red-600`}>
+                                  {`${facture.deliveredSince}`}
                                 </span>
-                              )}
-                            </>
-                            : formatMontant(facture.remainingAmount || 0)}
+                                <span className="text-xs text-red-600"> {facture.deliveredSince === 1 ? "jour" : "jours"}</span></>
+                            ) : (
+                              <span className="text-gray-400 italic">-</span>
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <Badge className={getStatusColor(facture.status)}>
+                            {facture.status.replace("_", " ").toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                          {facture.status !== InvoiceStatus.RETOUR && facture.status !== InvoiceStatus.ANNULEE ? <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
+                            {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
+                          </Badge> : "-"}
+                        </TableCell>}
+                        {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-lg flex items-center gap-1">
+                              {facture.statusPayment?.toUpperCase() === "PAYÉ"
+                                ? <>
+                                  {formatMontant(0)}
+                                  {facture.remainingAmount < 0 && (
+                                    <span className="text-green-600 text-xs font-semibold ml-1">
+                                      +{formatMontant(Math.abs(Number(facture.remainingAmount)))}
+                                    </span>
+                                  )}
+                                </>
+                                : formatMontant(facture.remainingAmount || 0)}
                               {totalReturnPayments > 0 && (
                                 <span className="text-red-600 text-xs font-semibold ml-1">
                                   -{formatMontant(totalReturnPayments)}
                                 </span>
                               )}
-                        </span>
-                      </div>
-                    </TableCell>}
+                            </span>
+                          </div>
+                        </TableCell>}
                         {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
                           <TableCell>
                             {!isPaymentOpen ? (
                               ![InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) ? (
-                                <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={e => {e.stopPropagation(); setOpenPaymentRow(facture.invoiceNumber); setPaymentAmount(""); setPaymentMethod(""); setPaymentComment(""); setErrorMsg("");}}>
+                                <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={e => { e.stopPropagation(); setOpenPaymentRow(facture.invoiceNumber); setPaymentAmount(""); setPaymentMethod(""); setPaymentComment(""); setErrorMsg(""); }}>
                                   <PlusCircle className="w-4 h-4 mr-1 text-primary-600" /> Ajouter paiement
                                 </Button>
                               ) : (
@@ -608,7 +682,7 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                             </Button>
                           </TableCell>
                         )}
-                  </TableRow>
+                      </TableRow>
                       {isPaymentOpen && (
                         <PaiementInlineForm
                           facture={facture}

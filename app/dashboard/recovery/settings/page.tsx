@@ -7,9 +7,7 @@ import { redirect } from "next/navigation"
 export default async function RecoverySettingsPage() {
   const user = await getCurrentUser()
   // Vérifier que l'utilisateur est admin
-  if (user?.role !== Role.ADMIN) {
-    redirect('/dashboard')
-  }
+
 
   // Récupérer les paramètres de recouvrement, les racines et les délais personnalisés
   const [settingsData, rootsData, customDelaysData] = await Promise.all([
