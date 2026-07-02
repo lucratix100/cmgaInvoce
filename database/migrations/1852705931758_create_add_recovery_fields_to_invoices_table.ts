@@ -4,23 +4,18 @@ export default class extends BaseSchema {
   protected tableName = 'invoices'
 
   async up() {
-    this.schema.alterTable(this.tableName, (table) => {
-      // Vérifier si la colonne is_urgent existe déjà
-      // if (!this.schema.hasColumn(this.tableName, 'is_urgent')) {
-      table.boolean('is_urgent').defaultTo(false) // Marquer les factures urgentes
-      // }
-
-      // Vérifier si la colonne last_payment_date existe déjà
-      // if (!this.schema.hasColumn(this.tableName, 'last_payment_date')) {
-      table.timestamp('last_payment_date').nullable() // Date du dernier paiement
-      // }
-    })
+    await this.db.rawQuery(`
+      ALTER TABLE ${this.tableName}
+      ADD COLUMN IF NOT EXISTS is_urgent boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS last_payment_date timestamptz NULL
+    `)
   }
 
   async down() {
-    this.schema.alterTable(this.tableName, (table) => {
-      table.dropColumn('is_urgent')
-      table.dropColumn('last_payment_date')
-    })
+    await this.db.rawQuery(`
+      ALTER TABLE ${this.tableName}
+      DROP COLUMN IF EXISTS is_urgent,
+      DROP COLUMN IF EXISTS last_payment_date
+    `)
   }
 }

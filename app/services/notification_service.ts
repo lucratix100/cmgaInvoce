@@ -4,6 +4,91 @@ import { Role } from '../enum/index.js'
 import { DateTime } from 'luxon'
 
 export default class NotificationService {
+  static async notifyUser(
+    userId: number,
+    title: string,
+    message: string,
+    invoiceId?: number,
+    _details?: any
+  ) {
+    try {
+      const comment = `${title} - ${message}`.slice(0, 255)
+      await InvoiceReminder.create({
+        userId,
+        invoiceId: invoiceId || undefined,
+        remindAt: DateTime.now(),
+        comment,
+        read: false
+      })
+    } catch (error) {
+      console.error('Erreur lors de la notification utilisateur:', error)
+    }
+  }
+
+  static async notifyRole(
+    role: Role,
+    title: string,
+    message: string,
+    invoiceId?: number,
+    _details?: any
+  ) {
+    try {
+      const users = await User.query()
+        .where('role', role)
+        .where('isActive', true)
+
+      const notificationPromises = users.map(user => {
+        const comment = `${title} - ${message}`.slice(0, 255)
+        return InvoiceReminder.create({
+          userId: Number(user.id),
+          invoiceId: invoiceId || undefined,
+          remindAt: DateTime.now(),
+          comment,
+          read: false
+        })
+      })
+
+      await Promise.all(notificationPromises)
+    } catch (error) {
+      console.error('Erreur lors de la notification par rôle:', error)
+    }
+  }
+
+  static async notifyRoleExcept(
+    role: Role,
+    excludedUserId: number | null,
+    title: string,
+    message: string,
+    invoiceId?: number,
+    _details?: any
+  ) {
+    try {
+      const query = User.query()
+        .where('role', role)
+        .where('isActive', true)
+
+      if (excludedUserId) {
+        query.whereNot('id', excludedUserId)
+      }
+
+      const users = await query
+      const notificationPromises = users.map(user => {
+        const comment = `${title} - ${message}`.slice(0, 255)
+        return InvoiceReminder.create({
+          userId: Number(user.id),
+          invoiceId: invoiceId || undefined,
+          remindAt: DateTime.now(),
+          comment,
+          read: false
+        })
+      })
+
+      await Promise.all(notificationPromises)
+    } catch (error) {
+      console.error('Erreur lors de la notification par rôle avec exclusion:', error)
+    }
+  }
+
   /**
    * Crée une notification pour tous les admins
    */
@@ -11,7 +96,7 @@ export default class NotificationService {
     title: string,
     message: string,
     invoiceId?: number,
-    details?: any
+    _details?: any
   ) {
     try {
       // Récupérer tous les utilisateurs admin
@@ -46,7 +131,7 @@ export default class NotificationService {
     title: string,
     message: string,
     invoiceId?: number,
-    details?: any
+    _details?: any
   ) {
     try {
       // Récupérer tous les utilisateurs admin
@@ -186,9 +271,9 @@ export default class NotificationService {
    */
   static async notifyBlCreation(
     blNumber: string,
-    driverName: string,
-    invoiceNumber: string,
-    customerName: string,
+    _driverName: string,
+    _invoiceNumber: string,
+    _customerName: string,
     createdBy: string
   ) {
     // Cette méthode ne notifie plus les admins, seulement enregistrée dans les activités
@@ -200,9 +285,9 @@ export default class NotificationService {
    */
   static async notifyPaymentCreation(
     paymentAmount: number,
-    paymentMethod: string,
-    invoiceNumber: string,
-    customerName: string,
+    _paymentMethod: string,
+    _invoiceNumber: string,
+    _customerName: string,
     createdBy: string
   ) {
     // Cette méthode ne notifie plus les admins, seulement enregistrée dans les activités
@@ -214,9 +299,9 @@ export default class NotificationService {
    */
   static async notifyInvoiceStatusChange(
     invoiceNumber: string,
-    oldStatus: string,
-    newStatus: string,
-    customerName: string,
+    _oldStatus: string,
+    _newStatus: string,
+    _customerName: string,
     modifiedBy: string
   ) {
     // Cette méthode ne notifie plus les admins, seulement enregistrée dans les activités
@@ -228,7 +313,7 @@ export default class NotificationService {
    */
   static async notifyUserCreation(
     newUserEmail: string,
-    newUserRole: string,
+    _newUserRole: string,
     createdBy: string
   ) {
     // Cette méthode ne notifie plus les admins, seulement enregistrée dans les activités
@@ -240,7 +325,7 @@ export default class NotificationService {
    */
   static async notifyUserDeletion(
     deletedUserEmail: string,
-    deletedUserRole: string,
+    _deletedUserRole: string,
     deletedBy: string
   ) {
     // Cette méthode ne notifie plus les admins, seulement enregistrée dans les activités

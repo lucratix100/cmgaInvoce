@@ -77,5 +77,15 @@ export default class UserActivityService {
     CONFIRM_DELIVERY: 'Confirmation livraison',
     PROCESS_DELIVERY: 'Traitement livraison',
     MARK_AS_DELIVERED_WITH_RETURN: 'Marquage livrée avec retour',
+    CREATE_COMMERCIAL_BL: 'Création BC commercial',
+    CONFIRM_COMMERCIAL_BL: 'Confirmation BC commercial',
+    REQUEST_COMMERCIAL_BL_EDIT: 'Demande modification BC commercial',
+    APPROVE_COMMERCIAL_BL_EDIT: 'Autorisation modification BC commercial',
+    REJECT_COMMERCIAL_BL_EDIT: 'Refus modification BC commercial',
+    UPDATE_AUTHORIZED_COMMERCIAL_BL: 'Modification autorisée BC commercial',
+    VALIDATE_COMMERCIAL_BL_FOR_FACTURATION: 'Validation ADMIN BC commercial',
+    REJECT_COMMERCIAL_BL_FOR_FACTURATION: 'Rejet ADMIN BC commercial',
+    CANCEL_COMMERCIAL_BL: 'Annulation BC commercial',
+    MARK_COMMERCIAL_BL_FACTURED: 'BC commercial facturé',
   } as const
 } 

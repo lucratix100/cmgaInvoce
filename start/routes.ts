@@ -32,6 +32,7 @@ const UserActivitiesController = () => import('#controllers/user_activities_cont
 const DashboardController = () => import('#controllers/dashboard_controller')
 const UpdateInvoicesStatusController = () => import('#controllers/update_invoices_status_controller')
 const InvoiceRecoveriesController = () => import('#controllers/invoice_recoveries_controller')
+const CommercialAdminController = () => import('#controllers/commercial_admin_controller')
 
 // Contrôleurs pour le chat
 const ConversationsController = () => import('#controllers/conversations_controller')
@@ -103,6 +104,65 @@ router.group(() => {
   router.get('/recovery/custom-delays', [InvoiceRecoveriesController, 'getCustomDelays'])
   router.delete('/recovery/custom-delays/:id', [InvoiceRecoveriesController, 'deleteCustomDelay'])
   router.post('/recovery/check-expired-delays', [InvoiceRecoveriesController, 'checkExpiredDelays'])
+
+  // Routes du dashboard responsable commercial
+  router.get('/commercial-admin/dashboard', [CommercialAdminController, 'dashboard'])
+  router.get('/commercial-admin/team-stats', [CommercialAdminController, 'teamStats'])
+  router.get('/commercial-admin/alerts', [CommercialAdminController, 'alerts'])
+  router.get('/commercial-admin/agents', [CommercialAdminController, 'agents'])
+  router.post('/commercial-admin/agents', [CommercialAdminController, 'storeAgent'])
+  router.put('/commercial-admin/agents/:id', [CommercialAdminController, 'updateAgent'])
+  router.patch('/commercial-admin/agents/:id/deactivate', [CommercialAdminController, 'deactivateAgent'])
+  router.get('/commercial-admin/clients', [CommercialAdminController, 'clients'])
+  router.post('/commercial-admin/clients', [CommercialAdminController, 'storeClient'])
+  router.put('/commercial-admin/clients/:id', [CommercialAdminController, 'updateClient'])
+  router.patch('/commercial-admin/clients/:id/deactivate', [CommercialAdminController, 'deactivateClient'])
+  router.patch('/commercial-admin/clients/:id/activate', [CommercialAdminController, 'activateClient'])
+  router.post('/commercial-admin/locations', [CommercialAdminController, 'storeLocation'])
+  router.put('/commercial-admin/locations/:id', [CommercialAdminController, 'updateLocation'])
+  router.patch('/commercial-admin/locations/:id/deactivate', [CommercialAdminController, 'deactivateLocation'])
+  router.patch('/commercial-admin/locations/:id/activate', [CommercialAdminController, 'activateLocation'])
+  router.get('/commercial-admin/assignments', [CommercialAdminController, 'assignments'])
+  router.post('/commercial-admin/assignments', [CommercialAdminController, 'storeAssignment'])
+  router.patch('/commercial-admin/assignments/:id/deactivate', [CommercialAdminController, 'deactivateAssignment'])
+  router.post('/commercial-admin/transfer', [CommercialAdminController, 'transferCommercialResources'])
+  router.get('/commercial-admin/histories', [CommercialAdminController, 'histories'])
+  router.get('/commercial-admin/planning', [CommercialAdminController, 'planning'])
+  router.post('/commercial-admin/planning', [CommercialAdminController, 'storePlanning'])
+  router.put('/commercial-admin/planning/:id', [CommercialAdminController, 'updatePlanning'])
+  router.patch('/commercial-admin/planning/:id/deactivate', [CommercialAdminController, 'deactivatePlanning'])
+  router.post('/commercial-admin/clients/import', [CommercialAdminController, 'importClients'])
+  router.get('/commercial-admin/products', [CommercialAdminController, 'products'])
+  router.post('/commercial-admin/products', [CommercialAdminController, 'storeProduct'])
+  router.put('/commercial-admin/products/:id', [CommercialAdminController, 'updateProduct'])
+  router.delete('/commercial-admin/products/:id', [CommercialAdminController, 'destroyProduct'])
+
+  // Routes utilisées par l'écran des agents commerciaux
+  router.get('/agent/clients', [CommercialAdminController, 'agentClients'])
+  router.get('/agent/stats', [CommercialAdminController, 'agentStats'])
+  router.get('/agent/follow-ups', [CommercialAdminController, 'agentFollowUps'])
+  router.put('/agent/clients/:id/status', [CommercialAdminController, 'updateAgentClientStatus'])
+  router.get('/agent/products', [CommercialAdminController, 'agentProducts'])
+  router.get('/agent/portfolio/assigned', [CommercialAdminController, 'agentAssignedPortfolio'])
+  router.get('/agent/personal-clients', [CommercialAdminController, 'agentPersonalClients'])
+  router.post('/agent/personal-clients', [CommercialAdminController, 'storeAgentPersonalClient'])
+  router.put('/agent/personal-clients/:id', [CommercialAdminController, 'updateAgentPersonalClient'])
+  router.patch('/agent/personal-clients/:id/deactivate', [CommercialAdminController, 'deactivateAgentPersonalClient'])
+  router.post('/agent/personal-orders', [CommercialAdminController, 'storeAgentPersonalOrder'])
+  router.get('/agent/history/stats', [CommercialAdminController, 'agentHistoryStats'])
+  router.get('/agent/history', [CommercialAdminController, 'agentHistory'])
+  router.get('/agent/orders', [CommercialAdminController, 'agentOrders'])
+  router.get('/agent/orders/:id/commercial-bl', [CommercialAdminController, 'agentCommercialBl'])
+  router.put('/agent/commercial-bls/:id', [CommercialAdminController, 'updateAgentCommercialBl'])
+  router.post('/agent/commercial-bls/:id/confirm', [CommercialAdminController, 'confirmAgentCommercialBl'])
+  router.post('/agent/commercial-bls/:id/request-edit', [CommercialAdminController, 'requestCommercialBlEdit'])
+  router.post('/agent/commercial-bls/:id/cancel', [CommercialAdminController, 'cancelAgentCommercialBl'])
+  router.get('/commercial-admin/commercial-bl-requests', [CommercialAdminController, 'commercialBlRequests'])
+  router.patch('/commercial-admin/commercial-bl-requests/:id/review', [CommercialAdminController, 'reviewCommercialBlRequest'])
+  router.get('/admin/commercial-bl-reviews', [CommercialAdminController, 'adminCommercialBlReviews'])
+  router.patch('/admin/commercial-bl-reviews/:id/review', [CommercialAdminController, 'reviewCommercialBlForFacturation'])
+  router.get('/facturation/commercial-bls', [CommercialAdminController, 'facturationCommercialBls'])
+  router.patch('/facturation/commercial-bls/:id/facture', [CommercialAdminController, 'markCommercialBlFactured'])
 
   // Routes du chat
   router.get('/chat/users', [ChatUsersController, 'index'])
@@ -189,7 +249,11 @@ const initializeWebSocket = async () => {
   }
 }
 
-// Initialiser le WebSocket après un délai
-setTimeout(initializeWebSocket, 2000)
+// Initialiser le WebSocket uniquement quand l'application sert HTTP.
+// Les commandes Ace comme migration:run importent aussi les routes et ne doivent pas rester bloquées.
+const shouldInitializeWebSocket = process.argv.some((arg) => arg === 'serve' || arg.includes('server.js'))
+if (shouldInitializeWebSocket) {
+  setTimeout(initializeWebSocket, 2000)
+}
 
 

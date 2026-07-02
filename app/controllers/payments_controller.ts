@@ -154,7 +154,7 @@ export default class PaymentsController {
         .firstOrFail()
 
       // Vérification des permissions selon le rôle et le statut de la facture
-      if (currentUser.role !== 'ADMIN' && currentUser.role !== 'RECOUVREMENT') {
+      if (currentUser.role !== 'ADMIN' && currentUser.role !== 'RECOUVREMENT' && currentUser.role !== 'AGENT_COMMERCIAL' && currentUser.role !== 'COMMERCIAL_ADMIN') {
         return response.status(403).json({
           error: 'Vous n\'avez pas les permissions pour modifier ce paiement'
         })
@@ -245,7 +245,7 @@ export default class PaymentsController {
         .firstOrFail()
 
       // Vérification des permissions selon le rôle et le statut de la facture
-      if (currentUser.role !== 'ADMIN' && currentUser.role !== 'RECOUVREMENT') {
+      if (currentUser.role !== 'ADMIN' && currentUser.role !== 'RECOUVREMENT' && currentUser.role !== 'AGENT_COMMERCIAL' && currentUser.role !== 'COMMERCIAL_ADMIN') {
         return response.status(403).json({
           error: 'Vous n\'avez pas les permissions pour supprimer ce paiement'
         })

@@ -88,19 +88,14 @@ export default class InvoiceRemindersController {
             const now = new Date()
             const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
 
-            console.log('Date actuelle:', now)
-
             const reminders = await InvoiceReminder.query()
                 .where('user_id', user.$original.id)
                 .where((query) => {
                     query.where((subQuery) => {
                         subQuery.where('read', false)
-                            .whereRaw('remind_at >= remind_at - interval \'7 days\'')
-                            .whereRaw('remind_at <= remind_at + interval \'7 days\'')
                             .where('remind_at', '<=', now)
                     }).orWhere((subQuery) => {
                         subQuery.where('read', true)
-                            .whereRaw('remind_at >= remind_at - interval \'7 days\'')
                             .where('remind_at', '<=', endOfToday)
                     })
                 })

@@ -12,8 +12,9 @@ import router from '@adonisjs/core/services/router'
 import server from '@adonisjs/core/services/server'
 
 /**
- * Import task for invoice CSV import
+ * Import scheduled tasks
  */
+import('../app/tasks/commercial_follow_up_reminders.js')
 // import('../app/tasks/invoice_xml_importer.js')
 
 /**

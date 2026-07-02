@@ -3,6 +3,7 @@ import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import CommercialInitial from './commercial_initial.js'
 import Assignment from './assignment.js'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
+import { Role } from '../enum/index.js'
 
 export default class Root extends BaseModel {
   @column({ isPrimary: true })
@@ -10,6 +11,15 @@ export default class Root extends BaseModel {
 
   @column()
   declare name: string
+
+  @column({
+    prepare: (value: Role[] | string[] | null) => JSON.stringify(value ?? []),
+    consume: (value: Role[] | string[] | string | null) => {
+      if (!value) return []
+      return typeof value === 'string' ? JSON.parse(value) : value
+    },
+  })
+  declare visibleToRoles: Role[]
 
   @hasMany(() => CommercialInitial)
   declare commercialInitials: HasMany<typeof CommercialInitial>

@@ -48,15 +48,6 @@ export default class WebSocketService {
         const token = socket.handshake.auth.token || 
                      socket.handshake.headers.authorization?.replace('Bearer ', '') ||
                      socket.handshake.query.token
-        
-        if (!token) {
-          socket.data.user = {
-            id: 'debug-user',
-            firstname: 'Debug',
-            lastname: 'User'
-          }
-          return next()
-        }
 
         try {
           const cookies = socket.handshake.headers.cookie
@@ -76,27 +67,22 @@ export default class WebSocketService {
             }
           }
 
-          const db = await import('@adonisjs/lucid/services/db')
-          
-          const accessToken = await db.default
-            .from('auth_access_tokens')
-            .where('type', 'auth_token')
-            .where('expires_at', '>', new Date())
-            .first()
-
-          if (!accessToken) {
-            return next(new Error('Token invalide'))
+          const authUserId = socket.handshake.auth.userId || socket.handshake.query.userId
+          if (token && authUserId) {
+            const user = await User.find(authUserId)
+            if (user) {
+              socket.data.user = user
+              return next()
+            }
           }
 
-          const user = await User.find(accessToken.tokenable_id)
-          if (!user) {
-            return next(new Error('Utilisateur non trouvé'))
+          if (!token) {
+            return next(new Error('Non authentifié'))
           }
 
-          socket.data.user = user
-          next()
+          return next(new Error('Session utilisateur introuvable'))
         } catch (authError) {
-          return next(new Error('Token invalide'))
+          return next(new Error('Session utilisateur invalide'))
         }
       } catch (error) {
         socket.data.user = {
@@ -119,7 +105,7 @@ export default class WebSocketService {
 
       // Gérer l'événement join pour rejoindre une conversation spécifique
       socket.on('join', (conversationId: string) => {
-        socket.join(`conversation_${conversationId}`)
+        socket.join(`conversation_${String(conversationId)}`)
       })
 
       // Écouter les nouveaux messages
@@ -148,9 +134,9 @@ export default class WebSocketService {
             .update({ updatedAt: new Date() })
 
           // Envoyer le message à tous les participants
-          this.io.to(`conversation_${conversationId}`).emit('new_message', {
-            message,
-            conversationId
+          this.io.to(`conversation_${String(conversationId)}`).emit('new_message', {
+            message: message.serialize(),
+            conversationId: String(conversationId),
           })
 
           // Envoyer une notification aux utilisateurs non connectés
@@ -226,7 +212,7 @@ export default class WebSocketService {
         })
 
       conversations.forEach(conversation => {
-        socket.join(`conversation_${conversation.id}`)
+        socket.join(`conversation_${String(conversation.id)}`)
       })
     } catch (error) {
       console.error('Erreur lors de la jointure des conversations:', error)
@@ -269,7 +255,7 @@ export default class WebSocketService {
         return
       }
       
-      const roomName = `conversation_${conversationId}`
+      const roomName = `conversation_${String(conversationId)}`
       this.io.to(roomName).emit(event, data)
     } catch (error) {
       console.error(`❌ Erreur lors de l'envoi de l'événement '${event}' à la conversation ${conversationId}:`, error)

@@ -120,8 +120,8 @@ export default class MessagesController {
         
         if (websocketService) {
           websocketService.sendToConversation(conversationId.toString(), 'new_message', {
-            message: message,
-            conversationId: conversationId.toString()
+            message: message.serialize(),
+            conversationId: conversationId.toString(),
           })
           console.log('✅ Événement WebSocket émis avec succès')
         } else {
