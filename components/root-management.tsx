@@ -3,16 +3,24 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, Save } from "lucide-react"
+import { Plus, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { createCommercialInitial, deleteCommercialInitial } from "@/actions/commercial-initials-actions"
+import { Role } from "@/types/roles"
+
+const ROOT_VISIBILITY_OPTIONS = [
+  { role: Role.COMMERCIAL_ADMIN, label: "Admin commercial" },
+  { role: Role.ADMIN_DETAILLANT, label: "Admin détaillant" },
+]
 
 interface Root {
   id: string
@@ -21,14 +29,15 @@ interface Root {
     id: string
     value: string
   }[]
+  visibleToRoles: Role[]
   expanded: boolean
 }
 
 interface RootManagementProps {
   roots: Root[]
   setRoots: React.Dispatch<React.SetStateAction<Root[]>>
-  onCreateRoot: (name: string) => Promise<void>
-  onUpdateRoot: (id: string, name: string) => Promise<void>
+  onCreateRoot: (name: string, visibleToRoles: Role[]) => Promise<void>
+  onUpdateRoot: (id: string, name: string, visibleToRoles?: Role[]) => Promise<void>
   onDeleteRoot: (id: string) => Promise<void>
 }
 
@@ -45,26 +54,44 @@ export function RootManagement({
   }
 
   const [newRoot, setNewRoot] = useState("")
+  const [newRootVisibleToRoles, setNewRootVisibleToRoles] = useState<Role[]>([])
+  const [createRootOpen, setCreateRootOpen] = useState(false)
   const [newSuffix, setNewSuffix] = useState("")
   const [editingRoot, setEditingRoot] = useState<string | null>(null)
   const [editingRootValue, setEditingRootValue] = useState("")
+  const [editingRootVisibleToRoles, setEditingRootVisibleToRoles] = useState<Role[]>([])
   const [selectedRoot, setSelectedRoot] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleAddRoot = async () => {
-    if (!newRoot.trim()) return
+    if (!newRoot.trim()) {
+      setError("La racine ne peut pas être vide")
+      return
+    }
+    if (roots.some((root) => root.value.toLowerCase() === newRoot.trim().toLowerCase())) {
+      setError("Cette racine existe déjà")
+      return
+    }
+    if (newRootVisibleToRoles.length === 0) {
+      setError("Sélectionnez au moins un rôle autorisé")
+      return
+    }
 
     try {
-      await onCreateRoot(newRoot.trim())
+      await onCreateRoot(newRoot.trim(), newRootVisibleToRoles)
       setNewRoot("")
+      setNewRootVisibleToRoles([])
+      setCreateRootOpen(false)
+      setError(null)
+      toast.success("Racine créée avec succès")
     } catch (error) {
       console.error("Erreur lors de l'ajout de la racine:", error)
     }
   }
 
-  const handleUpdateRoot = async (id: string, newValue: string) => {
+  const handleUpdateRoot = async (id: string, newValue: string, visibleToRoles?: Role[]) => {
     try {
-      await onUpdateRoot(id, newValue)
+      await onUpdateRoot(id, newValue, visibleToRoles)
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la racine:", error)
     }
@@ -84,6 +111,8 @@ export function RootManagement({
     if (root) {
       setEditingRoot(id)
       setEditingRootValue(root.value)
+      setEditingRootVisibleToRoles(root.visibleToRoles || [Role.COMMERCIAL_ADMIN])
+      setError(null)
     }
   }
 
@@ -96,19 +125,25 @@ export function RootManagement({
       setError("Cette racine existe déjà")
       return
     }
+    if (editingRootVisibleToRoles.length === 0) {
+      setError("Sélectionnez au moins un rôle autorisé")
+      return
+    }
     try {
-      await handleUpdateRoot(id, editingRootValue)
+      await handleUpdateRoot(id, editingRootValue, editingRootVisibleToRoles)
       setRoots(
         roots.map((root) =>
           root.id === id
             ? {
               ...root,
               value: editingRootValue,
+              visibleToRoles: editingRootVisibleToRoles,
             }
             : root,
         ),
       )
       setEditingRoot(null)
+      setEditingRootVisibleToRoles([])
       setError(null)
       toast.success('Racine mise à jour avec succès')
     } catch (error) {
@@ -200,26 +235,67 @@ export function RootManagement({
     setSelectedRoot(rootId === selectedRoot ? null : rootId)
     setNewSuffix("")
   }
+
+  const closeCreateRootDialog = (open: boolean) => {
+    setCreateRootOpen(open)
+    if (!open) {
+      setNewRoot("")
+      setNewRootVisibleToRoles([])
+      setError(null)
+    }
+  }
+
+  const closeEditRootDialog = (open: boolean) => {
+    if (!open) {
+      setEditingRoot(null)
+      setEditingRootValue("")
+      setEditingRootVisibleToRoles([])
+      setError(null)
+    }
+  }
+
+  const toggleRole = (role: Role, roles: Role[], onChange: (roles: Role[]) => void) => {
+    onChange(
+      roles.includes(role)
+        ? roles.filter((item) => item !== role)
+        : [...roles, role]
+    )
+  }
+
+  const renderRolePicker = (roles: Role[], onChange: (roles: Role[]) => void) => (
+    <div className="grid gap-2 rounded-lg border bg-gray-50 p-3">
+      <p className="text-sm font-medium">Visible par</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {ROOT_VISIBILITY_OPTIONS.map((option) => (
+          <label
+            key={option.role}
+            className="flex cursor-pointer items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm transition hover:border-primary/50"
+          >
+            <Checkbox
+              checked={roles.includes(option.role)}
+              onCheckedChange={() => toggleRole(option.role, roles, onChange)}
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+
   return (
     <div className="grid gap-8 md:grid-cols-2">
       <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>Racines</CardTitle>
-          <CardDescription>Créez et gérez les racines des numéros de facture</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle>Racines</CardTitle>
+            <CardDescription>Créez et gérez les racines des numéros de facture</CardDescription>
+          </div>
+          <Button onClick={() => setCreateRootOpen(true)} size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvelle racine
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="flex space-x-2 mb-6">
-            <Input
-              placeholder="Nouvelle racine"
-              value={newRoot}
-              onChange={(e) => setNewRoot(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={handleAddRoot} className="h-10 w-10">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>
@@ -231,40 +307,32 @@ export function RootManagement({
               {roots.map((root) => (
                 <div key={root.id} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between">
-                    {editingRoot === root.id ? (
-                      <div className="flex-1 flex space-x-2">
-                        <Input
-                          value={editingRootValue}
-                          onChange={(e) => setEditingRootValue(e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button onClick={() => handleSaveRoot(root.id)} className="h-8 w-8 bg-transparent text-black hover:bg-gray-100 hover:text-black mt-1">
-                          <Save className="h-4 w-4" />
-                        </Button>
+                    <div className="flex items-center space-x-2 flex-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-0 h-6 w-6"
+                        onClick={() => handleToggleExpand(root.id)}
+                      >
+                        {root.expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                      <span className="font-medium">{root.value}</span>
+                      <Badge variant="outline" className="ml-2">
+                        {root.suffixes.length} suffixe{root.suffixes.length !== 1 ? "s" : ""}
+                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {(root.visibleToRoles || []).map((role) => (
+                          <Badge key={role} variant="secondary" className="text-[10px]">
+                            {role === Role.COMMERCIAL_ADMIN ? "Admin commercial" : "Admin détaillant"}
+                          </Badge>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="flex items-center space-x-2 flex-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0 h-6 w-6"
-                          onClick={() => handleToggleExpand(root.id)}
-                        >
-                          {root.expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
-                        <span className="font-medium">{root.value}</span>
-                        <Badge variant="outline" className="ml-2">
-                          {root.suffixes.length} suffixe{root.suffixes.length !== 1 ? "s" : ""}
-                        </Badge>
-                      </div>
-                    )}
+                    </div>
 
                     <div className="flex space-x-1">
-                      {editingRoot !== root.id && (
-                        <Button onClick={() => handleEditRoot(root.id)} size="icon" variant="ghost" className="h-8 w-8">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button onClick={() => handleEditRoot(root.id)} size="icon" variant="ghost" className="h-8 w-8">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         onClick={() => handleDeleteRoot(root.id)}
                         size="icon"
@@ -316,6 +384,74 @@ export function RootManagement({
             </div>
           </ScrollArea>
         </CardContent>
+        <Dialog open={createRootOpen} onOpenChange={closeCreateRootDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Créer une racine</DialogTitle>
+              <DialogDescription>
+                Renseignez la racine puis choisissez les profils administrateurs qui pourront la voir et la gérer.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Racine</label>
+                <Input
+                  placeholder="Ex: ASF"
+                  value={newRoot}
+                  onChange={(event) => setNewRoot(event.target.value)}
+                />
+              </div>
+              {renderRolePicker(newRootVisibleToRoles, setNewRootVisibleToRoles)}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => closeCreateRootDialog(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleAddRoot}>
+                Créer la racine
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={editingRoot !== null} onOpenChange={closeEditRootDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Modifier la racine</DialogTitle>
+              <DialogDescription>
+                Modifiez le nom de la racine et les profils qui peuvent la voir.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Racine</label>
+                <Input
+                  value={editingRootValue}
+                  onChange={(event) => setEditingRootValue(event.target.value)}
+                />
+              </div>
+              {renderRolePicker(editingRootVisibleToRoles, setEditingRootVisibleToRoles)}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => closeEditRootDialog(false)}>
+                Annuler
+              </Button>
+              <Button onClick={() => editingRoot && handleSaveRoot(editingRoot)}>
+                Enregistrer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
 
       <Card>

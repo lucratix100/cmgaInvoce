@@ -1,138 +1,139 @@
 "use client"
 
-import { useState } from "react"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Building, BarChart3, FileText, Truck, Users, ArrowRightLeft, Info, AlertTriangle, Settings } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import {
+    AlertTriangle,
+    ArrowRightLeft,
+    BarChart3,
+    Building,
+    ClipboardCheck,
+    FileText,
+    Info,
+    Package,
+    Settings,
+    Truck,
+    Users,
+    type LucideIcon,
+} from "lucide-react"
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarRail,
+} from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
+
+type NavItem = {
+    href: string
+    label: string
+    icon: LucideIcon
+    exact?: boolean
+    tone?: "default" | "danger"
+}
+
+const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
+    {
+        label: "Pilotage",
+        items: [
+            { href: "/dashboard", label: "Aperçu global", icon: BarChart3, exact: true },
+            { href: "/dashboard/activities", label: "Info activités", icon: Info },
+        ],
+    },
+    {
+        label: "Gestion",
+        items: [
+            { href: "/dashboard/users", label: "Utilisateurs", icon: Users },
+            { href: "/dashboard/invoices", label: "Factures", icon: FileText },
+            { href: "/dashboard/depots", label: "Dépôts", icon: Building },
+            { href: "/dashboard/drivers", label: "Chauffeurs", icon: Truck },
+            { href: "/dashboard/assignments", label: "Affectations", icon: ArrowRightLeft },
+            { href: "/dashboard/produits", label: "Produits", icon: Package },
+            { href: "/dashboard/commercial-bls", label: "Validation BC", icon: ClipboardCheck },
+        ],
+    },
+    {
+        label: "Recouvrement",
+        items: [
+            { href: "/dashboard/recovery", label: "Factures urgentes", icon: AlertTriangle, tone: "danger" },
+            { href: "/dashboard/recovery/settings", label: "Configuration délais", icon: Settings },
+        ],
+    },
+]
 
 export default function SideBar() {
-
     const pathname = usePathname()
-    const [sidebarOpen, setSidebarOpen] = useState(true)
-    const isActive = (path: string) => {
-        return pathname === path
-    }
+    const isActive = (item: Pick<NavItem, "href" | "exact">) =>
+        item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`)
 
     return (
-        <div
-            className={`bg-white border-r fixed top-0 h-screen overflow-y-auto flex-shrink-0 z-50 transition-transform duration-300 md:sticky md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-                }`}
-            style={{ width: "230px" }}
-        >
-            <div className="flex flex-col h-full sticky top-0">
-                <div className="border-b p-4">
-                    <div className="flex items-center gap-2 justify-center">
-                        <Image src="/logo.png" alt="logo" width={100} height={100} />
-                    </div>
-                </div>
-
-                <div className="flex flex-col p-4 space-y-1">
-                    <Button
-                        variant={isActive("/dashboard") ? "default" : "ghost"}
-                        className={isActive("/dashboard") ? "justify-start" : "justify-start hover:bg-primary-50"}
-                        asChild
-                    >
-                        <Link href="/dashboard">
-                            <BarChart3 className="mr-2 h-4 w-4" />
-                            Aperçu global
-                        </Link>
-                    </Button>
-                    <Button
-                        variant={isActive("/dashboard/users") ? "default" : "ghost"}
-                        className={isActive("/dashboard/users") ? "justify-start" : "justify-start hover:bg-primary-50"}
-                        asChild
-                    >
-                        <Link href="/dashboard/users">
-                            <Users className="mr-2 h-4 w-4" />
-                            Utilisateurs
-                        </Link>
-                    </Button>
-                    <Button
-                        variant={isActive("/dashboard/invoices") ? "default" : "ghost"}
-                        className={isActive("/dashboard/invoices") ? "justify-start" : "justify-start hover:bg-primary-50"}
-                        asChild
-                    >
-                        <Link href="/dashboard/invoices">
-                            <FileText className="mr-2 h-4 w-4" />
-                            Factures
-                        </Link>
-                    </Button>
-                    <Button
-                        variant={isActive("/dashboard/depots") ? "default" : "ghost"}
-                        className={isActive("/dashboard/depots") ? "justify-start" : "justify-start hover:bg-primary-50"}
-                        asChild
-                    >
-                        <Link href="/dashboard/depots">
-                            <Building className="mr-2 h-4 w-4" />
-                            Dépôts
-                        </Link>
-                    </Button>
-                    <Button
-                        variant={isActive("/dashboard/drivers") ? "default" : "ghost"}
-                        className={isActive("/dashboard/drivers") ? "justify-start" : "justify-start hover:bg-primary-50"}
-                        asChild
-                    >
-                        <Link href="/dashboard/drivers">
-                            <Truck className="mr-2 h-4 w-4" />
-                            Chauffeurs
-                        </Link>
-                    </Button>
-
-                    <Button
-                        variant={isActive("/dashboard/assignments") ? "default" : "ghost"}
-                        className={isActive("/dashboard/assignments") ? "justify-start" : "justify-start hover:bg-primary-50"}
-                        asChild
-                    >
-                        <Link href="/dashboard/assignments">
-                            <ArrowRightLeft className="mr-2 h-4 w-4" />
-                            Affectations
-                        </Link>
-                    </Button>
-
-                    {/* Section Recouvrement */}
-                    <div className="pt-4 border-t border-gray-200">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
-                            Recouvrement
-                        </h3>
-                        
-                        <Button
-                            // variant={isActive("/dashboard/recovery") ? "default" : "ghost"}
-                            className={isActive("/dashboard/recovery") ? "justify-start hover:bg-red-400  bg-red-500" : "justify-start hover:bg-red-50 bg-transparent text-red-500"}
-                            asChild
-                        >
-                            <Link href="/dashboard/recovery" className="text-red-500">
-                                <AlertTriangle className="mr-2 h-4 w-4" />
-                                Factures Urgentes
+        <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+            <SidebarHeader className="flex h-14 justify-center border-b border-sidebar-border p-2">
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild size="lg" className="h-10">
+                            <Link href="/dashboard">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-background shadow-sm">
+                                    <Image src="/logo.png" alt="CMGA" width={24} height={24} className="object-contain" />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block truncate text-sm font-bold">CMGA Admin</span>
+                                    <span className="block truncate text-xs text-sidebar-foreground/60">Gestion globale</span>
+                                </span>
                             </Link>
-                        </Button>
-                        
-                        <Button
-                            variant={isActive("/dashboard/recovery/settings") ? "default" : "ghost"}
-                            className={isActive("/dashboard/recovery/settings") ? "justify-start" : "justify-start hover:bg-blue-50"}
-                            asChild
-                        >
-                            <Link href="/dashboard/recovery/settings">
-                                <Settings className="mr-2 h-4 w-4" />
-                                Configuration Délais
-                            </Link>
-                        </Button>
-                    </div>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarHeader>
 
-                    <Button
-                        variant={isActive("/dashboard/activities") ? "default" : "ghost"}
-                        className={isActive("/dashboard/activities") ? "justify-start" : "justify-start hover:bg-primary-50"}
-                        asChild
-                    >
-                        <Link href="/dashboard/activities">
-                            <Info className="mr-2 h-4 w-4" />
-                            Info activités
-                        </Link>
-                    </Button>
-                    
-                </div>
-            </div>
-        </div>
+            <SidebarContent className="px-1 py-2">
+                {NAV_GROUPS.map((group) => (
+                    <SidebarGroup key={group.label}>
+                        <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {group.items.map((item) => (
+                                    <NavLink key={item.href} item={item} active={isActive(item)} />
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                ))}
+            </SidebarContent>
+            <SidebarRail />
+        </Sidebar>
+    )
+}
+
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+    const Icon = item.icon
+    const danger = item.tone === "danger"
+
+    return (
+        <SidebarMenuItem>
+            <SidebarMenuButton
+                asChild
+                isActive={active}
+                tooltip={item.label}
+                className={cn(
+                    "h-9 rounded-xl",
+                    active && !danger && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+                    active && danger && "bg-red-600 text-white hover:bg-red-600 hover:text-white",
+                    !active && danger && "text-red-600 hover:bg-red-50 hover:text-red-700"
+                )}
+            >
+                <Link href={item.href} aria-current={active ? "page" : undefined}>
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
     )
 }

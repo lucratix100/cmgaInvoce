@@ -13,6 +13,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { getSession, getUser } from '@/lib/auth'
 import io, { Socket } from 'socket.io-client'
+import { getWebSocketUrl } from '@/lib/websocket'
 
 interface Message {
   id: string
@@ -83,6 +84,7 @@ export default function ChatWindow({ user, accessToken }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<ReturnType<typeof io> | null>(null)
+  const selectedConversationIdRef = useRef<string | null>(null)
 
   // Charger les conversations
   useEffect(() => {
@@ -105,36 +107,46 @@ export default function ChatWindow({ user, accessToken }: ChatWindowProps) {
     }
   }, [selectedConversation, accessToken])
 
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversation?.id ?? null
+  }, [selectedConversation?.id])
+
   // Scroll vers le bas quand de nouveaux messages arrivent
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
-  // Ajout du useEffect pour la connexion WebSocket et l'écoute des nouveaux messages
+  // Connexion WebSocket persistante
   useEffect(() => {
-    if (!selectedConversation || !accessToken) return
+    if (!accessToken || !user?.id) return
 
-    // Connexion au WebSocket
-    socketRef.current = io('http://192.168.10.10:3333/chat', {
-      auth: { token: accessToken }
+    const socket = io(getWebSocketUrl(), {
+      auth: { token: accessToken, userId: String(user.id) },
+      transports: ['websocket', 'polling'],
     })
 
-    // Rejoindre la room de la conversation
-    socketRef.current.emit('join', selectedConversation.id)
+    socketRef.current = socket
 
-    // Écouter les nouveaux messages
-    socketRef.current.on('new_message', (data: { conversationId: string, message: Message }) => {
-      if (data.conversationId === selectedConversation.id) {
-        setMessages((prev) => [...prev, data.message])
+    socket.on('new_message', (data: { conversationId: string, message: Message }) => {
+      const currentId = selectedConversationIdRef.current
+      if (currentId != null && String(currentId) === String(data.conversationId)) {
+        setMessages((prev) => {
+          if (prev.some((msg) => msg.id === data.message.id)) return prev
+          return [...prev, data.message]
+        })
       }
     })
 
-    // Nettoyage à la désélection ou démontage
     return () => {
-      socketRef.current?.disconnect()
+      socket.disconnect()
       socketRef.current = null
     }
-  }, [selectedConversation, accessToken])
+  }, [accessToken, user?.id])
+
+  useEffect(() => {
+    if (!socketRef.current || !selectedConversation?.id) return
+    socketRef.current.emit('join', String(selectedConversation.id))
+  }, [selectedConversation?.id])
 
   const fetchConversations = async () => {
     try {
@@ -205,6 +217,11 @@ export default function ChatWindow({ user, accessToken }: ChatWindowProps) {
       })
 
       if (response.ok) {
+        const message = await response.json()
+        setMessages((prev) => {
+          if (prev.some((msg) => msg.id === message.id)) return prev
+          return [...prev, message]
+        })
         setNewMessage('')
       }
     } catch (error) {

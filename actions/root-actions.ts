@@ -4,10 +4,12 @@ import axios from 'axios'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { toast } from 'sonner'
+import { Role } from '@/types/roles'
 
 interface Root {
     id: number
     name: string
+    visibleToRoles?: Role[]
     commercialInitials: any[]
     createdAt: string
     updatedAt: string
@@ -38,11 +40,11 @@ export async function getRoots(): Promise<Root[]> {
     }
 }
 
-export async function createRoot(name: string) {
+export async function createRoot(name: string, visibleToRoles: Role[]) {
     try {
         const cookieStore = await cookies()
         const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
-        const response = await axios.post(`${process.env.API_URL}roots`, { name }, {
+        const response = await axios.post(`${process.env.API_URL}roots`, { name, visibleToRoles }, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Accept': 'application/json'
@@ -55,7 +57,7 @@ export async function createRoot(name: string) {
     }
 }
 
-export async function updateRoot(id: number, name: string): Promise<Root> {
+export async function updateRoot(id: number, name: string, visibleToRoles?: Role[]): Promise<Root> {
     console.log(id, "id", name, "name")
     try {
         const cookieStore = await cookies()
@@ -65,7 +67,7 @@ export async function updateRoot(id: number, name: string): Promise<Root> {
             throw new Error("Non authentifié")
         }
         const response = await axios.put(`${process.env.API_URL}roots/${id}`,
-            { name },
+            { name, visibleToRoles },
             {
                 headers: {
                     Authorization: `Bearer ${token}`,

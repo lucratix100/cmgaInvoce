@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AlertTriangle, Clock, DollarSign, User, Building, Settings, ChevronLeft, ChevronRight, ExternalLink, AlertCircle, TrendingUp, Calendar, FileText } from "lucide-react"
+import { AlertTriangle, Clock, DollarSign, User, Building, Settings, ChevronLeft, ChevronRight, ExternalLink, FileText } from "lucide-react"
 import { UrgentInvoice } from "@/actions/recovery"
 import { toast } from "sonner"
 import { updateCustomDelay } from "@/actions/recovery"
@@ -105,13 +105,16 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
 
       await updateCustomDelay(selectedInvoice.id, days)
       
-      toast.success(`Délai personnalisé mis à jour pour la facture ${selectedInvoice.invoiceNumber}`)
+      toast.success(`Délai personnalisé ajouté pour la facture ${selectedInvoice.invoiceNumber}`)
       setIsDialogOpen(false)
       setCustomDelay('')
       setSelectedInvoice(null)
       
+      // Recharger les données des factures urgentes
+      window.location.reload()
+      
     } catch (error) {
-      toast.error('Erreur lors de la mise à jour du délai')
+      toast.error('Erreur lors de l\'ajout du délai')
       console.error(error)
     } finally {
       setIsLoading(false)
@@ -167,13 +170,11 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
         pages.push(totalPages)
       }
     }
-    
     return pages
   }
 
   return (
     <div className="space-y-6">
-
       {/* Barre de recherche et filtres - Design plus élégant */}
       <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div className="flex-1">
@@ -183,8 +184,7 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"
           />
-        </div>
-        
+        </div>       
         <div className="text-2xl font-bold text-gray-900">{filteredInvoices.length}</div>
         <div className="text-gray-600 text-sm">Factures en retard</div>
         
@@ -194,7 +194,6 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
           <span>{filteredInvoices.length} facture(s) trouvée(s)</span>
         </div>
       </div>
-
       {/* Message d'erreur de configuration */}
       {hasConfigurationError && (
         <Card className="border-orange-200 bg-orange-50">
@@ -222,7 +221,6 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
           </CardContent>
         </Card>
       )}
-
       {/* Liste des factures urgentes - Design compact */}
       <div className="space-y-3">
         {currentInvoices.length === 0 ? (
@@ -294,7 +292,6 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
           })
         )}
       </div>
-
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -353,7 +350,7 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modifier le délai de recouvrement</DialogTitle>
+            <DialogTitle>Ajouter un délai personnalisé</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -371,6 +368,10 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
             <div className="text-sm text-gray-600">
               <p>Facture: <span className="font-medium">{selectedInvoice?.invoiceNumber}</span></p>
               <p>Client: <span className="font-medium">{selectedInvoice?.customer?.name}</span></p>
+              <p className="text-orange-600 mt-2">
+                <AlertTriangle className="h-4 w-4 inline mr-1" />
+                Note: Cette action ajoutera un nouveau délai personnalisé à cette facture.
+              </p>
             </div>
             
             <div className="flex justify-end gap-2">
@@ -385,7 +386,7 @@ export default function RecoveryClient({ initialData, user }: RecoveryClientProp
                 onClick={handleUpdateCustomDelay}
                 disabled={isLoading || !customDelay}
               >
-                {isLoading ? 'Mise à jour...' : 'Mettre à jour'}
+                {isLoading ? 'Ajout...' : 'Ajouter le délai'}
               </Button>
             </div>
           </div>

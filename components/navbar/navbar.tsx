@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Bell, ChevronDown, LogOut, User } from "lucide-react";
-import { FileText, Building } from "lucide-react";
+import { ChevronDown, FileText, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +13,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 
 import Logout from "../logout";
-import { depot, user } from "@/types";
-import { Suspense, useState } from "react";
+import { user } from "@/types";
+import { Suspense } from "react";
 import Notification from "./notification";
 import { usePathname } from "next/navigation";
 
@@ -102,10 +101,10 @@ function HeaderContent({ user }: { user: user }) {
 export default function Header({ user }: { user: user }) {
 
   return (
-    <header className="border-b bg-white shadow-sm sticky top-0 z-50">
+    <div className="w-full">
       <Suspense
         fallback={
-          <div className="flex h-20 items-center px-4 md:px-6">
+          <div className="flex h-14 items-center px-4 md:px-6">
             <div className="flex items-center gap-2 text-primary">
               <FileText className="h-6 w-6" />
               <span className="text-lg font-semibold">
@@ -120,6 +119,6 @@ export default function Header({ user }: { user: user }) {
       >
         <HeaderContent user={user} />
       </Suspense>
-    </header>
+    </div>
   );
 }

@@ -28,7 +28,7 @@ export const UserSchema = z.object({
         .max(15, "Le numéro ne peut pas dépasser 15 chiffres"),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
-    role: z.enum(['ADMIN', 'MAGASINIER', 'CHEF DEPOT', 'RECOUVREMENT', 'CONTROLEUR', 'SUPERVISEUR_MAGASIN'], {
+    role: z.enum(['ADMIN', 'MAGASINIER', 'CHEF DEPOT', 'RECOUVREMENT', 'CONTROLEUR', 'SUPERVISEUR_MAGASIN', 'AGENT_COMMERCIAL', 'COMMERCIAL_ADMIN', 'FACTURATION'], {
         errorMap: () => ({ message: "Rôle invalide" })
     }),
     depotId: z.number().nullable(),

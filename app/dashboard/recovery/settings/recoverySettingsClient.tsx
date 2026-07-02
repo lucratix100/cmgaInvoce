@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Settings, Save, Plus, Globe, Building2, Clock, Trash2, AlertTriangle, Info, FileText, User, Search } from "lucide-react"
@@ -47,6 +46,23 @@ interface CustomDelay {
       accountNumber: string
     } | null
   }
+}
+
+// Nouvelle interface pour grouper les délais par facture
+interface GroupedCustomDelays {
+  invoiceNumber: string
+  invoice: {
+    id: number
+    invoiceNumber: string
+    accountNumber: string
+    date: string
+    totalTTC: number
+    customer: {
+      name: string
+      accountNumber: string
+    } | null
+  }
+  delays: CustomDelay[]
 }
 
 // Composant pour un délai individuel
@@ -170,6 +186,23 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
     delay.invoice.accountNumber.toLowerCase().includes(customDelaySearch.toLowerCase()) ||
     (delay.invoice.customer?.name && delay.invoice.customer.name.toLowerCase().includes(customDelaySearch.toLowerCase()))
   )
+
+  // Grouper les délais personnalisés par facture
+  const groupedCustomDelays: GroupedCustomDelays[] = filteredCustomDelays.reduce((groups, delay) => {
+    const existingGroup = groups.find(group => group.invoiceNumber === delay.invoice.invoiceNumber)
+    
+    if (existingGroup) {
+      existingGroup.delays.push(delay)
+    } else {
+      groups.push({
+        invoiceNumber: delay.invoice.invoiceNumber,
+        invoice: delay.invoice,
+        delays: [delay]
+      })
+    }
+    
+    return groups
+  }, [] as GroupedCustomDelays[])
 
   // Mettre à jour un délai existant
   const handleUpdateSetting = async (setting: RecoverySetting, newDays: number) => {
@@ -340,19 +373,30 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
     try {
       setIsLoading(true)
 
-      await checkExpiredDelays()
+      const response = await checkExpiredDelays()
+      
+      if (response.success) {
+        // Afficher un message de succès avec les détails
+        toast.success(
+          `${response.message} (${response.expiredCount} supprimé(s) sur ${response.totalChecked} vérifié(s))`,
+          {
+            duration: 5000,
+            description: `Vérification terminée avec succès`
+          }
+        )
 
-      // Recharger les délais personnalisés après la vérification
-      const customDelaysResponse = await fetch('/api/recovery/custom-delays', {
-        credentials: 'include'
-      })
-      const customDelaysData = await customDelaysResponse.json()
+        // Recharger les délais personnalisés après la vérification
+        const customDelaysResponse = await fetch('/api/recovery/custom-delays', {
+          credentials: 'include'
+        })
+        const customDelaysData = await customDelaysResponse.json()
 
-      if (customDelaysData.success) {
-        setCustomDelays(customDelaysData.data)
+        if (customDelaysData.success) {
+          setCustomDelays(customDelaysData.data)
+        }
+      } else {
+        toast.error(response.message || 'Erreur lors de la vérification des délais expirés')
       }
-
-      toast.success('Vérification des délais expirés terminée')
 
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la vérification des délais expirés')
@@ -604,7 +648,7 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                 )}
 
                 {/* Délais personnalisés par facture */}
-                {customDelays.length > 0 && (
+                {groupedCustomDelays.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <FileText className="h-5 w-5 text-gray-600" />
@@ -625,50 +669,48 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
 
                     {/* Liste des délais personnalisés avec scroll */}
                     <div className="max-h-80 overflow-y-auto space-y-4">
-                      {filteredCustomDelays.map((customDelay) => (
-                        <div key={customDelay.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-gradient-to-r from-purple-50 to-pink-50">
-                          <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-lg text-white bg-gradient-to-r from-purple-500 to-pink-600">
-                              <FileText className="h-4 w-4" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                                Facture {customDelay.invoice.invoiceNumber}
-                                <Badge variant="outline" className="text-purple-600 border-purple-300">
-                                  Personnalisé
-                                </Badge>
-                              </h3>
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <p className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  {customDelay.invoice.customer?.name || 'Client inconnu'} ({customDelay.invoice.accountNumber})
-                                </p>
-                                <p className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  Délai: {customDelay.customDays} jours
-                                </p>
-                                <p className="flex items-center gap-1">
-                                  <span className="font-medium">Montant:</span> {formatAmount(customDelay.invoice.totalTTC)}
-                                </p>
+                      {groupedCustomDelays.map((group) => (
+                        <div key={group.invoiceNumber} className="bg-white p-4 rounded-lg shadow-md">
+                          <h4 className="font-medium text-gray-900 mb-2">
+                            Facture {group.invoice.invoiceNumber}
+                            <Badge variant="outline" className="text-purple-600 border-purple-300 ml-2">
+                              {group.delays.length} délai(s)
+                            </Badge>
+                          </h4>
+                          <div className="space-y-2">
+                            {group.delays.map((customDelay) => (
+                              <div key={customDelay.id} className="flex items-center justify-between p-2 border rounded-md bg-purple-50">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-purple-600" />
+                                  <p className="text-sm text-gray-800">
+                                    {customDelay.invoice.customer?.name || 'Client inconnu'} ({customDelay.invoice.accountNumber})
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-purple-600" />
+                                  <p className="text-sm text-gray-800">
+                                    Délai: {customDelay.customDays} jours
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-800">Montant:</span> {formatAmount(customDelay.invoice.totalTTC)}
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteCustomDelay(customDelay)}
+                                  disabled={isLoading}
+                                  className="hover:bg-red-50 hover:border-red-300 text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteCustomDelay(customDelay)}
-                              disabled={isLoading}
-                              className="hover:bg-red-50 hover:border-red-300 text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            ))}
                           </div>
                         </div>
                       ))}
 
-                      {filteredCustomDelays.length === 0 && customDelaySearch && (
+                      {groupedCustomDelays.length === 0 && customDelaySearch && (
                         <div className="text-center py-8 text-gray-500">
                           Aucun délai personnalisé trouvé pour "{customDelaySearch}"
                         </div>
@@ -709,6 +751,20 @@ export default function RecoverySettingsClient({ initialData, rootsData, customD
                 <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                 <span className="text-sm text-blue-800"><strong>Priorité :</strong> Délai personnalisé {'>'} Délai par racine {'>'} Délai global</span>
               </div>
+            </div>
+          </div>
+          
+          {/* Nouvelle section pour expliquer les délais multiples */}
+          <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <h4 className="font-medium text-purple-900 mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Délais personnalisés multiples
+            </h4>
+            <div className="text-sm text-purple-800 space-y-1">
+              <p>• <strong>Plusieurs délais par facture :</strong> Une facture peut maintenant avoir plusieurs délais personnalisés</p>
+              <p>• <strong>Délai actif :</strong> Le délai le plus récemment créé est utilisé pour déterminer si la facture est urgente</p>
+              <p>• <strong>Historique :</strong> Tous les délais précédents sont conservés et visibles dans cette interface</p>
+              <p>• <strong>Gestion :</strong> Vous pouvez supprimer individuellement chaque délai personnalisé</p>
             </div>
           </div>
         </CardContent>

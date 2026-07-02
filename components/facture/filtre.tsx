@@ -27,6 +27,7 @@ interface FilterProps {
     onDepotChange?: (depotId: string) => void;
     user: user;
     depots: depot[];
+    defaultToToday?: boolean;
 }
 
 // Schéma de validation avec Zod
@@ -51,7 +52,8 @@ export default function Filtre({
     onPaymentStatusChange,
     onDepotChange,
     user,
-    depots
+    depots,
+    defaultToToday = true
 }: FilterProps) {
 
     const router = useRouter()
@@ -66,7 +68,7 @@ export default function Filtre({
     const defaultValues = useMemo(() => {
         const params = new URLSearchParams(searchParams.toString())
         return {
-            startDate: params.get('startDate') || today,
+            startDate: params.get('startDate') || (defaultToToday ? today : ''),
             endDate: params.get('endDate') || '',
             status: params.get('status') || 'tous',
             search: params.get('search') || "",
@@ -74,7 +76,7 @@ export default function Filtre({
             depot: params.get('depot') || "tous",
             searchField: "invoiceNumber"
         }
-    }, [searchParams, today])
+    }, [searchParams, today, defaultToToday])
 
     // Configuration de react-hook-form
     const {
@@ -153,7 +155,7 @@ export default function Filtre({
 
         const params = new URLSearchParams(searchParams.toString())
         const urlValues = {
-            startDate: params.get('startDate') || today,
+            startDate: params.get('startDate') || (defaultToToday ? today : ''),
             endDate: params.get('endDate') || '',
             status: params.get('status') || 'tous',
             search: params.get('search') || "",
@@ -169,7 +171,7 @@ export default function Filtre({
             reset(urlValues)
             previousValuesRef.current = urlValues
         }
-    }, [searchParams, today, reset])
+    }, [searchParams, today, defaultToToday, reset])
 
     // Effet pour surveiller les changements des filtres (sauf la recherche)
     useEffect(() => {
@@ -307,19 +309,20 @@ export default function Filtre({
     return (
         <>
             {/* Bouton du menu burger pour mobile */}
-            <div className="md:hidden flex justify-between items-center p-3 bg-white border-b">
+            <div className="md:hidden flex items-center gap-2 p-2 bg-white border-b">
                 <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="md:hidden"
+                    className="md:hidden h-9 gap-1"
                     aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
                     aria-expanded={isMobileMenuOpen}
                     aria-controls="mobile-filter-menu"
                 >
                     {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                    <span>Filtres</span>
                 </Button>
-                <div className="flex-1 px-3">
+                <div className="flex-1">
                     <div className="flex gap-2">
                         <div className="relative flex-1">
                             <Controller
@@ -439,11 +442,11 @@ export default function Filtre({
                         <div className="space-y-1">
                             <Label className="flex items-center gap-1 text-primary-700 text-sm">
                                 <Calendar className="h-3 w-3 flex-shrink-0" />
-                                <span>Période</span>
+                                <span>Période facture</span>
                             </Label>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
-                                    <Label className="text-xs text-gray-600">Début</Label>
+                                    <Label className="text-xs text-gray-600">Date facture début</Label>
                                     <Controller
                                         name="startDate"
                                         control={control}
@@ -454,14 +457,14 @@ export default function Filtre({
                                                     const dateString = formatDateToString(date)
                                                     field.onChange(dateString)
                                                 }}
-                                                placeholder="Date début"
+                                                placeholder="Date facture début"
                                                 className="w-full"
                                             />
                                         )}
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-xs text-gray-600">Fin (optionnel)</Label>
+                                    <Label className="text-xs text-gray-600">Date facture fin</Label>
                                     <Controller
                                         name="endDate"
                                         control={control}
@@ -472,7 +475,7 @@ export default function Filtre({
                                                     const dateString = formatDateToString(date)
                                                     field.onChange(dateString)
                                                 }}
-                                                placeholder="Date fin"
+                                                placeholder="Date facture fin"
                                                 className="w-full"
                                             />
                                         )}
@@ -597,7 +600,7 @@ export default function Filtre({
                                 <div className="space-y-1 w-44">
                                     <Label htmlFor="start-date" className="flex items-center gap-1 text-primary-700 text-xs">
                                         <Calendar className="h-3 w-3 flex-shrink-0" />
-                                        <span className="truncate">Date début</span>
+                                        <span className="truncate">Date facture début</span>
                                     </Label>
                                     <Controller
                                         name="startDate"
@@ -609,7 +612,7 @@ export default function Filtre({
                                                     const dateString = formatDateToString(date)
                                                     field.onChange(dateString)
                                                 }}
-                                                placeholder="Date début"
+                                                placeholder="Date facture début"
                                                 className="w-full"
                                             />
                                         )}
@@ -618,7 +621,7 @@ export default function Filtre({
                                 <div className="space-y-1 w-44">
                                     <Label htmlFor="end-date" className="flex items-center gap-1 text-primary-700 text-xs">
                                         <Calendar className="h-3 w-3 flex-shrink-0" />
-                                        <span className="truncate">Date fin</span>
+                                        <span className="truncate">Date facture fin</span>
                                     </Label>
                                     <Controller
                                         name="endDate"
@@ -630,7 +633,7 @@ export default function Filtre({
                                                     const dateString = formatDateToString(date)
                                                     field.onChange(dateString)
                                                 }}
-                                                placeholder="Date fin"
+                                                placeholder="Date facture fin"
                                                 className="w-full"
                                             />
                                         )}

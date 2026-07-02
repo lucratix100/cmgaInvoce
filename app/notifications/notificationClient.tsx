@@ -1,81 +1,65 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { getRemindersByInvoice, markReminderAsRead, deleteReminder, getUserReminders } from "@/actions/reminder"
+import { useEffect, useMemo, useState } from "react"
+import { deleteReminder, markReminderAsRead } from "@/actions/reminder"
 import { InvoiceReminder, User } from "@/lib/types"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Trash2, Check, Search, Bell, FileText, Calendar, Filter, Clock, Eye, EyeOff } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Bell, Calendar, Check, Clock, Eye, EyeOff, FileText, Search, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Role } from "@/types/roles"
-import { motion, AnimatePresence } from "framer-motion"
-import { formatNotificationDate, getNotificationDateText, isNotificationToday, isNotificationYesterday, isNotificationTomorrow } from "@/lib/notification-utils"
-import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns"
+import { getNotificationDateText, isNotificationToday, isNotificationYesterday, isNotificationTomorrow } from "@/lib/notification-utils"
+import { addDays, endOfDay, isWithinInterval, startOfDay } from "date-fns"
+import {
+    ColumnDef,
+    flexRender,
+    getCoreRowModel,
+    getPaginationRowModel,
+    useReactTable,
+} from "@tanstack/react-table"
+import { useQueryClient } from "@tanstack/react-query"
+import { useNotifications } from "@/hooks/useNotifications"
+import { queryKeys } from "@/lib/query-keys"
+import { getNotificationTargetHref } from "@/lib/notification-routes"
 
 type DateFilter = 'all' | 'today' | 'yesterday' | 'tomorrow' | 'this-week' | 'custom'
 
-const NOTIFICATIONS_PER_PAGE = 7;
+const NOTIFICATIONS_PER_PAGE = 10
 
 export default function NotificationClient({ user }: { user: User }) {
     const router = useRouter()
-    const [notifications, setNotifications] = useState<InvoiceReminder[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [showRead, setShowRead] = useState(true);
-    const [isLoading, setIsLoading] = useState(true);
     const [dateFilter, setDateFilter] = useState<DateFilter>('all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string; end: string }>({
         start: '',
         end: ''
     });
-    const [currentPage, setCurrentPage] = useState(1);
-
-    const fetchNotifications = async () => {
-        try {
-            setIsLoading(true);
-            if (!user?.id) {
-                toast.error("Vous devez être connecté pour voir vos notifications");
-                router.push("/login");
-                return;
-            }
-            const data = await getUserReminders(Number(user.id));
-
-            if (Array.isArray(data)) {
-                setNotifications(data);
-            } else {
-                console.error("Les données reçues ne sont pas un tableau:", data);
-                toast.error("Format de données invalide");
-            }
-        } catch (error) {
-            console.error("Erreur détaillée:", error);
-            toast.error("Erreur lors de la récupération des notifications");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (user?.id) {
-            fetchNotifications();
-        }
-    }, [user]);
+    const queryClient = useQueryClient()
+    const userId = Number(user?.id || 0)
+    const {
+        notifications,
+        isLoading,
+        markNotificationAsRead,
+    } = useNotifications(userId)
 
     const handleMarkAsRead = async (id: number) => {
-        try {
-            await markReminderAsRead(id.toString());
-            setNotifications(notifications.map(notification =>
-                notification.id === id ? { ...notification, read: true } : notification
-            ));
-            toast.success("Notification marquée comme lue");
-        } catch (error) {
-            toast.error("Erreur lors de la mise à jour de la notification");
+        markNotificationAsRead(id.toString());
+    };
+
+    const handleOpenNotification = (notification: InvoiceReminder) => {
+        if (!notification.read) {
+            markNotificationAsRead(notification.id.toString());
         }
+        router.push(getNotificationTargetHref(notification, user?.role));
     };
 
     const handleDelete = async (id: number) => {
         try {
             await deleteReminder(id.toString());
-            setNotifications(notifications.filter(notification => notification.id !== id));
+            queryClient.setQueryData(queryKeys.notifications(userId), (oldData: InvoiceReminder[] | undefined) =>
+                oldData ? oldData.filter(notification => notification.id !== id) : oldData
+            );
             toast.success("Notification supprimée");
         } catch (error) {
             toast.error("Erreur lors de la suppression de la notification");
@@ -86,7 +70,9 @@ export default function NotificationClient({ user }: { user: User }) {
         try {
             const unreadNotifications = notifications.filter(n => !n.read);
             await Promise.all(unreadNotifications.map(n => markReminderAsRead(n.id.toString())));
-            setNotifications(notifications.map(notification => ({ ...notification, read: true })));
+            queryClient.setQueryData(queryKeys.notifications(userId), (oldData: InvoiceReminder[] | undefined) =>
+                oldData ? oldData.map(notification => ({ ...notification, read: true })) : oldData
+            );
             toast.success("Toutes les notifications ont été marquées comme lues");
         } catch (error) {
             toast.error("Erreur lors de la mise à jour des notifications");
@@ -118,29 +104,125 @@ export default function NotificationClient({ user }: { user: User }) {
         }
     };
 
-    const filteredNotifications = notifications.filter(notification => {
+    const filteredNotifications = useMemo(() => notifications.filter(notification => {
         const matchesSearch =
             notification.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            notification.invoice?.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
+            (notification.invoice?.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
         const matchesReadStatus = showRead || !notification.read;
         const matchesDateFilter = filterNotificationsByDate(notification);
         return matchesSearch && matchesReadStatus && matchesDateFilter;
-    });
+    }), [notifications, searchTerm, showRead, dateFilter, customDateRange]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
     const todayCount = notifications.filter(n => isNotificationToday(n)).length;
 
-    // Pagination
-    const totalPages = Math.ceil(filteredNotifications.length / NOTIFICATIONS_PER_PAGE);
-    const paginatedNotifications = filteredNotifications.slice(
-        (currentPage - 1) * NOTIFICATIONS_PER_PAGE,
-        currentPage * NOTIFICATIONS_PER_PAGE
-    );
+    const columns = useMemo<ColumnDef<InvoiceReminder>[]>(() => [
+        {
+            id: "notification",
+            header: "Notification",
+            cell: ({ row }) => {
+                const notification = row.original
+                return (
+                    <button
+                        type="button"
+                        onClick={() => handleOpenNotification(notification)}
+                        className="block w-full space-y-1 text-left"
+                    >
+                        <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">
+                                {notification.invoice?.invoiceNumber
+                                    ? `Facture ${notification.invoice.invoiceNumber}`
+                                    : "Notification"}
+                            </span>
+                            {!notification.read && (
+                                <span className="h-2 w-2 rounded-full bg-blue-500" />
+                            )}
+                        </div>
+                        <p className="line-clamp-2 text-sm text-gray-600">{notification.comment}</p>
+                    </button>
+                )
+            },
+        },
+        {
+            id: "date",
+            header: "Date",
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
+                    <Clock className="h-4 w-4" />
+                    {getNotificationDateText(row.original.remindAt)}
+                </div>
+            ),
+        },
+        {
+            id: "status",
+            header: "Statut",
+            cell: ({ row }) => (
+                <span
+                    className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                        row.original.read
+                            ? "bg-gray-100 text-gray-600"
+                            : "bg-blue-100 text-blue-700"
+                    }`}
+                >
+                    {row.original.read ? "Lu" : "Non lu"}
+                </span>
+            ),
+        },
+        {
+            id: "actions",
+            header: "Actions",
+            cell: ({ row }) => {
+                const notification = row.original
+
+                return (
+                    <div className="flex justify-end gap-2">
+                        {!notification.read && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleMarkAsRead(notification.id)}
+                                title="Marquer comme lu"
+                            >
+                                <Check className="h-4 w-4 text-green-600" />
+                            </Button>
+                        )}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenNotification(notification)}
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                            Ouvrir
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(notification.id)}
+                            title="Supprimer"
+                        >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                    </div>
+                )
+            },
+        },
+    ], [notifications, user?.role])
+
+    const table = useReactTable({
+        data: filteredNotifications,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        initialState: {
+            pagination: {
+                pageSize: NOTIFICATIONS_PER_PAGE,
+            },
+        },
+    })
 
     useEffect(() => {
-        // Si le filtre change, on revient à la première page
-        setCurrentPage(1);
-    }, [searchTerm, dateFilter, customDateRange, showRead]);
+        table.setPageIndex(0)
+    }, [searchTerm, dateFilter, customDateRange, showRead, table])
 
     // Vérification de l'utilisateur
     if (!user) {
@@ -286,15 +368,15 @@ export default function NotificationClient({ user }: { user: User }) {
                 </div>
             </div>
 
-            {/* Liste des notifications */}
-            <div className="space-y-4">
+            {/* Tableau des notifications */}
+            <div className="rounded-xl border bg-white shadow-sm">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
                         <p className="text-gray-600">Chargement des notifications...</p>
                     </div>
-                ) : paginatedNotifications.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-xl shadow-sm border">
+                ) : filteredNotifications.length === 0 ? (
+                    <div className="text-center py-12">
                         <Bell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune notification trouvée</h3>
                         <p className="text-gray-600 mb-4">
@@ -317,103 +399,58 @@ export default function NotificationClient({ user }: { user: User }) {
                         )}
                     </div>
                 ) : (
-                    <>
-                        <AnimatePresence>
-                            {paginatedNotifications.map((notification) => (
-                                <motion.div
-                                    key={notification.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <div
-                                        className={`p-6 rounded-xl shadow-sm border transition-all duration-200 hover:shadow-md ${
-                                            notification.read ? 'bg-white' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
-                                        }`}
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex flex-col gap-4">
-                                                    {/* En-tête de la notification */}
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-semibold text-lg text-gray-900">
-                                                                    Facture {notification.invoice?.invoiceNumber}
-                                                                </span>
-                                                                {!notification.read && (
-                                                                    <span className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 animate-pulse" />
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                                <Clock className="h-4 w-4" />
-                                                                {getNotificationDateText(notification.remindAt)}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            {!notification.read && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() => handleMarkAsRead(notification.id)}
-                                                                    className="hover:bg-green-50 transition-colors duration-200"
-                                                                    title="Marquer comme lu"
-                                                                >
-                                                                    <Check className="h-4 w-4 text-green-600" />
-                                                                </Button>
-                                                            )}
-                                                            <Link
-                                                                href={user?.role === Role.RECOUVREMENT
-                                                                    ? `/factures/${notification.invoice?.invoiceNumber}`
-                                                                    : `/dashboard/invoices/${notification.invoice?.invoiceNumber}`}
-                                                            >
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="flex items-center gap-2 hover:bg-blue-50 transition-colors duration-200"
-                                                                >
-                                                                    <FileText className="h-4 w-4 text-blue-600" />
-                                                                    <span>Voir la facture</span>
-                                                                </Button>
-                                                            </Link>
-                                                        </div>
-                                                    </div>
+                    <div>
+                        <Table>
+                            <TableHeader>
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => (
+                                            <TableHead key={header.id} className={header.id === "actions" ? "text-right" : ""}>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(header.column.columnDef.header, header.getContext())}
+                                            </TableHead>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </TableHeader>
+                            <TableBody>
+                                {table.getRowModel().rows.map((row) => (
+                                    <TableRow key={row.id} className={!row.original.read ? "bg-blue-50/50" : ""}>
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id} className={cell.column.id === "actions" ? "text-right" : ""}>
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
 
-                                                    {/* Commentaire */}
-                                                    <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
-                                                        <p className="text-gray-700 leading-relaxed">{notification.comment}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                        {/* Pagination */}
-                        <div className="flex justify-center items-center gap-4 mt-8">
+                        <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="text-sm text-gray-600">
+                                Page {table.getState().pagination.pageIndex + 1} sur {table.getPageCount()}
+                            </span>
+                            <div className="flex items-center gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
+                                onClick={() => table.previousPage()}
+                                disabled={!table.getCanPreviousPage()}
                             >
                                 Précédent
                             </Button>
-                            <span className="text-sm text-gray-600">
-                                Page {currentPage} sur {totalPages}
-                            </span>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages}
+                                onClick={() => table.nextPage()}
+                                disabled={!table.getCanNextPage()}
                             >
                                 Suivant
                             </Button>
+                            </div>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
         </div>

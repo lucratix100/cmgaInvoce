@@ -55,10 +55,12 @@ export async function createCommercialInitial(name: string, rootId: number): Pro
 
 
         revalidatePath('/dashboard/assignments')
+        revalidatePath('/commercial-dashboard/facture-affectations')
         return response.data
-    } catch (error) {
-        console.error('Erreur:', error)
-        throw error
+    } catch (error: any) {
+        const message = error.response?.data?.message || 'Erreur lors de la création du suffixe'
+        console.error('Erreur:', error.response?.data || error)
+        throw new Error(message)
     }
 }
 
@@ -70,21 +72,26 @@ export async function updateCommercialInitial(id: number, name: string): Promise
         if (!token) {
             throw new Error("Non authentifié")
         }
-        const response = await axios.put(`${process.env.API_URL}commercial-initials/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name: name.toUpperCase() }),
-        })
+        const response = await axios.put(`${process.env.API_URL}commercial-initials/${id}`,
+            { name: name.toUpperCase() },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }
+        )
 
 
 
         revalidatePath('/dashboard/assignments')
+        revalidatePath('/commercial-dashboard/facture-affectations')
         return response.data
-    } catch (error) {
-        console.error('Erreur:', error)
-        throw error
+    } catch (error: any) {
+        const message = error.response?.data?.message || 'Erreur lors de la modification du suffixe'
+        console.error('Erreur:', error.response?.data || error)
+        throw new Error(message)
     }
 }
 
@@ -96,7 +103,7 @@ export async function deleteCommercialInitial(id: number): Promise<void> {
         if (!token) {
             throw new Error("Non authentifié")
         }
-        const response = await axios.delete(`${process.env.API_URL}commercial-initials/${id}`, {
+        await axios.delete(`${process.env.API_URL}commercial-initials/${id}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Accept': 'application/json'
@@ -104,8 +111,10 @@ export async function deleteCommercialInitial(id: number): Promise<void> {
         })
 
         revalidatePath('/dashboard/assignments')
-    } catch (error) {
-        console.error('Erreur:', error)
-        throw error
+        revalidatePath('/commercial-dashboard/facture-affectations')
+    } catch (error: any) {
+        const message = error.response?.data?.message || 'Erreur lors de la suppression du suffixe'
+        console.error('Erreur:', error.response?.data || error)
+        throw new Error(message)
     }
 } 

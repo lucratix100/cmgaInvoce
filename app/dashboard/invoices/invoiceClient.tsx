@@ -8,15 +8,37 @@ import { useDepots } from "@/hooks/useDepots"
 import { useSearchParams } from "next/navigation"
 import { useMemo } from "react"
 import { useQueryClient } from '@tanstack/react-query';
+import type { Invoice } from "@/lib/types"
+
+type InvoiceQueryParams = {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  search?: string;
+  depot?: string;
+  disableDefaultDate?: boolean;
+}
+
+type InvoiceQueryData = {
+  invoices: Invoice[];
+  statistics: {
+    total: {
+      count: number;
+      amount: number;
+    };
+    byStatus: Record<string, { count: number; amount: number }>;
+  } | null;
+}
 
 interface InvoiceClientProps {
   initialData: {
     user: any;
     depots: any;
   }
+  disableDefaultDate?: boolean;
 }
 
-export default function InvoiceClient({ initialData }: InvoiceClientProps) {
+export default function InvoiceClient({ initialData, disableDefaultDate = false }: InvoiceClientProps) {
   const searchParams = useSearchParams()
   const queryClient = useQueryClient();
 
@@ -29,12 +51,13 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
     const depot = searchParams.get('depot') || undefined
 
     // Ne retourner que les paramètres qui ont une valeur
-    const params: any = {}
+    const params: InvoiceQueryParams = {}
     if (startDate) params.startDate = startDate
     if (endDate) params.endDate = endDate
     if (status) params.status = status
     if (search) params.search = search
     if (depot) params.depot = depot
+    if (disableDefaultDate) params.disableDefaultDate = true
 
     return params
   }, [
@@ -42,7 +65,8 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
     searchParams.get('endDate'),
     searchParams.get('status'),
     searchParams.get('search'),
-    searchParams.get('depot')
+    searchParams.get('depot'),
+    disableDefaultDate
   ])
 
   // Utiliser les hooks TanStack Query avec les paramètres optimisés
@@ -55,13 +79,13 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
   const isEmpty = !isLoading && invoices.length === 0
 
   // Fonction pour refetch après paiement avec mise à jour optimiste
-  const handlePaymentSuccess = (updatedFacture, invoiceNumber) => {
+  const handlePaymentSuccess = (updatedFacture: Invoice, invoiceNumber: string) => {
     // 1. Optimistic update du cache
-    queryClient.setQueryData(['invoices-with-statistics', queryParams], (oldData) => {
+    queryClient.setQueryData<InvoiceQueryData>(['invoices-with-statistics', queryParams], (oldData) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
-        invoices: oldData.invoices.map(f =>
+        invoices: oldData.invoices.map((f) =>
           f.invoiceNumber === invoiceNumber ? { ...f, ...updatedFacture } : f
         ),
       };
@@ -94,17 +118,16 @@ export default function InvoiceClient({ initialData }: InvoiceClientProps) {
     <div>
       <div className="">
         <main className="">
-          <Card className="border-none shadow-md overflow-hidden bg-white">
-            <div className="overflow-x-auto">
-              <RecouvrementTable
-                factures={invoices}
-                user={initialData.user}
-                isLoading={isLoading}
-                depots={initialData.depots}
-                statistics={statistics}
-                onPaymentSuccess={handlePaymentSuccess}
-              />
-            </div>
+          <Card className="overflow-hidden border-none bg-white shadow-md">
+            <RecouvrementTable
+              factures={invoices}
+              user={initialData.user}
+              isLoading={isLoading}
+              depots={initialData.depots}
+              statistics={statistics}
+              onPaymentSuccess={handlePaymentSuccess}
+              disableDefaultDate={disableDefaultDate}
+            />
           </Card>
         </main>
       </div>

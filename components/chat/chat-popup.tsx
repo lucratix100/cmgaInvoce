@@ -14,6 +14,7 @@ import { fr } from 'date-fns/locale'
 import { getConversations, createConversation, getConversationMessages } from '@/actions/conversations'
 import { sendMessage } from '@/actions/messages'
 import io, { Socket } from 'socket.io-client'
+import { getWebSocketUrl } from '@/lib/websocket'
 import { useChat } from './chat-provider'
 
 interface Message {
@@ -92,6 +93,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const selectedConversationIdRef = useRef<string | number | null>(null)
 
   // Charger les conversations
   useEffect(() => {
@@ -109,6 +111,10 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
     }
   }, [selectedConversation, accessToken])
 
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversation?.id ?? null
+  }, [selectedConversation?.id])
+
   // Surveiller les changements dans unreadMessages
   useEffect(() => {
     console.log('🔔 État des messages non lus:', unreadMessages)
@@ -121,14 +127,15 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
   }, [messages])
 
   useEffect(() => {
-    if (!accessToken) return
+    if (!accessToken || !user?.id) return
 
-    const socket = io(process.env.WEBSOCKET_URL || 'http://192.168.10.10:3334', {
+    const socket = io(getWebSocketUrl(), {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       auth: {
-        token: accessToken
-      }
+        token: accessToken,
+        userId: String(user.id),
+      },
     })
 
     socket.on('connect', () => {
@@ -149,26 +156,11 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
       console.error('❌ Erreur WebSocket:', error)
     })
 
-    // Rejoindre la conversation actuelle si elle existe
-    if (selectedConversation) {
-      socket.emit('join', selectedConversation.id)
-      console.log('🔌 Rejoint la conversation:', selectedConversation.id)
-    }
-
     socket.on('new_message', (data: { message: Message, conversationId: string }) => {
-      console.log('📨 Nouveau message reçu:', data)
-      console.log('📨 Conversation actuelle:', selectedConversation?.id, 'Type:', typeof selectedConversation?.id)
-      console.log('📨 Conversation du message:', data.conversationId, 'Type:', typeof data.conversationId)
-      
-      const currentId = selectedConversation?.id
-      const messageId = data.conversationId
-      
-      console.log('📨 Comparaison:', currentId, '==', messageId, '=', currentId == messageId)
-      console.log('📨 Comparaison stricte:', currentId, '===', messageId, '=', currentId === messageId)
-      
-      // Si on est dans la conversation du message
-      if (currentId == messageId) {
-        console.log('✅ Message pour conversation actuelle')
+      const currentId = selectedConversationIdRef.current
+      const messageConversationId = String(data.conversationId)
+
+      if (currentId != null && String(currentId) === messageConversationId) {
         setMessages((prev) => {
           const messageExists = prev.some(msg => msg.id === data.message.id)
           if (messageExists) {
@@ -177,23 +169,14 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
           return [...prev, data.message]
         })
       } else {
-        // Message pour une autre conversation - toujours incrémenter le compteur
-        console.log('🔔 Message pour autre conversation - incrémenter compteur')
-        console.log('🔔 Compteur avant:', unreadMessages)
-        setUnreadMessages((prev: Record<string, number>) => {
-          const newUnread = {
-            ...prev,
-            [data.conversationId]: (prev[data.conversationId] || 0) + 1
-          }
-          console.log('🔔 Nouveau compteur:', newUnread)
-          return newUnread
-        })
+        setUnreadMessages((prev: Record<string, number>) => ({
+          ...prev,
+          [messageConversationId]: (prev[messageConversationId] || 0) + 1,
+        }))
       }
-      // Rafraîchir la liste des conversations pour l'aperçu en temps réel
-      fetchConversations();
+      fetchConversations()
     })
 
-    // Écouter les nouvelles invitations de conversation
     socket.on('new_conversation_invitation', (data: {
       conversationId: string
       conversationName: string
@@ -205,29 +188,28 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
       }
       participants: any[]
     }) => {
-      console.log('🎉 Nouvelle invitation de conversation reçue:', data)
-      
-      // Afficher une notification native du navigateur
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('Nouvelle conversation', {
           body: `${data.createdBy.firstname} ${data.createdBy.lastname} vous a invité à rejoindre "${data.conversationName}"`,
           icon: '/favicon.ico',
-          tag: `conversation-${data.conversationId}`
+          tag: `conversation-${data.conversationId}`,
         })
       }
-      
-      // Mettre à jour la liste des conversations
+
       fetchConversations()
-      
-      // Afficher un toast/notification dans l'interface
       showNotificationToast(data)
     })
 
     return () => {
-      socket?.disconnect()
+      socket.disconnect()
       setSocket(null)
     }
-  }, [accessToken, selectedConversation?.id])
+  }, [accessToken, user?.id])
+
+  useEffect(() => {
+    if (!socket || !selectedConversation?.id) return
+    socket.emit('join', String(selectedConversation.id))
+  }, [socket, selectedConversation?.id])
 
   // Fonction pour afficher une notification toast
   const showNotificationToast = (data: any) => {
@@ -306,8 +288,10 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
         content: newMessage,
         type: 'text'
       })
-      // Ne pas ajouter le message ici car il sera ajouté via WebSocket
-      // setMessages(prev => [...prev, message])
+      setMessages((prev) => {
+        if (prev.some((msg) => msg.id === message.id)) return prev
+        return [...prev, message]
+      })
       setNewMessage('')
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message:', error)
@@ -412,9 +396,9 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <Card className="w-80 shadow-lg">
-          <CardHeader className="pb-2">
+      <div className="fixed bottom-4 right-4 z-50 left-4 sm:left-auto">
+        <Card className="w-full shadow-lg sm:w-80">
+          <CardHeader className="pb-2 pt-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-blue-500" />
@@ -447,8 +431,8 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
 
   if (!accessToken || !currentUser) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <Card className="w-96 h-96 shadow-lg">
+      <div className="fixed inset-3 z-50 sm:inset-auto sm:bottom-4 sm:right-4">
+        <Card className="flex h-full w-full flex-col shadow-lg sm:h-96 sm:w-96">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -475,7 +459,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex items-center justify-center h-full">
+          <CardContent className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">Connexion requise</p>
@@ -491,7 +475,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
   )
 
   return (
-    <div className="fixed bottom-10 right-8 z-50 w-[380px] h-[500px] flex flex-col rounded-2xl shadow-2xl border border-gray-200 bg-white overflow-hidden">
+    <div className="fixed inset-0 z-50 flex h-[100dvh] w-screen flex-col overflow-hidden rounded-none border border-gray-200 bg-white shadow-2xl sm:inset-auto sm:bottom-10 sm:right-8 sm:h-[500px] sm:w-[380px] sm:rounded-2xl">
       {/* Motif SVG discret façon WhatsApp, plus visible */}
       <svg
         className="absolute inset-0 w-full h-full z-0"
@@ -511,7 +495,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
         <rect width="100%" height="100%" fill="url(#whatsappPattern)" />
       </svg>
       <Card className="flex-1 flex flex-col bg-transparent shadow-none border-none h-full relative z-10">
-        <CardHeader className="pb-2 bg-blue-50 rounded-t-2xl border-b border-gray-200 flex-shrink-0">
+        <CardHeader className="flex-shrink-0 rounded-t-none border-b border-gray-200 bg-blue-50 px-3 py-3 sm:rounded-t-2xl sm:pb-2 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -540,7 +524,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                 variant="ghost"
                 size="sm"
                 onClick={onMinimize}
-                className="h-6 w-6 p-0"
+                className="h-8 w-8 p-0 sm:h-6 sm:w-6"
               >
                 <Minimize2 className="w-4 h-4" />
               </Button>
@@ -548,7 +532,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="h-6 w-6 p-0"
+                className="h-8 w-8 p-0 sm:h-6 sm:w-6"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -558,13 +542,13 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
         <CardContent className="flex-1 flex flex-col p-0 h-0 min-h-0">
           {!selectedConversation ? (
             <div className="flex-1 flex flex-col min-h-0">
-              <div className="p-4 border-b flex-shrink-0">
+              <div className="flex-shrink-0 border-b p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Conversations</h3>
                   <Button
                     size="sm"
                     onClick={() => setShowNewConversation(true)}
-                    className="flex items-center gap-1"
+                    className="flex h-9 items-center gap-1"
                   >
                     <Plus className="w-3 h-3" />
                     Nouveau
@@ -583,10 +567,10 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                       <div
                         key={`conversation-${conversation.id}-${index}`}
                         onClick={() => setSelectedConversation(conversation)}
-                        className="p-2 rounded-lg cursor-pointer transition-colors hover:bg-blue-100 hover:shadow-sm"
+                    className="cursor-pointer rounded-lg p-3 transition-colors hover:bg-blue-100 hover:shadow-sm sm:p-2"
                       >
                         <div className="flex items-center gap-2">
-                          <Avatar className="w-8 h-8">
+                          <Avatar className="h-9 w-9 sm:h-8 sm:w-8">
                             <AvatarFallback className="text-xs">
                               {conversation.type === 'group' ? (
                                 <Users className="w-4 h-4" />
@@ -596,7 +580,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm truncate">
+                            <h4 className="truncate text-sm font-medium">
                               {getConversationName(conversation)}
                             </h4>
                             <div className="flex items-center gap-1">
@@ -617,10 +601,10 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
             </div>
           ) : (
             <div className="flex-1 flex flex-col min-h-0">
-              <div className="p-3 border-b bg-gray-50 flex-shrink-0">
+              <div className="flex-shrink-0 border-b bg-gray-50 p-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-6 h-6">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <Avatar className="h-8 w-8 shrink-0 sm:h-6 sm:w-6">
                       <AvatarFallback className="text-xs">
                         {selectedConversation.type === 'group' ? (
                           <Users className="w-3 h-3" />
@@ -629,7 +613,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                         )}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="font-medium text-sm">
+                    <span className="truncate text-sm font-medium">
                       {getConversationName(selectedConversation)}
                     </span>
                   </div>
@@ -637,20 +621,20 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedConversation(null)}
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8 shrink-0 p-0 sm:h-6 sm:w-6"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="h-4 w-4 sm:h-3 sm:w-3" />
                   </Button>
                 </div>
               </div>
-              <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0 h-0 p-3">
+              <ScrollArea ref={scrollAreaRef} className="h-0 min-h-0 flex-1 p-3">
                 <div className="space-y-2 pb-4">
                   {sortedMessages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.sender.id === currentUser?.id ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-xs ${message.sender.id === currentUser?.id ? 'order-2' : 'order-1'}`}>
+                      <div className={`max-w-[82vw] sm:max-w-xs ${message.sender.id === currentUser?.id ? 'order-2' : 'order-1'}`}>
                         {/* Nom de l'expéditeur (seulement pour les autres utilisateurs) */}
                         {message.sender.id !== currentUser?.id && (
                           <div className="mb-1">
@@ -659,7 +643,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                             </p>
                           </div>
                         )}
-                        <div className={`p-2 rounded-lg text-xs ${
+                        <div className={`rounded-lg p-2 text-sm sm:text-xs ${
                           message.sender.id === currentUser?.id
                             ? 'bg-blue-500 text-white'
                             : 'bg-gray-100 text-gray-900'
@@ -679,7 +663,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                   <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
-              <div className="flex-shrink-0 p-3 pb-2 border-t bg-white">
+              <div className="flex-shrink-0 border-t bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <div className="flex gap-2">
                   <Input
                     value={newMessage}
@@ -691,13 +675,14 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                       }
                     }}
                     placeholder="Tapez votre message..."
-                    className="flex-1 text-sm"
+                    className="h-11 flex-1 text-base sm:h-10 sm:text-sm"
                     disabled={isSendingMessage}
                   />
                   <Button 
                     onClick={sendMessageHandler} 
                     disabled={!newMessage.trim() || isSendingMessage} 
                     size="sm"
+                    className="h-11 w-11 shrink-0 p-0 sm:h-10 sm:w-auto sm:px-3"
                   >
                     <Send className="w-3 h-3" />
                   </Button>
@@ -707,12 +692,12 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
           )}
         </CardContent>
         {showNewConversation && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-80">
-              <CardHeader>
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50 p-3 sm:items-center">
+            <Card className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-sm flex-col rounded-2xl sm:w-80">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle className="text-lg">Nouvelle conversation</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 overflow-y-auto">
                 <div>
                   <label className="text-sm font-medium">Type de conversation</label>
                   <div className="flex gap-2 mt-2">
@@ -771,7 +756,7 @@ export default function ChatPopup({ isOpen, onClose, onMinimize, isMinimized, us
                 ) : (
                   <div>
                     <label className="text-sm font-medium">Participants (2+)</label>
-                    <ScrollArea className="h-24 mt-2 border rounded-md p-2">
+                    <ScrollArea className="mt-2 h-40 rounded-md border p-2 sm:h-24">
                       {users.map((user) => (
                         <div
                           key={user.id}

@@ -51,10 +51,22 @@ export default async function login(values: z.infer<typeof LoginSchema>) {
 
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken.token}`;
 
+      // Déterminer la redirection selon le rôle
+      let redirectTo = '/';
+      if (user.role === 'ADMIN') {
+        redirectTo = '/dashboard';
+      } else if (user.role === 'COMMERCIAL_ADMIN') {
+        redirectTo = '/commercial-dashboard';
+      } else if (user.role === 'AGENT_COMMERCIAL') {
+        redirectTo = '/agents';
+      } else if (user.role === 'FACTURATION') {
+        redirectTo = '/facturation';
+      }
+
       return {
         success: "Authentication successful",
         user,
-        redirectTo: user.role === 'ADMIN' ? '/dashboard' : '/'
+        redirectTo
       };
     }
 

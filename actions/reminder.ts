@@ -1,5 +1,6 @@
 "use server"
 import { InvoiceReminder } from "@/lib/types";
+import { getServerAccessToken } from "@/lib/server-auth";
 import axios from "axios";
 import { cookies } from "next/headers";
 
@@ -123,13 +124,12 @@ export async function markReminderAsRead(id: string) {
   }
 }
 
-export async function getUserReminders(userId: number): Promise<InvoiceReminder[]> {
+export async function getUserReminders(_userId: number): Promise<InvoiceReminder[]> {
   try {
-    const cookieStore = await cookies()
-    const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+    const token = await getServerAccessToken()
 
     if (!token) {
-      throw new Error("Non authentifié")
+      return []
     }
 
     const response = await axios.get(`${process.env.API_URL}user-invoice-reminders`, {

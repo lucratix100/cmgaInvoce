@@ -6,15 +6,19 @@ import logout from "@/actions/logout"
 import { useToast } from "./ui/use-toast"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { clearAuthQueries } from "@/lib/clear-auth-queries"
 
 export default function Logout() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const onLogout = async () => {
     setIsLoading(true);
     try {
+      clearAuthQueries(queryClient);
       const result = await logout();
 
       if (result?.success) {

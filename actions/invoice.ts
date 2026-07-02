@@ -10,6 +10,7 @@ interface SearchParams {
     startDate?: string
     endDate?: string
     depot?: string
+    disableDefaultDate?: boolean
 }
 
 export const getInvoices = async (params?: SearchParams) => {
@@ -41,7 +42,7 @@ export const getInvoices = async (params?: SearchParams) => {
         if (!hasSearch) {
             if (params?.startDate) {
                 queryParams.startDate = params.startDate
-            } else {
+            } else if (!params?.disableDefaultDate) {
                 // Seulement appliquer la date par défaut s'il n'y a pas de recherche
                 queryParams.startDate = today
             }
@@ -103,7 +104,7 @@ export const getInvoicesWithStatistics = async (params?: SearchParams) => {
         if (!hasSearch) {
             if (params?.startDate) {
                 queryParams.startDate = params.startDate
-            } else {
+            } else if (!params?.disableDefaultDate) {
                 // Seulement appliquer la date par défaut s'il n'y a pas de recherche
                 queryParams.startDate = today
             }

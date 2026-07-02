@@ -58,7 +58,10 @@ const roles = [
   { value: Role.CHEF_DEPOT, label: 'Chef de dépôt' },
   { value: Role.RECOUVREMENT, label: 'Recouvrement' },
   { value: Role.CONTROLEUR, label: 'Contrôleur' },
-  { value: Role.SUPERVISEUR_MAGASIN, label: 'Superviseur Magasin' }
+  { value: Role.SUPERVISEUR_MAGASIN, label: 'Superviseur Magasin' },
+  { value: Role.AGENT_COMMERCIAL, label: 'Agent Commercial' },
+  { value: Role.COMMERCIAL_ADMIN, label: 'Commercial Admin' },
+  { value: Role.FACTURATION, label: 'Facturation' }
 ]
 
 export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps) {
@@ -112,7 +115,7 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
 
   // Fonction pour vérifier si un dépôt est requis selon le rôle
   const isDepotRequired = (role: string) => {
-    return role && role !== Role.ADMIN && role !== Role.RECOUVREMENT
+    return role && role !== Role.ADMIN && role !== Role.RECOUVREMENT && role !== Role.AGENT_COMMERCIAL && role !== Role.COMMERCIAL_ADMIN && role !== Role.FACTURATION
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

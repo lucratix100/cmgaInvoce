@@ -8,6 +8,7 @@ import { DepotAssignment } from "@/components/depot-assignment"
 import { FileText, Users, Building } from "lucide-react"
 import { getRoots, createRoot, updateRoot, deleteRoot } from "@/actions/root-actions"
 import { toast } from "sonner"
+import { Role } from "@/types/roles"
 
 interface Root {
   id: string
@@ -16,6 +17,7 @@ interface Root {
     id: string
     value: string
   }[]
+  visibleToRoles: Role[]
   expanded: boolean
 }
 
@@ -34,6 +36,7 @@ export function InvoiceManagementTabs() {
           id: initial.id.toString(),
           value: initial.name
         })),
+        visibleToRoles: root.visibleToRoles || [Role.COMMERCIAL_ADMIN],
         expanded: false
       }))
       setRoots(transformedRoots)
@@ -49,9 +52,9 @@ export function InvoiceManagementTabs() {
     fetchRoots()
   }, [])
 
-  const handleCreateRoot = async (name: string) => {
+  const handleCreateRoot = async (name: string, visibleToRoles: Role[]) => {
     try {
-      await createRoot(name)
+      await createRoot(name, visibleToRoles)
       await fetchRoots()
       toast.success('Racine créée avec succès')
     } catch (error) {
@@ -60,9 +63,9 @@ export function InvoiceManagementTabs() {
     }
   }
 
-  const handleUpdateRoot = async (id: string, name: string) => {
+  const handleUpdateRoot = async (id: string, name: string, visibleToRoles?: Role[]) => {
     try {
-      await updateRoot(parseInt(id), name)
+      await updateRoot(parseInt(id), name, visibleToRoles)
       await fetchRoots()
       toast.success('Racine mise à jour avec succès')
     } catch (error) {

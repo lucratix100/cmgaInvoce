@@ -46,6 +46,12 @@ export function middleware(request: NextRequest) {
       // Rediriger les utilisateurs connectés selon leur rôle
       if (userRole === "ADMIN") {
         return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
+      } else if (userRole === "COMMERCIAL_ADMIN") {
+        return NextResponse.redirect(new URL("/commercial-dashboard", request.url));
+      } else if (userRole === "AGENT_COMMERCIAL") {
+        return NextResponse.redirect(new URL("/agents", request.url));
+      } else if (userRole === "FACTURATION") {
+        return NextResponse.redirect(new URL("/facturation", request.url));
       } else {
         return NextResponse.redirect(new URL("/factures", request.url));
       }
@@ -60,12 +66,90 @@ export function middleware(request: NextRequest) {
 
   // Protection des routes admin
   if (path.startsWith("/dashboard") && userRole !== "ADMIN") {
+    if (userRole === "COMMERCIAL_ADMIN") {
+      return NextResponse.redirect(new URL("/commercial-dashboard", request.url));
+    } else if (userRole === "FACTURATION") {
+      return NextResponse.redirect(new URL("/facturation", request.url));
+    }
     return NextResponse.redirect(new URL("/factures", request.url));
   }
 
+  // Protection des routes facturation (uniquement FACTURATION)
+  if (path.startsWith("/facturation") && userRole !== "FACTURATION") {
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
+    } else if (userRole === "COMMERCIAL_ADMIN") {
+      return NextResponse.redirect(new URL("/commercial-dashboard", request.url));
+    } else if (userRole === "AGENT_COMMERCIAL") {
+      return NextResponse.redirect(new URL("/agents", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/factures", request.url));
+    }
+  }
+
   // Protection des routes factures
+  if (path.startsWith("/factures") && userRole === "AGENT_COMMERCIAL") {
+    return NextResponse.redirect(new URL("/agent-factures", request.url));
+  }
+
   if (path.startsWith("/factures") && userRole === "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Protection des routes commercial-dashboard (uniquement COMMERCIAL_ADMIN)
+  if (path.startsWith("/commercial-dashboard") && userRole !== "COMMERCIAL_ADMIN") {
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
+    } else if (userRole === "AGENT_COMMERCIAL") {
+      return NextResponse.redirect(new URL("/agents", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/factures", request.url));
+    }
+  }
+
+  // Protection des routes agents (uniquement AGENT_COMMERCIAL)
+  if (path.startsWith("/agents") && userRole !== "AGENT_COMMERCIAL") {
+    // Rediriger selon le rôle de l'utilisateur
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
+    } else if (userRole === "COMMERCIAL_ADMIN") {
+      return NextResponse.redirect(new URL("/commercial-dashboard", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/factures", request.url));
+    }
+  }
+
+  // Protection des factures agents (uniquement AGENT_COMMERCIAL)
+  if (path.startsWith("/agent-factures") && userRole !== "AGENT_COMMERCIAL") {
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
+    } else if (userRole === "COMMERCIAL_ADMIN") {
+      return NextResponse.redirect(new URL("/commercial-dashboard", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/factures", request.url));
+    }
+  }
+
+  // Protection des routes commandes (uniquement AGENT_COMMERCIAL)
+  if (path.startsWith("/commandes") && userRole !== "AGENT_COMMERCIAL") {
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
+    } else if (userRole === "COMMERCIAL_ADMIN") {
+      return NextResponse.redirect(new URL("/commercial-dashboard", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/factures", request.url));
+    }
+  }
+
+  // Protection des routes historiques (uniquement AGENT_COMMERCIAL)
+  if (path.startsWith("/historiques") && userRole !== "AGENT_COMMERCIAL") {
+    if (userRole === "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
+    } else if (userRole === "COMMERCIAL_ADMIN") {
+      return NextResponse.redirect(new URL("/commercial-dashboard", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/factures", request.url));
+    }
   }
 
   return NextResponse.next();
@@ -76,6 +160,12 @@ export const config = {
     "/",
     "/dashboard/:path*",
     "/factures/:path*",
-    "/profil/:path*"
+    "/profil/:path*",
+    "/commercial-dashboard/:path*",
+    "/facturation/:path*",
+    "/agents/:path*",
+    "/agent-factures/:path*",
+    "/commandes/:path*",
+    "/historiques/:path*"
   ]
 }; 

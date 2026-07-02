@@ -33,9 +33,10 @@ interface RecouvrementTableProps {
     byStatus: Record<string, { count: number; amount: number }>;
   };
   onPaymentSuccess?: (updatedFacture: Invoice, invoiceNumber: string) => void;
+  disableDefaultDate?: boolean;
 }
 
-export default function RecouvrementTable({ factures: invoices, user, isLoading = false, depots, statistics, onPaymentSuccess }: RecouvrementTableProps) {
+export default function RecouvrementTable({ factures: invoices, user, isLoading = false, depots, statistics, onPaymentSuccess, disableDefaultDate = false }: RecouvrementTableProps) {
   const factures = invoices;
   const router = useRouter();
   console.log({ factures })
@@ -57,7 +58,12 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
   const [successRow, setSuccessRow] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  // Tri date de livraison
+  // Nouvel état pour l'input de montant inline
+  const [inlinePaymentRow, setInlinePaymentRow] = useState<string | null>(null);
+  const [inlinePaymentAmount, setInlinePaymentAmount] = useState("");
+
+  // Tri multiple
+  const [sortField, setSortField] = useState<"deliveryDate" | "invoiceDate" | "age" | "remainingAmount" | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
 
   // Récupération des paramètres directement depuis l'URL
@@ -65,6 +71,16 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
   const deliveryStatus = searchParams.get('status') || "tous";
   const searchQuery = searchParams.get('search') || "";
   const selectedDepot = searchParams.get('depot') || "tous";
+  const canViewPaymentInfo = Boolean(user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN));
+
+  const isPaymentStatistic = (status: string) => {
+    const normalizedStatus = status
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+
+    return normalizedStatus.includes("PAYE") || normalizedStatus.includes("PAIEMENT");
+  };
 
   // Supprimer le useEffect de récupération des paiements de retour
 
@@ -183,6 +199,20 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
     }
   };
 
+  const handleSort = (field: "deliveryDate" | "invoiceDate" | "age" | "remainingAmount") => {
+    if (sortField === field) {
+      // Même champ : changer l'ordre
+      setSortOrder(prev => prev === "asc" ? "desc" : prev === "desc" ? null : "asc");
+      if (sortOrder === "desc") {
+        setSortField(null);
+      }
+    } else {
+      // Nouveau champ : commencer par asc
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
   const handleCopyToClipboard = async (text: string, fieldType: string, factureId: number) => {
     try {
       // Vérifier si on est en contexte sécurisé (HTTPS ou localhost)
@@ -231,6 +261,7 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
   const filteredFactures = useMemo(() => {
     return factures.filter((facture) => {
       const matchesPaymentStatus =
+        !canViewPaymentInfo ||
         paymentStatus === "tous" ||
         facture.statusPayment === paymentStatus;
 
@@ -244,30 +275,58 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
 
       return matchesPaymentStatus && matchesDeliveryStatus && matchesDepot;
     });
-  }, [factures, paymentStatus, deliveryStatus, selectedDepot]);
+  }, [factures, paymentStatus, deliveryStatus, selectedDepot, canViewPaymentInfo]);
 
-  // Tri sur la date de livraison
+  // Tri multiple
   const sortedFactures = useMemo(() => {
     let data = [...filteredFactures];
-    if (sortOrder) {
+    if (sortField && sortOrder) {
       data.sort((a, b) => {
-        const dateA = a.lastValidatedBl?.createdAt
-          ? new Date(a.lastValidatedBl.createdAt).getTime()
-          : a.deliveredAt
-            ? new Date(a.deliveredAt).getTime()
-            : 0;
-        const dateB = b.lastValidatedBl?.createdAt
-          ? new Date(b.lastValidatedBl.createdAt).getTime()
-          : b.deliveredAt
-            ? new Date(b.deliveredAt).getTime()
-            : 0;
-        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+        let valueA: number | string;
+        let valueB: number | string;
+
+        switch (sortField) {
+          case "deliveryDate":
+            valueA = a.lastValidatedBl?.createdAt
+              ? new Date(a.lastValidatedBl.createdAt).getTime()
+              : a.deliveredAt
+                ? new Date(a.deliveredAt).getTime()
+                : 0;
+            valueB = b.lastValidatedBl?.createdAt
+              ? new Date(b.lastValidatedBl.createdAt).getTime()
+              : b.deliveredAt
+                ? new Date(b.deliveredAt).getTime()
+                : 0;
+            break;
+          case "invoiceDate":
+            valueA = new Date(a.date).getTime();
+            valueB = new Date(b.date).getTime();
+            break;
+          case "age":
+            const ageA = calculateInvoiceAge(a);
+            const ageB = calculateInvoiceAge(b);
+            valueA = ageA !== null ? ageA : -1;
+            valueB = ageB !== null ? ageB : -1;
+            break;
+          case "remainingAmount":
+            valueA = Number(a.remainingAmount) || 0;
+            valueB = Number(b.remainingAmount) || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (typeof valueA === "number" && typeof valueB === "number") {
+          return sortOrder === "asc" ? valueA - valueB : valueB - valueA;
+        }
+        return 0;
       });
     }
     return data;
-  }, [filteredFactures, sortOrder]);
+  }, [filteredFactures, sortField, sortOrder]);
 
   const montantInputRef = useRef<HTMLInputElement>(null);
+  const inlineMontantInputRef = useRef<HTMLInputElement>(null);
   const [paymentProgress, setPaymentProgress] = useState<number>(0);
 
   useEffect(() => {
@@ -280,6 +339,19 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
       }
     }
   }, [openPaymentRow, factures]);
+
+  // Focus sur l'input inline quand il s'ouvre
+  useEffect(() => {
+    if (inlinePaymentRow && inlineMontantInputRef.current) {
+      inlineMontantInputRef.current.focus();
+      // Pré-remplir avec le montant restant formaté (avec espaces)
+      const facture = factures.find(f => f.invoiceNumber === inlinePaymentRow);
+      if (facture) {
+        const formattedAmount = facture.remainingAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        setInlinePaymentAmount(formattedAmount);
+      }
+    }
+  }, [inlinePaymentRow, factures]);
 
   const paymentRowRef = useRef<HTMLTableCellElement>(null);
 
@@ -295,14 +367,102 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openPaymentRow]);
 
+  // Fermer l'input inline si clic en dehors
+  useEffect(() => {
+    if (!inlinePaymentRow) return;
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (inlineMontantInputRef.current && !inlineMontantInputRef.current.contains(target)) {
+        setInlinePaymentRow(null);
+        setInlinePaymentAmount("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [inlinePaymentRow]);
+
+  // Gestion du raccourci clavier Ctrl+E pour l'export Excel
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      // Vérifier si Ctrl+E est pressé et si l'utilisateur a les permissions
+      if (event.ctrlKey && event.key === 'e' && user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN)) {
+        event.preventDefault(); // Empêcher le comportement par défaut
+        if (!isLoading && filteredFactures.length > 0 && !isExporting) {
+          handleExportExcel();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [user, isLoading, filteredFactures.length, isExporting]);
+
   // Callback pour rafraîchir la page après paiement
   const handlePaymentSuccess = (updatedFacture: Invoice, invoiceNumber: string) => {
     setOpenPaymentRow(null);
+    setInlinePaymentRow(null);
+    setInlinePaymentAmount("");
     setTimeout(() => setSuccessRow(null), 2000);
     if (onPaymentSuccess) {
       onPaymentSuccess(updatedFacture, invoiceNumber);
     } else {
       router.refresh();
+    }
+  };
+
+  // Fonction pour nettoyer le montant (enlever les espaces et caractères non numériques)
+  const cleanAmount = (amount: string): number => {
+    // Enlever tous les caractères non numériques sauf le point et la virgule
+    const cleaned = amount.replace(/[^\d.,]/g, '').replace(',', '.');
+    return parseFloat(cleaned) || 0;
+  };
+
+  // Fonction pour formater le montant pour l'affichage (sans XOF)
+  const formatAmountForDisplay = (amount: string): string => {
+    const numericAmount = cleanAmount(amount);
+    if (numericAmount === 0) return '';
+    // Formater manuellement avec espaces pour les milliers
+    return numericAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  };
+
+  // Fonction pour gérer le paiement inline
+  const handleInlinePayment = async (facture: Invoice) => {
+    const numericAmount = cleanAmount(inlinePaymentAmount);
+    if (!numericAmount || numericAmount <= 0) {
+      toast({
+        title: "Montant invalide",
+        description: "Veuillez saisir un montant valide.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsPaying(true);
+    try {
+      const paymentData = {
+        montant: numericAmount,
+        modePaiement: PaymentMethod.ESPECE,
+        datePaiement: new Date().toISOString(),
+        commentaire: "Paiement rapide via input inline"
+      };
+
+      const result = await addPayment(facture.invoiceNumber, paymentData);
+      
+      toast({
+        title: "Paiement ajouté",
+        description: `Paiement de ${formatMontant(numericAmount)} ajouté avec succès.`,
+      });
+      setSuccessRow(facture.invoiceNumber);
+      handlePaymentSuccess(facture, facture.invoiceNumber);
+    } catch (error) {
+      console.error('Erreur lors du paiement:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors du paiement.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPaying(false);
     }
   };
 
@@ -326,10 +486,40 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
           searchValue={searchQuery}
           onDateChange={() => { }}
           onPaymentStatusChange={() => { }}
+          defaultToToday={!disableDefaultDate}
         />
       </div>
-      <div className="overflow-x-auto border rounded-lg">
-        <div className="p-3">
+      <div className="rounded-lg border border-gray-300">
+        <details className="border-b md:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-3 text-sm font-semibold text-slate-900">
+            <span>Résumé factures</span>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{filteredFactures.length} facture(s)</span>
+          </summary>
+          {statistics && (
+            <div className="flex flex-wrap gap-1 px-3 pb-3">
+              <div className="min-w-[60px] rounded-md border border-primary-200 bg-gradient-to-r from-primary-50 to-primary-100 px-2 py-1 shadow-sm">
+                <div className="text-center">
+                  <span className="block text-xs font-medium uppercase tracking-wide text-primary-600">Total</span>
+                  <span className="text-sm font-bold text-primary-900">{statistics.total.count}</span>
+                </div>
+              </div>
+              {Object.entries(statistics.byStatus)
+                .filter(([status]) => canViewPaymentInfo || !isPaymentStatistic(status))
+                .map(([status, stats]) => (
+                <div key={status} className={`min-w-[60px] rounded-md border px-2 py-1 shadow-sm ${getStatisticsColor(status)} ${stats.count === 0 ? 'opacity-60' : ''}`}>
+                  <div className="text-center">
+                    <span className="block truncate text-xs font-medium uppercase tracking-wide opacity-80">
+                      {status.replace('_', ' ')}
+                    </span>
+                    <span className="text-sm font-bold">{stats.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
+
+        <div className="hidden p-2 md:block sm:p-3">
           {/* En-tête avec bouton d'export et statistiques */}
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-4">
@@ -346,8 +536,10 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                   </div>
 
                   {/* Statistiques par statut */}
-                  {Object.entries(statistics.byStatus).map(([status, stats]) => (
-                    <div key={status} className={`border px-2 py-1 rounded-md shadow-sm ${getStatisticsColor(status)} ${stats.count === 0 ? 'opacity-60' : ''} min-w-[60px]`}>
+                  {Object.entries(statistics.byStatus)
+                    .filter(([status]) => canViewPaymentInfo || !isPaymentStatistic(status))
+                    .map(([status, stats], index) => (
+                    <div key={status} className={`border px-2 py-1 rounded-md shadow-sm ${getStatisticsColor(status)} ${stats.count === 0 ? 'opacity-60' : ''} min-w-[60px] ${index > 3 ? 'hidden sm:block' : ''}`}>
                       <div className="text-center">
                         <span className="text-xs font-medium uppercase tracking-wide opacity-80 block truncate">
                           {status.replace('_', ' ')}
@@ -360,25 +552,10 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
               )}
             </div>
 
-            {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-              <Button
-                onClick={handleExportExcel}
-                variant="outline"
-                size="sm"
-                className="hover:bg-primary-700 hover:text-white font-bold bg-white text-primary-700 transition-colors duration-300 transform hover:scale-105"
-                disabled={isLoading || filteredFactures.length === 0 || isExporting}
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {isExporting ? 'Export en cours...' : 'Exporter Excel'}
-              </Button>
-            )}
+
           </div>
         </div>
-        <div className="max-h-[600px] overflow-y-auto">
+        <div>
           {isLoading ? (
             <div className="flex items-center justify-center min-h-[400px]">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -390,38 +567,125 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
               <p className="text-sm">Il n'y a pas de factures correspondant à vos critères de recherche.</p>
             </div>
           ) : (
-            <Table>
+            <>
+            <div className="space-y-2 p-2 md:hidden">
+              {sortedFactures.map((facture) => {
+                const detailHref = user && user.role !== Role.ADMIN
+                  ? `/factures/${facture.invoiceNumber}`
+                  : `/dashboard/invoices/${facture.invoiceNumber}`;
+                return (
+                  <button
+                    key={facture.id}
+                    type="button"
+                    onClick={() => router.push(detailHref)}
+                    className="w-full rounded-xl border bg-white p-3 text-left shadow-sm transition hover:border-primary/30 hover:bg-primary-50/30"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-950">{facture.customer?.name || "Client"}</p>
+                        <p className="truncate font-mono text-xs text-muted-foreground">{facture.invoiceNumber}</p>
+                      </div>
+                      <Badge className={getStatusColor(facture.status)}>
+                        {facture.status.replace("_", " ").toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>Facture : {formatDate(facture.date)}</span>
+                      {facture.lastValidatedBl?.createdAt ? (
+                        <span>Livrée : {formatDate(facture.lastValidatedBl.createdAt)}</span>
+                      ) : facture.deliveredAt ? (
+                        <span>Livrée : {formatDate(facture.deliveredAt.toString())}</span>
+                      ) : null}
+                    </div>
+                    {canViewPaymentInfo && (
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        {facture.statusPayment && (
+                          <Badge className={getStatusColor(facture.statusPayment)}>
+                            {facture.statusPayment.replace("_", " ").toUpperCase()}
+                          </Badge>
+                        )}
+                        <span className="text-sm font-semibold text-slate-900">
+                          {formatMontant(facture.remainingAmount || 0)}
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="hidden max-h-[600px] overflow-auto md:block">
+            <Table className="border-collapse">
               <TableHeader className="sticky top-0 bg-white z-10">
-                <TableRow className="bg-primary-50/50 ">
-                  <TableHead className="w-[50px]">
+                <TableRow className="bg-primary-50/50 border-b border-gray-300">
+                  <TableHead className="w-[50px] border-r border-gray-300">
                   </TableHead>
-                  <TableHead className="font-semibold text-primary-900">Numéro facture</TableHead>
-                  <TableHead className="font-semibold text-primary-900">Numéro compte</TableHead>
-                  <TableHead className="font-semibold text-primary-900">Date facture</TableHead>
-                  <TableHead className="font-semibold text-primary-900">Client</TableHead>
-                  <TableHead className="font-semibold text-primary-900">
-                    Date de livraison
-                    <button
-                      type="button"
-                      className="ml-1 text-xl text-primary-700 hover:text-primary-900 focus:outline-none"
-                      onClick={() =>
-                        setSortOrder((prev) =>
-                          prev === "asc" ? "desc" : prev === "desc" ? null : "asc"
-                        )
-                      }
-                      title="Trier par date de livraison"
-                    >
-                      {sortOrder === "asc" ? "▲" : sortOrder === "desc" ? "▼" : "⇅"}
-                    </button>
+                  <TableHead className="font-semibold text-primary-900 border-r border-gray-300">Numéro facture</TableHead>
+                  <TableHead className="font-semibold text-primary-900 border-r border-gray-300">Numéro compte</TableHead>
+                  <TableHead className="font-semibold text-primary-900 border-r border-gray-300">
+                    <div className="flex items-center gap-1">
+                      Date facture
+                      <Button
+                        variant="ghost" 
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-transparent"
+                        onClick={() => handleSort("invoiceDate")}
+                        title="Trier par date de facture"
+                      >
+                        {sortField === "invoiceDate" ? (sortOrder === "asc" ? "▲" : sortOrder === "desc" ? "▼" : "⇅") : "⇅"}
+                      </Button>
+                    </div>
+                  </TableHead>
+                    <TableHead className="font-semibold text-primary-900 border-r border-gray-300">Client</TableHead>
+                                      <TableHead className="font-semibold text-primary-900 border-r border-gray-300">
+                    <div className="flex items-center gap-1">
+                      Date de livraison
+                      <Button
+                        variant="ghost" 
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-transparent"
+                        onClick={() => handleSort("deliveryDate")}
+                        title="Trier par date de livraison"
+                      >
+                        {sortField === "deliveryDate" ? (sortOrder === "asc" ? "▲" : sortOrder === "desc" ? "▼" : "⇅") : "⇅"}
+                      </Button>
+                    </div>
                   </TableHead>
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-                    <TableHead className="font-semibold text-primary-900">Âge</TableHead>
+                      <TableHead className="font-semibold text-primary-900 border-r border-gray-300">
+                      <div className="flex items-center gap-1">
+                        Âge
+                        <Button
+                          variant="ghost" 
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-transparent"
+                          onClick={() => handleSort("age")}
+                          title="Trier par âge"
+                        >
+                          {sortField === "age" ? (sortOrder === "asc" ? "▲" : sortOrder === "desc" ? "▼" : "⇅") : "⇅"}
+                        </Button>
+                      </div>
+                    </TableHead>
                   )}
-                  <TableHead className="font-semibold text-primary-900">État livraison</TableHead>
-                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">État paiement</TableHead>}
-                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900">Montant restant à payer</TableHead>}
+                    <TableHead className="font-semibold text-primary-900 border-r border-gray-300">État livraison</TableHead>
+                                      {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableHead className="font-semibold text-primary-900 border-r border-gray-300">État paiement</TableHead>}
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-                    <TableHead className="font-semibold text-primary-900">Action</TableHead>
+                      <TableHead className="font-semibold text-primary-900 border-r border-gray-300">
+                      <div className="flex items-center gap-1">
+                        Restant à payer
+                        <Button
+                          variant="ghost" 
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-transparent"
+                          onClick={() => handleSort("remainingAmount")}
+                          title="Trier par montant restant"
+                        >
+                          {sortField === "remainingAmount" ? (sortOrder === "asc" ? "▲" : sortOrder === "desc" ? "▼" : "⇅") : "⇅"}
+                        </Button>
+                      </div>
+                    </TableHead>
+                  )}
+                  {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                      <TableHead className="font-semibold text-primary-900 border-r border-gray-300">Action</TableHead>
                   )}
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
                     <TableHead className="font-semibold text-primary-900">Détail</TableHead>
@@ -439,16 +703,16 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                     key={facture.id}
                     className={
                       isPaymentOpen
-                        ? "z-10 ring-2 ring-primary-400 shadow-xl bg-white"
+                        ? "z-10 ring-2 ring-primary-400 shadow-xl bg-white border-b border-gray-300"
                         : openPaymentRow
-                          ? "opacity-50 pointer-events-none blur-[1.5px] select-none"
-                          : "hover:bg-primary-50/30 transition-colors duration-200 group"
+                          ? "opacity-50 pointer-events-none blur-[1.5px] select-none border-b border-gray-300"
+                          : "hover:bg-primary-50/30 transition-colors duration-200 group border-b border-gray-300"
                     }
                     style={{ transition: 'all 0.2s' }}
                   >
-                    <TableCell>
+                    <TableCell className="border-r border-gray-300">
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium border-r border-gray-300">
                       <div className="flex items-center gap-2">
                         <span>{facture.invoiceNumber}</span>
                         <TooltipProvider>
@@ -475,7 +739,7 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                         </TooltipProvider>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="border-r border-gray-300">
                       <div className="flex items-center gap-2">
                         <span>{facture.accountNumber}</span>
                         <TooltipProvider>
@@ -502,9 +766,9 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                         </TooltipProvider>
                       </div>
                     </TableCell>
-                    <TableCell>{formatDate(facture.date)}</TableCell>
-                    <TableCell>{facture.customer?.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="border-r border-gray-300">{formatDate(facture.date)}</TableCell>
+                    <TableCell className="border-r border-gray-300">{facture.customer?.name}</TableCell>
+                    <TableCell className="border-r border-gray-300">
                           {facture.lastValidatedBl ? (
                             <div className="flex flex-col">
                               <span className="text-xs text-gray-500 2xl:text-sm text-primary-700">
@@ -520,7 +784,7 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                       )}
                     </TableCell>
                     {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-                      <TableCell>
+                      <TableCell className="border-r border-gray-300">
                         {(() => {
                           // Ne pas afficher l'âge pour RETOUR, REGULE, ou si la facture est payée
                           if ([InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) || 
@@ -540,17 +804,17 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                         })()}
                       </TableCell>
                     )}
-                    <TableCell>
+                    <TableCell className="border-r border-gray-300">
                       <Badge className={getStatusColor(facture.status)}>
                         {facture.status.replace("_", " ").toUpperCase()}
                       </Badge>
                     </TableCell>
-                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell className="border-r border-gray-300">
                       {facture.status !== InvoiceStatus.RETOUR && facture.status !== InvoiceStatus.ANNULEE ? <Badge className={getStatusColor(facture.statusPayment || "non_paye")}>
                         {(facture.statusPayment || "non_paye").replace("_", " ").toUpperCase()}
                       </Badge> : "-"}
                     </TableCell>}
-                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell>
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && <TableCell className="border-r border-gray-300">
                       <div className="flex flex-col">
                         <span className="font-medium text-lg flex items-center gap-1">
                           {facture.statusPayment?.toUpperCase() === "PAYÉ"
@@ -572,12 +836,71 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                       </div>
                     </TableCell>}
                         {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-                          <TableCell>
+                          <TableCell className="border-r border-gray-300">
                             {!isPaymentOpen ? (
                               ![InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) ? (
-                                <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={e => {e.stopPropagation(); setOpenPaymentRow(facture.invoiceNumber); setPaymentAmount(""); setPaymentMethod(""); setPaymentComment(""); setErrorMsg("");}}>
+                                inlinePaymentRow === facture.invoiceNumber ? (
+                                  <div className="flex items-center gap-2" ref={inlineMontantInputRef}>
+                                    <input
+                                      type="text"
+                                      value={inlinePaymentAmount}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        // Formater en temps réel pendant la saisie
+                                        const formatted = formatAmountForDisplay(value);
+                                        setInlinePaymentAmount(formatted);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleInlinePayment(facture);
+                                        } else if (e.key === 'Escape') {
+                                          setInlinePaymentRow(null);
+                                          setInlinePaymentAmount("");
+                                        }
+                                      }}
+                                      className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                      placeholder="Montant"
+                                      disabled={isPaying}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => handleInlinePayment(facture)}
+                                      disabled={isPaying}
+                                    >
+                                      {isPaying ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <Check className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
+                                      onClick={() => {
+                                        setInlinePaymentRow(null);
+                                        setInlinePaymentAmount("");
+                                      }}
+                                      disabled={isPaying}
+                                    >
+                                      <XCircle className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="flex items-center gap-1" 
+                                    onClick={e => {
+                                      e.stopPropagation(); 
+                                      setInlinePaymentRow(facture.invoiceNumber);
+                                    }}
+                                  >
                                   <PlusCircle className="w-4 h-4 mr-1 text-primary-600" /> Ajouter paiement
                                 </Button>
+                                )
                               ) : (
                                 <span className="text-gray-400 italic flex justify-center">-</span>
                               )
@@ -623,6 +946,8 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                 })}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </div>
       </div>

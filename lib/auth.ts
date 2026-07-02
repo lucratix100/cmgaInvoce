@@ -4,12 +4,17 @@ import { cookies } from "next/headers";
 
 export async function getSession() {
   const cookieStore = await cookies()
-  const session = JSON.parse(cookieStore.get("accessToken")?.value || "{}")
+  const raw = cookieStore.get("accessToken")?.value
 
-  if (!session) return null;
+  if (!raw) return null
 
-  // axios.defaults.headers.common["Authorization"] = `Bearer ${session.token}`
-  return session;
+  try {
+    const session = JSON.parse(raw)
+    if (!session?.token) return null
+    return session
+  } catch {
+    return null
+  }
 }
 
 export async function getUser() {

@@ -42,10 +42,12 @@ declare module 'xlsx' {
   export const utils: {
     book_new(): WorkBook;
     json_to_sheet(data: any[]): WorkSheet;
+    sheet_to_json<T = any>(worksheet: WorkSheet, options?: Record<string, any>): T[];
     book_append_sheet(workbook: WorkBook, worksheet: WorkSheet, name: string): void;
     decode_range(range: string): { s: { r: number; c: number }; e: { r: number; c: number } };
     encode_cell(cell: { r: number; c: number }): string;
   };
 
+  export function read(data: any, options?: Record<string, any>): WorkBook;
   export function writeFile(workbook: WorkBook, filename: string): void;
 } 

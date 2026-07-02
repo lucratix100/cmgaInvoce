@@ -8,6 +8,7 @@ interface UseInvoicesWithStatisticsParams {
     status?: string;
     search?: string;
     depot?: string;
+    disableDefaultDate?: boolean;
 }
 
 export function useInvoicesWithStatistics(params: UseInvoicesWithStatisticsParams = {}) {
@@ -19,6 +20,7 @@ export function useInvoicesWithStatistics(params: UseInvoicesWithStatisticsParam
             status: params.status || undefined,
             search: params.search || undefined,
             depot: params.depot || undefined,
+            disableDefaultDate: params.disableDefaultDate || undefined,
         };
 
         // Filtrer les paramètres undefined pour éviter les changements inutiles
@@ -27,7 +29,7 @@ export function useInvoicesWithStatistics(params: UseInvoicesWithStatisticsParam
         );
 
         return ['invoices-with-statistics', filteredParams];
-    }, [params.startDate, params.endDate, params.status, params.search, params.depot]);
+    }, [params.startDate, params.endDate, params.status, params.search, params.depot, params.disableDefaultDate]);
 
     const {
         data = { invoices: [], statistics: null },

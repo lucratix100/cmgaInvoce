@@ -62,6 +62,16 @@ const getTokenFromCookies = async (): Promise<string | null> => {
   }
 }
 
+// Fonction utilitaire pour obtenir l'URL de l'API
+const getApiUrl = (): string => {
+  // Côté client, utiliser NEXT_PUBLIC_API_URL
+  if (typeof window !== 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333/api/'
+  }
+  // Côté serveur, utiliser API_URL
+  return process.env.API_URL || 'http://localhost:3333/api/'
+}
+
 // Récupérer les factures urgentes
 export const getUrgentInvoices = async (): Promise<{
   success: boolean
@@ -76,7 +86,7 @@ export const getUrgentInvoices = async (): Promise<{
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.get(`${process.env.API_URL}recovery/urgent-invoices`, {
+    const response = await axios.get(`${getApiUrl()}recovery/urgent-invoices`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -124,7 +134,7 @@ export const getRecoverySettings = async (): Promise<{
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.get(`${process.env.API_URL}recovery/settings`, {
+    const response = await axios.get(`${getApiUrl()}recovery/settings`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -152,7 +162,7 @@ export const getRecoverySettingsByRoot = async (): Promise<{
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.get(`${process.env.API_URL}recovery/settings/by-root`, {
+    const response = await axios.get(`${getApiUrl()}recovery/settings/by-root`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -177,7 +187,7 @@ export const getRoots = async (): Promise<{
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.get(`${process.env.API_URL}recovery/roots`, {
+    const response = await axios.get(`${getApiUrl()}recovery/roots`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -206,7 +216,7 @@ export const updateRecoverySettings = async (data: {
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.post(`${process.env.API_URL}recovery/settings`, data, {
+    const response = await axios.post(`${getApiUrl()}recovery/settings`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json',
@@ -236,7 +246,7 @@ export const createRecoverySetting = async (data: {
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.post(`${process.env.API_URL}recovery/settings/create`, data, {
+    const response = await axios.post(`${getApiUrl()}recovery/settings/create`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json',
@@ -262,7 +272,7 @@ export const deleteRecoverySetting = async (settingId: number): Promise<{
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.delete(`${process.env.API_URL}recovery/settings/${settingId}`, {
+    const response = await axios.delete(`${getApiUrl()}recovery/settings/${settingId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -287,7 +297,7 @@ export const updateCustomDelay = async (invoiceId: number, customDays: number): 
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.post(`${process.env.API_URL}recovery/invoices/${invoiceId}/custom-delay`, 
+    const response = await axios.post(`${getApiUrl()}recovery/invoices/${invoiceId}/custom-delay`, 
       { customDays }, 
       {
         headers: {
@@ -317,7 +327,7 @@ export const updateUrgentStatus = async (): Promise<{
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.post(`${process.env.API_URL}recovery/update-urgent-status`, {}, {
+    const response = await axios.post(`${getApiUrl()}recovery/update-urgent-status`, {}, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -338,7 +348,7 @@ export async function getCustomDelays() {
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.get(`${process.env.API_URL}recovery/custom-delays`, {
+    const response = await axios.get(`${getApiUrl()}recovery/custom-delays`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -359,7 +369,7 @@ export async function deleteCustomDelay(id: number) {
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.delete(`${process.env.API_URL}recovery/custom-delays/${id}`, {
+    const response = await axios.delete(`${getApiUrl()}recovery/custom-delays/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -380,7 +390,7 @@ export async function checkExpiredDelays() {
       throw new Error('Token d\'authentification non trouvé')
     }
 
-    const response = await axios.post(`${process.env.API_URL}recovery/check-expired-delays`, {}, {
+    const response = await axios.post(`${getApiUrl()}recovery/check-expired-delays`, {}, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Accept': 'application/json'
@@ -390,6 +400,23 @@ export async function checkExpiredDelays() {
     return response.data
   } catch (error: any) {
     console.error('Erreur lors de la vérification des délais expirés:', error)
-    throw new Error(error.response?.data?.error || 'Erreur lors de la vérification des délais expirés')
+    
+    // Améliorer le diagnostic d'erreur
+    if (error.response) {
+      console.error('Status:', error.response.status)
+      console.error('Headers:', error.response.headers)
+      console.error('Data:', error.response.data)
+      
+      // Si la réponse contient du HTML au lieu de JSON
+      if (typeof error.response.data === 'string' && error.response.data.includes('<!DOCTYPE')) {
+        throw new Error('Le serveur a retourné une page HTML au lieu de JSON. Vérifiez que l\'API est accessible.')
+      }
+      
+      throw new Error(error.response.data?.error || `Erreur serveur (${error.response.status})`)
+    } else if (error.request) {
+      throw new Error('Aucune réponse du serveur. Vérifiez la connexion.')
+    } else {
+      throw new Error('Erreur lors de la vérification des délais expirés')
+    }
   }
 } 

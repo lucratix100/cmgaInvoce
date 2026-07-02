@@ -3,9 +3,11 @@ import { getUserReminders, markReminderAsRead } from '@/actions/reminder';
 import { toast } from 'sonner';
 import { InvoiceReminder } from '@/lib/types';
 import { filterTodayNotifications, filterTodayUnreadNotifications } from '@/lib/notification-utils';
+import { queryKeys, QUERY_REFETCH_INTERVAL } from '@/lib/query-keys';
 
-export function useNotifications(userId: number) {
+export function useNotifications(userId: number, options?: { enabled?: boolean }) {
     const queryClient = useQueryClient();
+    const isEnabled = (options?.enabled ?? true) && userId > 0;
 
     // Query pour récupérer les notifications
     const {
@@ -14,14 +16,16 @@ export function useNotifications(userId: number) {
         error,
         refetch
     } = useQuery({
-        queryKey: ['notifications', userId],
+        queryKey: queryKeys.notifications(userId),
         queryFn: () => getUserReminders(userId),
-        enabled: !!userId,
+        enabled: isEnabled,
         retry: false,
-        refetchInterval: 30 * 1000, // Refetch toutes les 30 secondes
-        refetchIntervalInBackground: true, // Continue le refetch même quand l'onglet n'est pas actif
-        staleTime: 15 * 1000, // Les données sont considérées comme fraîches pendant 2 minutes
-        gcTime: 5 * 1000, // Garde les données en cache pendant 5 minutes
+        refetchInterval: isEnabled ? QUERY_REFETCH_INTERVAL : false,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: isEnabled,
+        refetchOnReconnect: isEnabled,
+        staleTime: 15 * 1000,
+        gcTime: 5 * 1000,
     });
 
     // Filtrer les notifications du jour
@@ -32,7 +36,7 @@ export function useNotifications(userId: number) {
         mutationFn: (notificationId: string) => markReminderAsRead(notificationId),
         onSuccess: (_, notificationId) => {
             // Optimistic update - mettre à jour le cache immédiatement
-            queryClient.setQueryData(['notifications', userId], (oldData: InvoiceReminder[] | undefined) => {
+            queryClient.setQueryData(queryKeys.notifications(userId), (oldData: InvoiceReminder[] | undefined) => {
                 if (!oldData) return oldData;
                 return oldData.map(notif =>
                     notif.id.toString() === notificationId ? { ...notif, read: true } : notif

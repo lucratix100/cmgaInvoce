@@ -74,7 +74,7 @@ export default function Header({ invoice }: HeaderProps) {
                 onClick={() => copyToClipboard(invoice.invoiceNumber, 'invoice')}
                 className="p-1 hover:bg-gray-100 rounded transition-colors"
                 title="Copier le numéro de facture"
-              >
+                >
                 {copiedField === 'invoice' ? (
                   <Check className="h-3 w-3 text-green-600" />
                 ) : (
