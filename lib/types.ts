@@ -40,6 +40,7 @@ export type Invoice = {
     order: InvoiceProduct[];
     customer: Customer;
     depotId: number;
+    deliveredSince: number | null;
     deliveredAt: string;
     totalTtc: number;
     statusPayment: InvoicePaymentStatus;
@@ -96,20 +97,20 @@ export type Driver = {
 }
 
 export interface InvoiceReminder {
-  id: number;
-  userId: number;
-  invoiceId: number;
-  remindAt: string;
-  comment: string;
-  read: boolean;
-  createdAt: string;
-  updatedAt: string;
-  user?: {
     id: number;
-    name: string;
-  };
-  invoice?: {
-    id: number;
-    invoiceNumber: string;
-  };
+    userId: number;
+    invoiceId: number;
+    remindAt: string;
+    comment: string;
+    read: boolean;
+    createdAt: string;
+    updatedAt: string;
+    user?: {
+        id: number;
+        name: string;
+    };
+    invoice?: {
+        id: number;
+        invoiceNumber: string;
+    };
 }

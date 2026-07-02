@@ -5,20 +5,23 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
-import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon, PlusCircle, CheckCircle, XCircle } from "lucide-react"
+import { Bell, Check, Eye, Loader2, FileX, Download, Copy, Check as CheckIcon, PlusCircle, CheckCircle, XCircle, Truck } from "lucide-react"
 
 import Filtre from "../facture/filtre"
 import PaiementInlineForm from "./PaiementInlineForm";
+import GestionFacture from "../facture/gestion-facture";
+import InvoiceConfirmationDialog from "../invoice-scan-confirmation-dialog";
 
 import { Invoice } from "@/lib/types"
 import { useSearchParams } from "next/navigation"
 import { Role } from "@/types/roles"
 import { exportFilteredToExcel } from "@/lib/excel-export"
 import { toast } from "@/components/ui/use-toast"
-import { InvoiceStatus } from "@/types/enums"
-import { getPaymentHistory, addPayment } from "@/actions/payment"
+import { InvoiceStatus, InvoicePaymentStatus } from "@/types/enums"
 import { PaymentMethod } from "@/types/enums"
 import { useRouter } from "next/navigation";
+import { getInvoiceByNumber } from "@/actions/invoice";
+import { addPayment } from "@/actions/payment";
 
 interface RecouvrementTableProps {
   factures: Invoice[];
@@ -62,6 +65,15 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
   const [inlinePaymentRow, setInlinePaymentRow] = useState<string | null>(null);
   const [inlinePaymentAmount, setInlinePaymentAmount] = useState("");
 
+  // États pour le dialog GestionFacture
+  const [isGestionFactureOpen, setIsGestionFactureOpen] = useState(false);
+  const [selectedFactureNumber, setSelectedFactureNumber] = useState<string>("");
+
+  // États pour le dialog de confirmation de facture
+  const [isConfirmationDialogOpen, setIsConfirmationDialogOpen] = useState(false);
+  const [selectedFactureForConfirmation, setSelectedFactureForConfirmation] = useState<any>(null);
+  const [isCheckingInvoiceStatus, setIsCheckingInvoiceStatus] = useState(false);
+
   // Tri multiple
   const [sortField, setSortField] = useState<"deliveryDate" | "invoiceDate" | "age" | "remainingAmount" | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
@@ -96,39 +108,9 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
     });
   };
 
-  const calculateInvoiceAge = (facture: Invoice) => {
-    // Déterminer la date de référence (livraison ou dernier BL)
-    let referenceDate: Date | null = null;
-    
-    if (facture.lastValidatedBl?.createdAt) {
-      referenceDate = new Date(facture.lastValidatedBl.createdAt);
-    } else if (facture.deliveredAt) {
-      referenceDate = new Date(facture.deliveredAt);
-    }
-    
-    if (!referenceDate) {
-      return null; // Pas de date de livraison
-    }
-    
-    const today = new Date();
-    const diffTime = today.getTime() - referenceDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  };
 
-  const getAgeColor = (age: number) => {
-    if (age <= 2) return "text-green-600";
-    if (age <= 7) return "text-amber-600";
-    if (age <= 15) return "text-orange-600";
-    return "text-red-600";
-  };
 
-  const formatAge = (age: number) => {
-    if (age === 0) return "Aujourd'hui";
-    if (age === 1) return "1 jour";
-    return `${age} jours`;
-  };
+
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -215,32 +197,44 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
 
   const handleCopyToClipboard = async (text: string, fieldType: string, factureId: number) => {
     try {
+      // Vérifier si on est côté client et si les APIs sont disponibles
+      if (typeof window === 'undefined') {
+        throw new Error('Fonction copie non disponible côté serveur');
+      }
+
       // Vérifier si on est en contexte sécurisé (HTTPS ou localhost)
       const isSecureContext = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      
-      if (isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
-        // Utiliser l'API moderne si disponible et en contexte sécurisé
-        await navigator.clipboard.writeText(text);
+
+      // Vérifier si l'API Clipboard moderne est disponible
+      if (isSecureContext && typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (clipboardError) {
+          // Si l'API Clipboard échoue, utiliser le fallback
+          console.warn('API Clipboard échouée, utilisation du fallback:', clipboardError);
+          throw clipboardError;
+        }
       } else {
-        // Méthode de fallback pour les contextes non sécurisés (comme IP locale)
+        // Méthode de fallback pour les contextes non sécurisés ou APIs non disponibles
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
         textArea.style.top = '-999999px';
         textArea.style.opacity = '0';
+        textArea.style.pointerEvents = 'none';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-        
+
         if (!successful) {
           throw new Error('Fallback copy method failed');
         }
       }
-      
+
       setCopiedField(`${fieldType}-${factureId}`);
       toast({
         title: "Copié !",
@@ -277,7 +271,6 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
     });
   }, [factures, paymentStatus, deliveryStatus, selectedDepot, canViewPaymentInfo]);
 
-  // Tri multiple
   const sortedFactures = useMemo(() => {
     let data = [...filteredFactures];
     if (sortField && sortOrder) {
@@ -286,6 +279,10 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
         let valueB: number | string;
 
         switch (sortField) {
+          case "invoiceDate":
+            valueA = new Date(a.date).getTime();
+            valueB = new Date(b.date).getTime();
+            break;
           case "deliveryDate":
             valueA = a.lastValidatedBl?.createdAt
               ? new Date(a.lastValidatedBl.createdAt).getTime()
@@ -298,15 +295,9 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                 ? new Date(b.deliveredAt).getTime()
                 : 0;
             break;
-          case "invoiceDate":
-            valueA = new Date(a.date).getTime();
-            valueB = new Date(b.date).getTime();
-            break;
           case "age":
-            const ageA = calculateInvoiceAge(a);
-            const ageB = calculateInvoiceAge(b);
-            valueA = ageA !== null ? ageA : -1;
-            valueB = ageB !== null ? ageB : -1;
+            valueA = a.deliveredSince ?? -1;
+            valueB = b.deliveredSince ?? -1;
             break;
           case "remainingAmount":
             valueA = Number(a.remainingAmount) || 0;
@@ -467,11 +458,94 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
   };
 
   // Ajoute une fonction pour la couleur de fond du rond d'âge
+  const calculateInvoiceAge = (facture: Invoice): number | null => {
+    if ([InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) ||
+        facture.statusPayment?.toLowerCase() === 'payé') {
+      return null;
+    }
+    if (facture.deliveredSince !== null && facture.deliveredSince !== undefined) {
+      return facture.deliveredSince;
+    }
+    return null;
+  };
+
   const getAgeBgColor = (age: number) => {
     if (age <= 2) return "bg-green-100 text-green-800";
     if (age <= 7) return "bg-amber-100 text-amber-800";
     if (age <= 15) return "bg-orange-100 text-orange-800";
     return "bg-red-100 text-red-800";
+  };
+
+  // Fonctions pour gérer le dialog GestionFacture
+  const handleOpenGestionFacture = async (factureNumber: string) => {
+    try {
+      setIsCheckingInvoiceStatus(true);
+      
+      // Récupérer les détails de la facture pour vérifier son état
+      const response = await getInvoiceByNumber(factureNumber);
+      
+      if (!response || !response.invoice) {
+        toast({
+          title: "Erreur",
+          description: "Cette facture n'existe pas",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const invoice = response.invoice;
+      
+      // Vérifier si la facture est "non réceptionnée"
+      if (invoice.status === InvoiceStatus.NON_RECEPTIONNEE) {
+        // Ouvrir le dialog de confirmation
+        setSelectedFactureForConfirmation(invoice);
+        setIsConfirmationDialogOpen(true);
+      } else {
+        // Ouvrir le dialog de gestion normale
+        setSelectedFactureNumber(factureNumber);
+        setIsGestionFactureOpen(true);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification de la facture:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les détails de la facture",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingInvoiceStatus(false);
+    }
+  };
+
+  const handleCloseGestionFacture = () => {
+    setIsGestionFactureOpen(false);
+    setSelectedFactureNumber("");
+  };
+
+  const handleGestionFactureSave = (produits: Array<{ reference: string, quantiteLivree: number }>) => {
+    // Rafraîchir la page après sauvegarde
+    router.refresh();
+  };
+
+  const handleGestionFactureReset = () => {
+    // Rafraîchir la page après reset
+    router.refresh();
+  };
+
+  // Fonctions pour gérer le dialog de confirmation
+  const handleCloseConfirmationDialog = () => {
+    setIsConfirmationDialogOpen(false);
+    setSelectedFactureForConfirmation(null);
+  };
+
+  const handleConfirmInvoice = async () => {
+    // Logique de confirmation de la facture
+    // Après confirmation, ouvrir le dialog de gestion
+    if (selectedFactureForConfirmation) {
+      setSelectedFactureNumber(selectedFactureForConfirmation.invoiceNumber);
+      setIsGestionFactureOpen(true);
+    }
+    handleCloseConfirmationDialog();
   };
 
   return (
@@ -690,6 +764,9 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                   {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
                     <TableHead className="font-semibold text-primary-900">Détail</TableHead>
                   )}
+                  {user && user.role === Role.CHEF_DEPOT && (
+                    <TableHead className="font-semibold text-primary-900">Action</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -786,8 +863,7 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                     {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
                       <TableCell className="border-r border-gray-300">
                         {(() => {
-                          // Ne pas afficher l'âge pour RETOUR, REGULE, ou si la facture est payée
-                          if ([InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) || 
+                          if ([InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) ||
                               facture.statusPayment?.toLowerCase() === 'payé') {
                             return <span className="text-gray-400 italic">-</span>;
                           }
@@ -795,7 +871,6 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                           if (age === null) {
                             return <span className="text-gray-400 italic">-</span>;
                           }
-                          // Afficher un rond coloré avec fond et texte foncé
                           return (
                             <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm ${getAgeBgColor(age)}`}>
                               {age}
@@ -827,19 +902,19 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                               )}
                             </>
                             : formatMontant(facture.remainingAmount || 0)}
-                              {totalReturnPayments > 0 && (
-                                <span className="text-red-600 text-xs font-semibold ml-1">
-                                  -{formatMontant(totalReturnPayments)}
-                                </span>
-                              )}
+                          {totalReturnPayments > 0 && (
+                            <span className="text-red-600 text-xs font-semibold ml-1">
+                              -{formatMontant(totalReturnPayments)}
+                            </span>
+                          )}
                         </span>
                       </div>
                     </TableCell>}
-                        {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
-                          <TableCell className="border-r border-gray-300">
-                            {!isPaymentOpen ? (
-                              ![InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) ? (
-                                inlinePaymentRow === facture.invoiceNumber ? (
+                    {user && (user.role === Role.RECOUVREMENT || user.role === Role.ADMIN) && (
+                      <TableCell className="border-r border-gray-300">
+                        {!isPaymentOpen ? (
+                          ![InvoiceStatus.RETOUR, InvoiceStatus.REGULE, InvoiceStatus.ANNULEE].includes(facture.status) ? (
+                            inlinePaymentRow === facture.invoiceNumber ? (
                                   <div className="flex items-center gap-2" ref={inlineMontantInputRef}>
                                     <input
                                       type="text"
@@ -898,8 +973,8 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                                       setInlinePaymentRow(facture.invoiceNumber);
                                     }}
                                   >
-                                  <PlusCircle className="w-4 h-4 mr-1 text-primary-600" /> Ajouter paiement
-                                </Button>
+                                    <PlusCircle className="w-4 h-4 mr-1 text-primary-600" /> Ajouter paiement
+                                  </Button>
                                 )
                               ) : (
                                 <span className="text-gray-400 italic flex justify-center">-</span>
@@ -931,7 +1006,29 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
                             </Button>
                           </TableCell>
                         )}
-                  </TableRow>
+                        {user && user.role === Role.CHEF_DEPOT && (
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-1 text-green-700 border-green-300 hover:bg-green-50"
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleOpenGestionFacture(facture.invoiceNumber);
+                              }}
+                              disabled={isCheckingInvoiceStatus}
+                              title="Gérer la livraison de la facture"
+                            >
+                              {isCheckingInvoiceStatus ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Truck className="w-4 h-4" />
+                              )}
+                              {isCheckingInvoiceStatus ? "Vérification..." : "Gérer"}
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
                       {isPaymentOpen && (
                         <PaiementInlineForm
                           facture={facture}
@@ -951,6 +1048,28 @@ export default function RecouvrementTable({ factures: invoices, user, isLoading 
           )}
         </div>
       </div>
+
+      {/* Dialog GestionFacture pour les chefs de dépôt */}
+      {user && user.role === Role.CHEF_DEPOT && (
+        <GestionFacture
+          isOpen={isGestionFactureOpen}
+          onClose={handleCloseGestionFacture}
+          numeroFacture={selectedFactureNumber}
+          onSave={handleGestionFactureSave}
+          reSetState={handleGestionFactureReset}
+        />
+      )}
+
+      {/* Dialog de confirmation de facture pour les chefs de dépôt */}
+      {user && user.role === Role.CHEF_DEPOT && (
+        <InvoiceConfirmationDialog
+          isOpen={isConfirmationDialogOpen}
+          onClose={handleCloseConfirmationDialog}
+          onConfirm={handleConfirmInvoice}
+          invoiceData={selectedFactureForConfirmation}
+          loading={false}
+        />
+      )}
     </>
   );
 }
