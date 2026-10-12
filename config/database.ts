@@ -18,21 +18,28 @@ const dbConfig = defineConfig({
         paths: ['database/migrations'],
       },
     },
-    // mssql: {
-    //   client: 'mssql',
-    //   connection: {
-    //     host: env.get('DB_MSSQL_HOST'),
-    //     port: env.get('DB_MSSQL_PORT') ? parseInt(env.get('DB_MSSQL_PORT') as string) : undefined,
-    //     user: env.get('DB_MSSQL_USER'),
-    //     server: env.get('DB_MSSQL_SERVER') || '',
-    //     password: env.get('DB_MSSQL_PASSWORD'),
-    //     database: env.get('DB_MSSQL_DATABASE'),
-    //     options: {
-    //       encrypt: true,
-    //       trustServerCertificate: true,
-    //     },
-    //   },
-    // },
+    // Base Sage (SQL Server 2012) : lecture seule, utilisée par l'import des factures
+    mssql: {
+      client: 'mssql',
+      connection: {
+        server: env.get('SAGE_DB_HOST', ''),
+        // Ignoré par knex si une instance nommée est définie (résolue via SQL Browser)
+        port: env.get('SAGE_DB_PORT', 1433),
+        user: env.get('SAGE_DB_USER'),
+        password: env.get('SAGE_DB_PASSWORD'),
+        database: env.get('SAGE_DB_DATABASE'),
+        requestTimeout: 120000,
+        options: {
+          instanceName: env.get('SAGE_DB_INSTANCE'),
+          encrypt: env.get('SAGE_DB_ENCRYPT', false),
+          trustServerCertificate: true,
+          // SQL Server 2012 non patché ne parle que TLS 1.0, refusé par défaut par Node 20
+          ...(env.get('SAGE_DB_LEGACY_TLS', false)
+            ? { cryptoCredentialsDetails: { minVersion: 'TLSv1', ciphers: 'DEFAULT@SECLEVEL=0' } }
+            : {}),
+        },
+      },
+    },
   },
 })
 export default dbConfig

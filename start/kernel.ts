@@ -13,9 +13,16 @@ import server from '@adonisjs/core/services/server'
 
 /**
  * Import scheduled tasks
+ * Uniquement quand l'application sert HTTP : sinon node-cron garde les
+ * commandes Ace (migration:run, db:seed...) bloquées indéfiniment.
  */
-import('../app/tasks/commercial_follow_up_reminders.js')
-// import('../app/tasks/invoice_xml_importer.js')
+const shouldScheduleTasks = process.argv.some((arg) => arg === 'serve' || arg.includes('server.js'))
+if (shouldScheduleTasks) {
+  import('../app/tasks/commercial_follow_up_reminders.js')
+  if (process.env.SAGE_IMPORT_ENABLED === 'true') {
+    import('../app/tasks/invoice_xml_importer.js')
+  }
+}
 
 /**
  * The error handler is used to convert an exception

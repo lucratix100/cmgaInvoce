@@ -1,0 +1,11 @@
+node_modules
+build
+tmp
+.git
+.env
+.env.*
+!.env.example
+yarn.lock
+pnpm-lock.yaml
+Dockerfile
+.dockerignore

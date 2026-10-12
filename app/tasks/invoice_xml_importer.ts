@@ -1,16 +1,17 @@
 import cron from 'node-cron'
-import SageInvoicesController from '#controllers/sage_invoices_controller'
+import env from '#start/env'
+import SageInvoiceImportService from '#services/sage_invoice_import_service'
 
+const schedule = env.get('SAGE_IMPORT_CRON', '*/5 * * * *')
 
-
-
-cron.schedule('*/1 * * * *', async () => {
-    console.log('[Cron] Début d\'importation des factures XML...')
+cron.schedule(schedule, async () => {
+    console.log('[Cron] Début d\'importation des factures Sage...')
     try {
-        const controller = new SageInvoicesController()
-        await controller.invoice_xml_to_json()
-        console.log('[Cron] Importation terminée avec succès ✅')
+        const result = await SageInvoiceImportService.run()
+        if (result) console.log('[Cron] Importation terminée ✅', result)
     } catch (error) {
         console.error('[Cron] Erreur lors de l\'importation des factures ❌', error)
     }
 })
+
+console.log(`[Cron] Import des factures Sage planifié (${schedule})`)

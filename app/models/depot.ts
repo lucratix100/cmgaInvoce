@@ -18,6 +18,9 @@ export default class Depot extends BaseModel {
   @column()
   declare isActive: boolean | null
 
+  @column()
+  declare sageBase: string | null
+
   @hasMany(() => Invoice)
   declare invoice: HasMany<typeof Invoice>
 
