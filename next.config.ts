@@ -2,6 +2,7 @@ import withPWA from 'next-pwa';
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
   },
