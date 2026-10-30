@@ -15,7 +15,7 @@ import ConversationParticipant from './conversation_participant.js'
 import Message from './message.js'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
-  uids: ['phone'],
+  uids: ['email'],
   passwordColumnName: 'password',
 })
 

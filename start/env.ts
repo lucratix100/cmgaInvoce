@@ -49,4 +49,17 @@ export default await Env.create(new URL('../', import.meta.url), {
   SAGE_IMPORT_FILE: Env.schema.string.optional(),
   SAGE_IMPORT_CRON: Env.schema.string.optional(),
   SAGE_IMPORT_DAYS: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Email / SMTP
+  |----------------------------------------------------------
+  */
+  FRONTEND_URL: Env.schema.string.optional(),
+  MAIL_FROM: Env.schema.string.optional(),
+  SMTP_HOST: Env.schema.string.optional(),
+  SMTP_PORT: Env.schema.string.optional(),
+  SMTP_SECURE: Env.schema.string.optional(),
+  SMTP_USER: Env.schema.string.optional(),
+  SMTP_PASSWORD: Env.schema.string.optional(),
 })

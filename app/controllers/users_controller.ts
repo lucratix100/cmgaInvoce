@@ -4,6 +4,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { Role } from '../enum/index.js'
 import UserActivityService from '#services/user_activity_service'
 import NotificationService from '#services/notification_service'
+import PasswordTokenService from '#services/password_token_service'
+import { randomBytes } from 'node:crypto'
 
 export default class UsersController {
     private readonly sensitiveRoles = [Role.ADMIN, Role.FACTURATION, Role.COMMERCIAL_ADMIN]
@@ -53,12 +55,6 @@ export default class UsersController {
         try {
             const currentUser = await auth.authenticate()
             const data = await request.validateUsing(userValidatorStore)
-            if (data.password !== data.confirmPassword) {
-                return response.status(400).json({
-                    success: false,
-                    error: 'Les mots de passe ne correspondent pas'
-                })
-            }
 
             if (currentUser.role !== Role.ADMIN && data.role === Role.FACTURATION) {
                 return response.status(403).json({
@@ -76,11 +72,21 @@ export default class UsersController {
                 }
             }
 
-            // Supprimer confirmPassword des données avant la création
-            const { confirmPassword, ...userData } = data
-            const user = await User.create(userData)
+            // Compte inactif jusqu'à définition du mot de passe via le lien email
+            const user = await User.create({
+                ...data,
+                password: randomBytes(32).toString('hex'),
+                isActive: false,
+            })
 
-            // Enregistrer l'activité de création d'utilisateur
+            let inviteSent = false
+            try {
+                await PasswordTokenService.sendInvite(user)
+                inviteSent = true
+            } catch (mailError) {
+                console.error("Erreur envoi invitation:", mailError)
+            }
+
             await UserActivityService.logActivity(
                 Number(currentUser.id),
                 UserActivityService.ACTIONS.CREATE_USER,
@@ -89,7 +95,8 @@ export default class UsersController {
                 {
                     createdUserId: user.id,
                     createdUserEmail: user.email,
-                    createdUserRole: user.role
+                    createdUserRole: user.role,
+                    inviteSent,
                 }
             )
 
@@ -110,8 +117,11 @@ export default class UsersController {
 
             return response.status(201).json({
                 success: true,
-                message: 'Utilisateur créé avec succès',
-                user
+                message: inviteSent
+                    ? 'Utilisateur créé (inactif). Un email a été envoyé pour définir le mot de passe et activer le compte.'
+                    : 'Utilisateur créé (inactif), mais l’email d’invitation n’a pas pu être envoyé.',
+                user,
+                inviteSent,
             })
         } catch (error) {
             console.error('Erreur de création:', error) // Debug

@@ -40,6 +40,8 @@ const MessagesController = () => import('#controllers/messages_controller')
 const ChatUsersController = () => import('#controllers/chat_users_controller')
 
 router.post('/login', [AuthController, 'login']).prefix('api')
+router.post('/forgot-password', [AuthController, 'forgotPassword']).prefix('api')
+router.post('/reset-password', [AuthController, 'resetPassword']).prefix('api')
 router.post('/logout', [AuthController, 'logout']).prefix('api').use([middleware.auth()])
 router.get("/swagger", async () => {
   return AutoSwagger.default.docs(router.toJSON(), swagger);
@@ -118,6 +120,7 @@ router.group(() => {
   router.put('/commercial-admin/clients/:id', [CommercialAdminController, 'updateClient'])
   router.patch('/commercial-admin/clients/:id/deactivate', [CommercialAdminController, 'deactivateClient'])
   router.patch('/commercial-admin/clients/:id/activate', [CommercialAdminController, 'activateClient'])
+  router.get('/commercial-admin/locations', [CommercialAdminController, 'locations'])
   router.post('/commercial-admin/locations', [CommercialAdminController, 'storeLocation'])
   router.put('/commercial-admin/locations/:id', [CommercialAdminController, 'updateLocation'])
   router.patch('/commercial-admin/locations/:id/deactivate', [CommercialAdminController, 'deactivateLocation'])

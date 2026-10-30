@@ -18,6 +18,8 @@ import db from '@adonisjs/lucid/services/db'
 import NotificationService from '#services/notification_service'
 import CommercialFollowUpService from '#services/commercial_follow_up_service'
 import UserActivityService from '#services/user_activity_service'
+import PasswordTokenService from '#services/password_token_service'
+import { randomBytes } from 'node:crypto'
 import {
   getCurrentWeekPlanningDayRange,
   isTourItemCompleted,
@@ -1153,18 +1155,32 @@ export default class CommercialAdminController {
     if (!currentUser) return
 
     const data = await ctx.request.validateUsing(userValidatorStore)
-    if (data.password !== data.confirmPassword) {
-      return ctx.response.status(400).json({ message: 'Les mots de passe ne correspondent pas' })
-    }
 
-    const { confirmPassword, ...agentData } = data
+    // Compte inactif jusqu'à définition du mot de passe via le lien email
     const user = await User.create({
-      ...agentData,
+      ...data,
+      password: randomBytes(32).toString('hex'),
       role: Role.AGENT_COMMERCIAL,
       depotId: null,
+      isActive: false,
     })
 
-    return ctx.response.status(201).json({ success: true, user })
+    let inviteSent = false
+    try {
+      await PasswordTokenService.sendInvite(user)
+      inviteSent = true
+    } catch (mailError) {
+      console.error("Erreur envoi invitation commercial:", mailError)
+    }
+
+    return ctx.response.status(201).json({
+      success: true,
+      user,
+      inviteSent,
+      message: inviteSent
+        ? 'Commercial créé (inactif). Un email a été envoyé pour définir le mot de passe et activer le compte.'
+        : 'Commercial créé (inactif), mais l’email d’invitation n’a pas pu être envoyé.',
+    })
   }
 
   async updateAgent(ctx: HttpContext) {
@@ -1234,7 +1250,12 @@ export default class CommercialAdminController {
     const currentUser = await this.requireCommercialAdmin(ctx)
     if (!currentUser) return
 
-    const { search, type, includeInactive } = ctx.request.qs()
+    const { search, type, includeInactive, withCounts } = ctx.request.qs()
+    const page = Number(ctx.request.input('page') || 0)
+    const limit = Math.min(Math.max(Number(ctx.request.input('limit') || ctx.request.input('pageSize') || 10), 1), 100)
+    const includeInactiveFlag = ['1', 'true'].includes(String(includeInactive || ''))
+    const shouldIncludeCounts = ['1', 'true'].includes(String(withCounts || ''))
+
     let query = CommercialClient.query()
       .preload('locations')
       .preload('assignments', (assignmentQuery) => {
@@ -1242,7 +1263,7 @@ export default class CommercialAdminController {
       })
       .orderBy('created_at', 'desc')
 
-    if (!includeInactive) {
+    if (!includeInactiveFlag) {
       query = query.where('is_active', true)
     }
     if (type) {
@@ -1254,10 +1275,95 @@ export default class CommercialAdminController {
           .where('name', 'ILIKE', `%${search}%`)
           .orWhere('phone', 'ILIKE', `%${search}%`)
           .orWhere('account_number', 'ILIKE', `%${search}%`)
+          .orWhere('email', 'ILIKE', `%${search}%`)
+          .orWhere('address', 'ILIKE', `%${search}%`)
       })
     }
 
-    return ctx.response.json(await query)
+    const counts = shouldIncludeCounts
+      ? await this.getCommercialDirectoryCounts(includeInactiveFlag)
+      : undefined
+
+    if (page > 0) {
+      const result = await query.paginate(page, limit)
+      return ctx.response.json({
+        ...result.toJSON(),
+        ...(counts ? { counts } : {}),
+      })
+    }
+
+    const data = await query
+    if (counts) {
+      return ctx.response.json({ data, counts })
+    }
+
+    return ctx.response.json(data)
+  }
+
+  async locations(ctx: HttpContext) {
+    const currentUser = await this.requireCommercialAdmin(ctx)
+    if (!currentUser) return
+
+    const { search, includeInactive, commercialClientId, withCounts } = ctx.request.qs()
+    const page = Number(ctx.request.input('page') || 1)
+    const limit = Math.min(Math.max(Number(ctx.request.input('limit') || ctx.request.input('pageSize') || 10), 1), 100)
+    const includeInactiveFlag = ['1', 'true'].includes(String(includeInactive || ''))
+    const shouldIncludeCounts = ['1', 'true'].includes(String(withCounts || ''))
+
+    let query = CommercialClientLocation.query()
+      .preload('client')
+      .orderBy('created_at', 'desc')
+
+    if (!includeInactiveFlag) {
+      query = query.where('is_active', true)
+    }
+    if (commercialClientId) {
+      query = query.where('commercial_client_id', Number(commercialClientId))
+    }
+    if (search) {
+      query = query.where((builder) => {
+        builder
+          .where('name', 'ILIKE', `%${search}%`)
+          .orWhere('address', 'ILIKE', `%${search}%`)
+          .orWhere('phone', 'ILIKE', `%${search}%`)
+          .orWhere('responsable', 'ILIKE', `%${search}%`)
+          .orWhereHas('client', (clientQuery) => {
+            clientQuery.where('name', 'ILIKE', `%${search}%`)
+          })
+      })
+    }
+
+    const result = await query.paginate(Math.max(page, 1), limit)
+    const counts = shouldIncludeCounts
+      ? await this.getCommercialDirectoryCounts(includeInactiveFlag)
+      : undefined
+
+    return ctx.response.json({
+      ...result.toJSON(),
+      ...(counts ? { counts } : {}),
+    })
+  }
+
+  private async getCommercialDirectoryCounts(includeInactive: boolean) {
+    const clientsQuery = CommercialClient.query()
+    const locationsQuery = CommercialClientLocation.query()
+
+    if (!includeInactive) {
+      clientsQuery.where('is_active', true)
+      locationsQuery.where('is_active', true)
+    }
+
+    const [individuals, magasins, locations] = await Promise.all([
+      clientsQuery.clone().where('type', CommercialClientType.INDIVIDUEL).count('* as total').first(),
+      clientsQuery.clone().where('type', CommercialClientType.MAGASIN).count('* as total').first(),
+      locationsQuery.clone().count('* as total').first(),
+    ])
+
+    return {
+      clients: Number(individuals?.$extras.total || 0),
+      enseignes: Number(magasins?.$extras.total || 0),
+      locaux: Number(locations?.$extras.total || 0),
+    }
   }
 
   async storeClient(ctx: HttpContext) {
