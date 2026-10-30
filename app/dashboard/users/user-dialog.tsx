@@ -123,8 +123,8 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
     setLoading(true)
     setErrors({})
 
-    // Vérification de la correspondance des mots de passe
-    if (formData.password !== formData.confirmPassword) {
+    // Vérification de la correspondance des mots de passe (édition uniquement)
+    if (isEditing && formData.password && formData.password !== formData.confirmPassword) {
       setErrors({
         ...errors,
         confirmPassword: ["Les mots de passe ne correspondent pas"]
@@ -145,8 +145,10 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
 
     try {
       // Créer un objet avec seulement les champs non vides
-      const apiData: any = {
-        isActive: formData.isActive
+      const apiData: any = {}
+      // L'activation se fait via le lien email à la création
+      if (isEditing) {
+        apiData.isActive = formData.isActive
       }
 
       // Ajouter seulement les champs qui ne sont pas vides
@@ -162,7 +164,7 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
       if (formData.phone.trim()) {
         apiData.phone = formData.phone.trim()
       }
-      if (formData.password.trim()) {
+      if (isEditing && formData.password.trim()) {
         apiData.password = formData.password
         apiData.confirmPassword = formData.confirmPassword
       }
@@ -184,7 +186,9 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
       if (result.success) {
         toast({
           title: "Succès",
-          description: `L'utilisateur a été ${isEditing ? 'modifié' : 'créé'} avec succès`,
+          description: isEditing
+            ? "L'utilisateur a été modifié avec succès"
+            : (result.data?.message || "Utilisateur créé. Un email d'invitation a été envoyé."),
         })
         handleSuccess()
       } else {
@@ -226,7 +230,7 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
           <DialogDescription>
             {isEditing
               ? "Modifiez les informations de l'utilisateur."
-              : "Remplissez les informations pour créer un nouvel utilisateur."
+              : "Le compte sera inactif jusqu'à ce que l'utilisateur définisse son mot de passe via l'email d'invitation."
             }
           </DialogDescription>
         </DialogHeader>
@@ -293,37 +297,39 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
             </div>
           </div>
 
-          {/* Troisième ligne : Mot de passe et Confirmation */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label htmlFor="password" className="text-sm">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className={cn(errors.password && "border-red-500", "h-8 text-sm")}
-                disabled={loading}
-              />
-              {errors.password && (
-                <p className="text-xs text-red-500">{errors.password.join(', ')}</p>
-              )}
+          {/* Mot de passe optionnel uniquement en édition */}
+          {isEditing && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-sm">Nouveau mot de passe (optionnel)</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className={cn(errors.password && "border-red-500", "h-8 text-sm")}
+                  disabled={loading}
+                />
+                {errors.password && (
+                  <p className="text-xs text-red-500">{errors.password.join(', ')}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="confirmPassword" className="text-sm">Confirmer</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className={cn(errors.confirmPassword && "border-red-500", "h-8 text-sm")}
+                  disabled={loading}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-red-500">{errors.confirmPassword.join(', ')}</p>
+                )}
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="confirmPassword" className="text-sm">Confirmer</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className={cn(errors.confirmPassword && "border-red-500", "h-8 text-sm")}
-                disabled={loading}
-              />
-              {errors.confirmPassword && (
-                <p className="text-xs text-red-500">{errors.confirmPassword.join(', ')}</p>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Quatrième ligne : Rôle */}
           <div className="space-y-1">
@@ -378,16 +384,22 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
             </div>
           )}
 
-          {/* Sixième ligne : Statut actif */}
-          <div className="flex items-center space-x-2 pt-1">
-            <Checkbox
-              id="isActive"
-              checked={formData.isActive}
-              onCheckedChange={(checked: boolean) => setFormData({ ...formData, isActive: checked })}
-              disabled={loading}
-            />
-            <Label htmlFor="isActive" className="text-sm">Actif</Label>
-          </div>
+          {/* Statut actif : édition uniquement (création = activation via email) */}
+          {isEditing ? (
+            <div className="flex items-center space-x-2 pt-1">
+              <Checkbox
+                id="isActive"
+                checked={formData.isActive}
+                onCheckedChange={(checked: boolean) => setFormData({ ...formData, isActive: checked })}
+                disabled={loading}
+              />
+              <Label htmlFor="isActive" className="text-sm">Actif</Label>
+            </div>
+          ) : (
+            <p className="pt-1 text-xs text-muted-foreground">
+              Un email sera envoyé. Le compte s&apos;activera uniquement après définition du mot de passe.
+            </p>
+          )}
         </div>
         <DialogFooter className="pt-2">
           <Button variant="destructive" type="button" onClick={handleClose} disabled={loading} size="sm">

@@ -11,13 +11,13 @@ import {
   ClipboardCheck,
   FileText,
   History,
-  LogOut,
   Settings,
   Upload,
   Users,
   type LucideIcon,
 } from "lucide-react"
 import { getCommercialBlEditRequests } from "@/actions/commercial-admin"
+import Logout from "@/components/logout"
 import { activePageRefetchOptions, queryKeys } from "@/lib/query-keys"
 import { cn } from "@/lib/utils"
 import {
@@ -135,14 +135,7 @@ export default function CommercialSideBar() {
             item={{ href: "/commercial-dashboard/parametres", label: "Paramètres", icon: Settings }}
             active={isActive({ href: "/commercial-dashboard/parametres" })}
           />
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Déconnexion" className="text-red-600 hover:bg-red-50 hover:text-red-700">
-              <Link href="/logout">
-                <LogOut className="h-4 w-4" />
-                <span>Déconnexion</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <Logout variant="sidebar" />
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />

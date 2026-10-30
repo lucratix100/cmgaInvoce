@@ -1,8 +1,8 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useState, useTransition } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState, useTransition } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import * as XLSX from "xlsx"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,13 +23,34 @@ import {
   createCommercialLocation,
   deactivateCommercialClient,
   deactivateCommercialLocation,
-  getCommercialClients,
   importCommercialClients,
   updateCommercialClient,
   updateCommercialLocation,
 } from "@/actions/commercial-admin"
-import { CommercialClient, CommercialClientLocation, CommercialClientType, CommercialImportRow } from "@/types/commercial"
-import { Building2, FileSpreadsheet, MapPin, MoreHorizontal, Pencil, Plus, Store, Trash2, Upload } from "lucide-react"
+import {
+  CommercialClient,
+  CommercialClientLocation,
+  CommercialClientType,
+  CommercialDirectoryCounts,
+  CommercialImportRow,
+  CommercialPaginationMeta,
+} from "@/types/commercial"
+import {
+  Building2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  FileSpreadsheet,
+  MapPin,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Store,
+  Trash2,
+  Upload,
+  XCircle,
+} from "lucide-react"
 
 const emptyClientForm = {
   name: "",
@@ -48,22 +69,41 @@ const emptyLocationForm = {
   responsable: "",
 }
 
-export default function CommercialImportClient({ initialClients }: { initialClients: CommercialClient[] }) {
+type ImportTab = "clients" | "enseignes" | "locaux"
+
+type CommercialImportClientProps = {
+  tab: ImportTab
+  page: number
+  pageSize: number
+  q: string
+  enseigneId: number | null
+  clients: CommercialClient[]
+  locations: CommercialClientLocation[]
+  meta: CommercialPaginationMeta
+  counts: CommercialDirectoryCounts
+  enseignes: CommercialClient[]
+}
+
+export default function CommercialImportClient({
+  tab,
+  page,
+  pageSize,
+  q,
+  enseigneId,
+  clients,
+  locations,
+  meta,
+  counts,
+  enseignes,
+}: CommercialImportClientProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const initialTab = ["clients", "enseignes", "locaux"].includes(searchParams.get("tab") || "")
-    ? searchParams.get("tab") || "clients"
-    : "clients"
-  const initialEnseigneId = Number(searchParams.get("enseigneId")) || null
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [localDialogOpen, setLocalDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<CommercialClient | null>(null)
   const [editingLocation, setEditingLocation] = useState<CommercialClientLocation | null>(null)
-  const [activeTab, setActiveTab] = useState(initialTab)
-  const [selectedEnseigneId, setSelectedEnseigneId] = useState<number | null>(initialEnseigneId)
-  const [clients, setClients] = useState(initialClients)
+  const [searchInput, setSearchInput] = useState(q)
   const [fileName, setFileName] = useState("")
   const [rows, setRows] = useState<CommercialImportRow[]>([])
   const [result, setResult] = useState<any>(null)
@@ -72,33 +112,52 @@ export default function CommercialImportClient({ initialClients }: { initialClie
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
-  const refreshClients = async () => {
-    setClients(await getCommercialClients({ includeInactive: true }))
-  }
+  useEffect(() => {
+    setSearchInput(q)
+  }, [q])
 
-  const updateUrlState = (tab: string, enseigneId?: number | null) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("tab", tab)
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      const nextQuery = searchInput.trim()
+      if (nextQuery === q) return
+      updateUrl({ q: nextQuery, page: 1 })
+    }, 350)
 
-    if (tab === "locaux" && enseigneId) {
-      params.set("enseigneId", String(enseigneId))
-    } else {
-      params.delete("enseigneId")
+    return () => window.clearTimeout(handle)
+  }, [searchInput])
+
+  const updateUrl = (overrides: {
+    tab?: ImportTab
+    page?: number
+    pageSize?: number
+    q?: string
+    enseigneId?: number | null
+  }) => {
+    const params = new URLSearchParams()
+    const nextTab = overrides.tab ?? tab
+    const nextPage = overrides.page ?? page
+    const nextPageSize = overrides.pageSize ?? pageSize
+    const nextQ = overrides.q !== undefined ? overrides.q : q
+    const nextEnseigneId = overrides.enseigneId !== undefined ? overrides.enseigneId : enseigneId
+
+    params.set("tab", nextTab)
+    params.set("page", String(Math.max(nextPage, 1)))
+    if (nextPageSize !== 10) {
+      params.set("pageSize", String(nextPageSize))
+    }
+    if (nextQ.trim()) {
+      params.set("q", nextQ.trim())
+    }
+    if (nextTab === "locaux" && nextEnseigneId) {
+      params.set("enseigneId", String(nextEnseigneId))
     }
 
     const query = params.toString()
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }
 
-  const changeTab = (tab: string) => {
-    setActiveTab(tab)
-    if (tab !== "locaux") {
-      setSelectedEnseigneId(null)
-      updateUrlState(tab, null)
-      return
-    }
-
-    updateUrlState(tab, selectedEnseigneId)
+  const refresh = () => {
+    router.refresh()
   }
 
   const startCreateClient = (type: CommercialClientType = "INDIVIDUEL") => {
@@ -124,7 +183,7 @@ export default function CommercialImportClient({ initialClients }: { initialClie
     setEditingLocation(null)
     setLocationForm({
       ...emptyLocationForm,
-      commercialClientId: client ? String(client.id) : "",
+      commercialClientId: client ? String(client.id) : enseigneId ? String(enseigneId) : "",
     })
     setLocalDialogOpen(true)
   }
@@ -168,8 +227,8 @@ export default function CommercialImportClient({ initialClients }: { initialClie
 
       setResult(response.data)
       toast({ title: "Import terminé", description: `${response.data?.successCount || 0} ligne(s) importée(s)` })
-      await refreshClients()
       setImportDialogOpen(false)
+      refresh()
     })
   }
 
@@ -180,20 +239,20 @@ export default function CommercialImportClient({ initialClients }: { initialClie
         type: editingClient?.type || clientForm.type,
         address: (editingClient?.type || clientForm.type) === "INDIVIDUEL" ? clientForm.address : "",
       }
-      const result = editingClient
+      const mutationResult = editingClient
         ? await updateCommercialClient(editingClient.id, payload)
         : await createCommercialClient(payload)
 
-      if (!result.success) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" })
+      if (!mutationResult.success) {
+        toast({ title: "Erreur", description: mutationResult.error, variant: "destructive" })
         return
       }
 
       toast({ title: "Succès", description: editingClient ? "Client commercial modifié" : "Client commercial créé" })
       setClientForm(emptyClientForm)
       setEditingClient(null)
-      await refreshClients()
       setClientDialogOpen(false)
+      refresh()
     })
   }
 
@@ -201,27 +260,27 @@ export default function CommercialImportClient({ initialClients }: { initialClie
     if (!window.confirm(`Désactiver ${client.name} ?`)) return
 
     startTransition(async () => {
-      const result = await deactivateCommercialClient(client.id)
-      if (!result.success) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" })
+      const mutationResult = await deactivateCommercialClient(client.id)
+      if (!mutationResult.success) {
+        toast({ title: "Erreur", description: mutationResult.error, variant: "destructive" })
         return
       }
 
       toast({ title: "Succès", description: "Client commercial désactivé" })
-      await refreshClients()
+      refresh()
     })
   }
 
   const activateClient = (client: CommercialClient) => {
     startTransition(async () => {
-      const result = await activateCommercialClient(client.id)
-      if (!result.success) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" })
+      const mutationResult = await activateCommercialClient(client.id)
+      if (!mutationResult.success) {
+        toast({ title: "Erreur", description: mutationResult.error, variant: "destructive" })
         return
       }
 
       toast({ title: "Succès", description: "Client commercial activé" })
-      await refreshClients()
+      refresh()
     })
   }
 
@@ -229,27 +288,27 @@ export default function CommercialImportClient({ initialClients }: { initialClie
     if (!window.confirm(`Désactiver ${location.name} ?`)) return
 
     startTransition(async () => {
-      const result = await deactivateCommercialLocation(location.id)
-      if (!result.success) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" })
+      const mutationResult = await deactivateCommercialLocation(location.id)
+      if (!mutationResult.success) {
+        toast({ title: "Erreur", description: mutationResult.error, variant: "destructive" })
         return
       }
 
       toast({ title: "Succès", description: "Local désactivé" })
-      await refreshClients()
+      refresh()
     })
   }
 
   const activateLocation = (location: CommercialClientLocation) => {
     startTransition(async () => {
-      const result = await activateCommercialLocation(location.id)
-      if (!result.success) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" })
+      const mutationResult = await activateCommercialLocation(location.id)
+      if (!mutationResult.success) {
+        toast({ title: "Erreur", description: mutationResult.error, variant: "destructive" })
         return
       }
 
       toast({ title: "Succès", description: "Local activé" })
-      await refreshClients()
+      refresh()
     })
   }
 
@@ -259,156 +318,352 @@ export default function CommercialImportClient({ initialClients }: { initialClie
         ...locationForm,
         commercialClientId: Number(locationForm.commercialClientId),
       }
-      const result = editingLocation
+      const mutationResult = editingLocation
         ? await updateCommercialLocation(editingLocation.id, payload)
         : await createCommercialLocation(payload)
 
-      if (!result.success) {
-        toast({ title: "Erreur", description: result.error, variant: "destructive" })
+      if (!mutationResult.success) {
+        toast({ title: "Erreur", description: mutationResult.error, variant: "destructive" })
         return
       }
 
       toast({ title: "Succès", description: editingLocation ? "Local modifié" : "Local ajouté" })
       setLocationForm(emptyLocationForm)
       setEditingLocation(null)
-      await refreshClients()
       setLocalDialogOpen(false)
+      refresh()
     })
   }
 
-  const individualClients = clients.filter((client) => client.type === "INDIVIDUEL")
-  const magasinClients = clients.filter((client) => client.type === "MAGASIN")
-  const activeMagasinClients = magasinClients.filter((client) => client.isActive)
-  const locationSelectableClients = editingLocation ? magasinClients : activeMagasinClients
-  const allLocations = magasinClients.flatMap((client) =>
-    (client.locations || []).map((location) => ({ client, location }))
-  )
-  const selectedEnseigne = selectedEnseigneId
-    ? magasinClients.find((client) => client.id === selectedEnseigneId) || null
+  const activeMagasinClients = enseignes.filter((client) => client.isActive)
+  const locationSelectableClients = editingLocation ? enseignes : activeMagasinClients
+  const selectedEnseigne = enseigneId
+    ? enseignes.find((client) => client.id === enseigneId) || null
     : null
-  const visibleLocations = selectedEnseigneId
-    ? allLocations.filter(({ client }) => client.id === selectedEnseigneId)
-    : allLocations
 
   const viewLocationsForClient = (client: CommercialClient) => {
-    setSelectedEnseigneId(client.id)
-    setActiveTab("locaux")
-    updateUrlState("locaux", client.id)
+    updateUrl({ tab: "locaux", enseigneId: client.id, page: 1, q: "" })
   }
 
+  const searchPlaceholder =
+    tab === "clients"
+      ? "Rechercher un client…"
+      : tab === "enseignes"
+        ? "Rechercher une enseigne…"
+        : "Rechercher un local…"
+
+  const fromItem = meta.total === 0 ? 0 : (meta.currentPage - 1) * meta.perPage + 1
+  const toItem = Math.min(meta.currentPage * meta.perPage, meta.total)
+
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <ActionCard
-          title="Importer fichier"
-          description="Importer un fichier Excel ou CSV."
-          icon={<Upload className="h-5 w-5" />}
-          onClick={() => setImportDialogOpen(true)}
-        />
-        <ActionCard
-          title="Créer client / enseigne"
-          description="Créer un client individuel ou une enseigne comme Auchan."
-          icon={<Store className="h-5 w-5" />}
-          onClick={() => startCreateClient()}
-        />
-        <ActionCard
-          title="Créer local magasin"
-          description="Ajouter un point de vente rattaché à une enseigne."
-          icon={<MapPin className="h-5 w-5" />}
-          onClick={() => startCreateLocation()}
-        />
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 rounded-xl border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <StatChip icon={<Store className="h-3.5 w-3.5" />} label="Clients" value={counts.clients} />
+          <StatChip icon={<Building2 className="h-3.5 w-3.5" />} label="Enseignes" value={counts.enseignes} />
+          <StatChip icon={<MapPin className="h-3.5 w-3.5" />} label="Locaux" value={counts.locaux} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="h-4 w-4" />
+            Importer
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => startCreateClient()}>
+            <Store className="h-4 w-4" />
+            Client / enseigne
+          </Button>
+          <Button type="button" size="sm" className="gap-1.5" onClick={() => startCreateLocation()}>
+            <Plus className="h-4 w-4" />
+            Local
+          </Button>
+        </div>
       </div>
 
       {result && (
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle>Dernier import</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-3">
+        <Card className="border-none shadow-sm">
+          <CardContent className="grid gap-3 p-4 sm:grid-cols-3">
             <Result label="Lignes" value={result.totalRows} />
-            <Result label="Succès" value={result.successCount} />
-            <Result label="Erreurs" value={result.errorCount} />
+            <Result label="Succès" value={result.successCount} tone="success" />
+            <Result label="Erreurs" value={result.errorCount} tone="danger" />
           </CardContent>
         </Card>
       )}
 
-      <Tabs value={activeTab} onValueChange={changeTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="clients">Clients ({individualClients.length})</TabsTrigger>
-          <TabsTrigger value="enseignes">Enseignes ({magasinClients.length})</TabsTrigger>
-          <TabsTrigger value="locaux">Locaux ({allLocations.length})</TabsTrigger>
-        </TabsList>
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          const nextTab = value as ImportTab
+          updateUrl({
+            tab: nextTab,
+            page: 1,
+            q: "",
+            enseigneId: nextTab === "locaux" ? enseigneId : null,
+          })
+          setSearchInput("")
+        }}
+        className="space-y-4"
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 lg:max-w-xl">
+            <TabsTrigger value="clients" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Store className="hidden h-3.5 w-3.5 sm:block" />
+              Clients
+              <CountBadge count={counts.clients} active={tab === "clients"} />
+            </TabsTrigger>
+            <TabsTrigger value="enseignes" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Building2 className="hidden h-3.5 w-3.5 sm:block" />
+              Enseignes
+              <CountBadge count={counts.enseignes} active={tab === "enseignes"} />
+            </TabsTrigger>
+            <TabsTrigger value="locaux" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <MapPin className="hidden h-3.5 w-3.5 sm:block" />
+              Locaux
+              <CountBadge count={counts.locaux} active={tab === "locaux"} />
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="clients">
-          <Card className="border-none shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5 text-primary" />
+          <div className="relative w-full lg:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        <TabsContent value="clients" className="mt-0">
+          <Card className="border-none shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Store className="h-4 w-4 text-primary" />
                 Clients individuels
               </CardTitle>
+              <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => startCreateClient("INDIVIDUEL")}>
+                <Plus className="h-4 w-4" />
+                Ajouter
+              </Button>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {individualClients.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-4 text-center">
-                  <p className="font-medium">Aucun client individuel</p>
-                </div>
+            <CardContent className="space-y-4">
+              {clients.length === 0 ? (
+                <EmptyState
+                  icon={<Store className="h-8 w-8 text-muted-foreground" />}
+                  title={q ? "Aucun client trouvé" : "Aucun client individuel"}
+                  description={
+                    q
+                      ? "Essayez un autre terme de recherche."
+                      : "Créez un client manuellement ou importez un fichier Excel / CSV."
+                  }
+                  action={
+                    !q ? (
+                      <Button type="button" size="sm" className="gap-1.5" onClick={() => startCreateClient("INDIVIDUEL")}>
+                        <Plus className="h-4 w-4" />
+                        Créer un client
+                      </Button>
+                    ) : undefined
+                  }
+                />
               ) : (
-                <div className="space-y-2">
-                  {individualClients.map((client) => (
-                    <ClientRow
-                      key={client.id}
-                      client={client}
-                      isPending={isPending}
-                      onEdit={startEditClient}
-                      onDeactivate={deactivateClient}
-                      onActivate={activateClient}
-                    />
-                  ))}
+                <div className="overflow-hidden rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead>Client</TableHead>
+                        <TableHead className="hidden md:table-cell">Téléphone</TableHead>
+                        <TableHead className="hidden lg:table-cell">Adresse</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clients.map((client) => (
+                        <TableRow key={client.id} className={!client.isActive ? "bg-red-50/40" : undefined}>
+                          <TableCell>
+                            <div className="font-medium text-gray-950">{client.name}</div>
+                            {(client.email || client.accountNumber) && (
+                              <div className="mt-0.5 text-xs text-muted-foreground">
+                                {[client.accountNumber, client.email].filter(Boolean).join(" · ")}
+                              </div>
+                            )}
+                            <div className="mt-1 space-y-0.5 text-xs text-muted-foreground md:hidden">
+                              {client.phone && <div>{client.phone}</div>}
+                              {client.address && <div>{client.address}</div>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">{client.phone || "—"}</TableCell>
+                          <TableCell className="hidden max-w-[220px] truncate lg:table-cell">
+                            {client.address || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge active={client.isActive} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <RowActions
+                              isPending={isPending}
+                              isActive={client.isActive}
+                              onEdit={() => startEditClient(client)}
+                              onDeactivate={() => deactivateClient(client)}
+                              onActivate={() => activateClient(client)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
+              <ListPagination
+                fromItem={fromItem}
+                toItem={toItem}
+                total={meta.total}
+                page={meta.currentPage}
+                lastPage={meta.lastPage}
+                pageSize={pageSize}
+                onPageChange={(nextPage) => updateUrl({ page: nextPage })}
+                onPageSizeChange={(nextSize) => updateUrl({ pageSize: nextSize, page: 1 })}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="enseignes">
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                Enseignes et locaux
+        <TabsContent value="enseignes" className="mt-0">
+          <Card className="border-none shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Building2 className="h-4 w-4 text-primary" />
+                Enseignes
               </CardTitle>
+              <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => startCreateClient("MAGASIN")}>
+                <Plus className="h-4 w-4" />
+                Ajouter
+              </Button>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {magasinClients.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-4 text-center">
-                  <p className="font-medium">Aucune enseigne créée</p>
-                </div>
+            <CardContent className="space-y-4">
+              {clients.length === 0 ? (
+                <EmptyState
+                  icon={<Building2 className="h-8 w-8 text-muted-foreground" />}
+                  title={q ? "Aucune enseigne trouvée" : "Aucune enseigne créée"}
+                  description={
+                    q
+                      ? "Essayez un autre terme de recherche."
+                      : "Créez d'abord une enseigne (ex. Auchan), puis ajoutez ses locaux."
+                  }
+                  action={
+                    !q ? (
+                      <Button type="button" size="sm" className="gap-1.5" onClick={() => startCreateClient("MAGASIN")}>
+                        <Plus className="h-4 w-4" />
+                        Créer une enseigne
+                      </Button>
+                    ) : undefined
+                  }
+                />
               ) : (
-                <div className="space-y-2">
-                  {magasinClients.map((client) => (
-                    <EnseigneCard
-                      key={client.id}
-                      client={client}
-                      isPending={isPending}
-                      onEdit={startEditClient}
-                      onDeactivate={deactivateClient}
-                      onActivate={activateClient}
-                      onAddLocation={startCreateLocation}
-                      onViewLocations={viewLocationsForClient}
-                    />
-                  ))}
+                <div className="overflow-hidden rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead>Enseigne</TableHead>
+                        <TableHead className="hidden md:table-cell">Contact</TableHead>
+                        <TableHead>Locaux</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clients.map((client) => {
+                        const clientLocations = client.locations || []
+                        return (
+                          <TableRow key={client.id} className={!client.isActive ? "bg-red-50/40" : undefined}>
+                            <TableCell>
+                              <button
+                                type="button"
+                                onClick={() => viewLocationsForClient(client)}
+                                className="text-left transition hover:text-primary"
+                              >
+                                <div className="font-medium text-gray-950">{client.name}</div>
+                                {client.email && (
+                                  <div className="mt-0.5 text-xs text-muted-foreground">{client.email}</div>
+                                )}
+                              </button>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">{client.phone || "—"}</TableCell>
+                            <TableCell>
+                              <button
+                                type="button"
+                                onClick={() => viewLocationsForClient(client)}
+                                className="inline-flex"
+                              >
+                                <Badge variant="secondary" className="cursor-pointer hover:bg-primary/10">
+                                  {clientLocations.length} local{clientLocations.length !== 1 ? "aux" : ""}
+                                </Badge>
+                              </button>
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge active={client.isActive} inactiveLabel="Désactivée" />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0" disabled={isPending}>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onSelect={() => viewLocationsForClient(client)}>
+                                    <MapPin className="h-4 w-4" />
+                                    Voir ses locaux
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem disabled={!client.isActive} onSelect={() => startCreateLocation(client)}>
+                                    <Plus className="h-4 w-4" />
+                                    Ajouter un local
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => startEditClient(client)}>
+                                    <Pencil className="h-4 w-4" />
+                                    Modifier
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  {client.isActive ? (
+                                    <DropdownMenuItem className="text-red-600 focus:text-red-600" onSelect={() => deactivateClient(client)}>
+                                      <Trash2 className="h-4 w-4" />
+                                      Désactiver
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onSelect={() => activateClient(client)}>
+                                      Activer
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
+              <ListPagination
+                fromItem={fromItem}
+                toItem={toItem}
+                total={meta.total}
+                page={meta.currentPage}
+                lastPage={meta.lastPage}
+                pageSize={pageSize}
+                onPageChange={(nextPage) => updateUrl({ page: nextPage })}
+                onPageSizeChange={(nextSize) => updateUrl({ pageSize: nextSize, page: 1 })}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="locaux">
-          <Card className="border-none shadow-md">
+        <TabsContent value="locaux" className="mt-0">
+          <Card className="border-none shadow-sm">
             <CardHeader className="pb-3">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MapPin className="h-4 w-4 text-primary" />
                   {selectedEnseigne ? `Locaux de ${selectedEnseigne.name}` : "Tous les locaux"}
                 </CardTitle>
                 <div className="flex flex-wrap gap-2">
@@ -417,17 +672,15 @@ export default function CommercialImportClient({ initialClients }: { initialClie
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        setSelectedEnseigneId(null)
-                        updateUrlState("locaux", null)
-                      }}
+                      onClick={() => updateUrl({ enseigneId: null, page: 1 })}
                     >
-                      Voir tous les locaux
+                      Voir tous
                     </Button>
                   )}
                   <Button
                     type="button"
                     size="sm"
+                    className="gap-1.5"
                     onClick={() => startCreateLocation(selectedEnseigne || undefined)}
                     disabled={!!selectedEnseigne && !selectedEnseigne.isActive}
                   >
@@ -437,79 +690,126 @@ export default function CommercialImportClient({ initialClients }: { initialClie
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              {visibleLocations.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-4 text-center">
-                  <p className="font-medium">Aucun local trouvé</p>
-                </div>
+            <CardContent className="space-y-4">
+              {locations.length === 0 ? (
+                <EmptyState
+                  icon={<MapPin className="h-8 w-8 text-muted-foreground" />}
+                  title={q ? "Aucun local trouvé" : "Aucun local"}
+                  description={
+                    q
+                      ? "Essayez un autre terme de recherche."
+                      : selectedEnseigne
+                        ? `Ajoutez un point de vente rattaché à ${selectedEnseigne.name}.`
+                        : "Ajoutez un point de vente rattaché à une enseigne."
+                  }
+                  action={
+                    !q ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => startCreateLocation(selectedEnseigne || undefined)}
+                        disabled={!!selectedEnseigne && !selectedEnseigne.isActive}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Ajouter un local
+                      </Button>
+                    ) : undefined
+                  }
+                />
               ) : (
                 <div className="overflow-hidden rounded-lg border">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableHead>Local</TableHead>
-                        <TableHead>Enseigne</TableHead>
-                        <TableHead>Contact</TableHead>
+                        <TableHead className="hidden sm:table-cell">Enseigne</TableHead>
+                        <TableHead className="hidden md:table-cell">Contact</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {visibleLocations.map(({ client, location }) => (
-                        <TableRow key={location.id}>
-                          <TableCell>
-                            <div className="font-medium">{location.name}</div>
-                            <div className="text-xs text-muted-foreground">{location.address || "Adresse non renseignée"}</div>
-                          </TableCell>
-                          <TableCell>{client.name}</TableCell>
-                          <TableCell>
-                            <div>{location.phone || "-"}</div>
-                            {location.responsable && <div className="text-xs text-muted-foreground">{location.responsable}</div>}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={location.isActive ? "outline" : "destructive"}>
-                              {location.isActive ? "Actif" : "Désactivé"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0" disabled={isPending}>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Actions</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => startEditLocation(location)}>
-                                  <Pencil className="h-4 w-4" />
-                                  Modifier
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {location.isActive ? (
-                                  <DropdownMenuItem className="text-red-600 focus:text-red-600" onSelect={() => deactivateLocation(location)}>
-                                    <Trash2 className="h-4 w-4" />
-                                    Désactiver
+                      {locations.map((location) => {
+                        const client = location.client
+                        return (
+                          <TableRow key={location.id} className={!location.isActive ? "bg-red-50/40" : undefined}>
+                            <TableCell>
+                              <div className="font-medium">{location.name}</div>
+                              <div className="mt-0.5 text-xs text-muted-foreground">
+                                {location.address || "Adresse non renseignée"}
+                              </div>
+                              <div className="mt-1 text-xs text-muted-foreground sm:hidden">{client?.name}</div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">{client?.name || "—"}</TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              <div>{location.phone || "—"}</div>
+                              {location.responsable && (
+                                <div className="text-xs text-muted-foreground">{location.responsable}</div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge active={location.isActive} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0" disabled={isPending}>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onSelect={() => startEditLocation(location)}>
+                                    <Pencil className="h-4 w-4" />
+                                    Modifier
                                   </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem disabled={!client.isActive} onSelect={() => activateLocation(location)}>
-                                    Activer
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                  <DropdownMenuSeparator />
+                                  {location.isActive ? (
+                                    <DropdownMenuItem className="text-red-600 focus:text-red-600" onSelect={() => deactivateLocation(location)}>
+                                      <Trash2 className="h-4 w-4" />
+                                      Désactiver
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem disabled={client?.isActive === false} onSelect={() => activateLocation(location)}>
+                                      Activer
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>
               )}
+              <ListPagination
+                fromItem={fromItem}
+                toItem={toItem}
+                total={meta.total}
+                page={meta.currentPage}
+                lastPage={meta.lastPage}
+                pageSize={pageSize}
+                onPageChange={(nextPage) => updateUrl({ page: nextPage })}
+                onPageSizeChange={(nextSize) => updateUrl({ pageSize: nextSize, page: 1 })}
+              />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+      <Dialog
+        open={importDialogOpen}
+        onOpenChange={(open) => {
+          setImportDialogOpen(open)
+          if (!open) {
+            setFileName("")
+            setRows([])
+          }
+        }}
+      >
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -519,16 +819,39 @@ export default function CommercialImportClient({ initialClients }: { initialClie
             <DialogDescription>Importez les clients individuels, enseignes et locaux depuis Excel ou CSV.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-xl border border-dashed bg-primary-50/40 p-6">
-              <Input type="file" accept=".xlsx,.xls,.csv" onChange={(event) => onFileChange(event.target.files?.[0])} />
-              <p className="mt-3 text-sm text-muted-foreground">
-                Colonnes acceptées: nom/name, type, téléphone/phone, adresse/address, email, compte, contact,
-                local/location, adresse local, téléphone local, responsable local.
-              </p>
-            </div>
-            <Button onClick={submit} disabled={isPending || rows.length === 0}>
-              Importer {rows.length > 0 ? `${rows.length} ligne(s)` : ""}
-            </Button>
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/25 bg-primary/5 px-6 py-8 text-center transition hover:border-primary/50 hover:bg-primary/10">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Upload className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-medium text-gray-900">
+                  {fileName || "Glissez un fichier ou cliquez pour parcourir"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">Formats acceptés : .xlsx, .xls, .csv</p>
+              </div>
+              <Input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(event) => onFileChange(event.target.files?.[0])}
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Colonnes acceptées : nom/name, type, téléphone/phone, adresse/address, email, compte, contact,
+              local/location, adresse local, téléphone local, responsable local.
+            </p>
+            {rows.length > 0 && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                <span>
+                  <span className="font-medium">{rows.length}</span> ligne(s) prête(s) à importer
+                  {fileName ? ` depuis ${fileName}` : ""}
+                </span>
+                <Button onClick={submit} disabled={isPending} size="sm" className="gap-1.5">
+                  <Upload className="h-4 w-4" />
+                  Importer
+                </Button>
+              </div>
+            )}
             <PreviewTable rows={rows} />
           </div>
         </DialogContent>
@@ -700,167 +1023,184 @@ function normalizeRow(row: Record<string, any>): CommercialImportRow {
   }
 }
 
-function Result({ label, value }: { label: string; value: number }) {
+function StatChip({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="inline-flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-1.5 text-sm">
+      <span className="text-primary">{icon}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold text-gray-900">{value}</span>
+    </div>
+  )
+}
+
+function CountBadge({ count, active }: { count: number; active: boolean }) {
+  return (
+    <span
+      className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+        active ? "bg-white/20 text-primary-foreground" : "bg-background text-foreground"
+      }`}
+    >
+      {count}
+    </span>
+  )
+}
+
+function StatusBadge({ active, inactiveLabel = "Désactivé" }: { active: boolean; inactiveLabel?: string }) {
+  return (
+    <Badge variant={active ? "outline" : "destructive"} className="gap-1 font-normal">
+      {active ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <XCircle className="h-3 w-3" />}
+      {active ? "Actif" : inactiveLabel}
+    </Badge>
+  )
+}
+
+function Result({ label, value, tone }: { label: string; value: number; tone?: "success" | "danger" }) {
+  const toneClass =
+    tone === "success"
+      ? "border-emerald-100 bg-emerald-50"
+      : tone === "danger"
+        ? "border-red-100 bg-red-50"
+        : "bg-muted/30"
+
+  return (
+    <div className={`rounded-lg border p-3 ${toneClass}`}>
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="text-2xl font-bold">{value}</p>
     </div>
   )
 }
 
-function ActionCard({
+function EmptyState({
+  icon,
   title,
   description,
-  icon,
-  onClick,
+  action,
 }: {
+  icon: ReactNode
   title: string
   description: string
-  icon: ReactNode
-  onClick: () => void
+  action?: ReactNode
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
-    >
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-white">
-        {icon}
-      </span>
-      <h3 className="mt-4 font-semibold text-gray-900">{title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-    </button>
+    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
+      {icon}
+      <div>
+        <p className="font-medium text-gray-900">{title}</p>
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
+      </div>
+      {action}
+    </div>
   )
 }
 
-function ClientRow({
-  client,
-  isPending,
-  onEdit,
-  onDeactivate,
-  onActivate,
+function ListPagination({
+  fromItem,
+  toItem,
+  total,
+  page,
+  lastPage,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
 }: {
-  client: CommercialClient
-  isPending: boolean
-  onEdit: (client: CommercialClient) => void
-  onDeactivate: (client: CommercialClient) => void
-  onActivate: (client: CommercialClient) => void
+  fromItem: number
+  toItem: number
+  total: number
+  page: number
+  lastPage: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
 }) {
+  if (total === 0) return null
+
   return (
-    <div className={`rounded-lg border px-3 py-2 ${client.isActive ? "bg-white" : "bg-red-50/40"}`}>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Store className={`h-4 w-4 ${client.isActive ? "text-primary" : "text-red-600"}`} />
-            <span className="font-semibold text-gray-950">{client.name}</span>
-            <Badge variant={client.isActive ? "outline" : "destructive"}>
-              {client.isActive ? "Actif" : "Désactivé"}
-            </Badge>
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            {[client.phone, client.address].filter(Boolean).join(" - ") || "Informations non renseignées"}
-          </div>
+    <div className="flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-muted-foreground">
+        {fromItem}–{toItem} sur {total}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
+          <SelectTrigger className="h-8 w-[110px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="10">10 / page</SelectItem>
+            <SelectItem value="20">20 / page</SelectItem>
+            <SelectItem value="50">50 / page</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Page précédente</span>
+          </Button>
+          <span className="min-w-[4.5rem] text-center text-sm tabular-nums">
+            {page} / {lastPage}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0"
+            disabled={page >= lastPage}
+            onClick={() => onPageChange(page + 1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+            <span className="sr-only">Page suivante</span>
+          </Button>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0" disabled={isPending}>
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Actions</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onEdit(client)}>
-              <Pencil className="h-4 w-4" />
-              Modifier
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {client.isActive ? (
-              <DropdownMenuItem className="text-red-600 focus:text-red-600" onSelect={() => onDeactivate(client)}>
-                <Trash2 className="h-4 w-4" />
-                Désactiver
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onSelect={() => onActivate(client)}>
-                Activer
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </div>
   )
 }
 
-function EnseigneCard({
-  client,
+function RowActions({
   isPending,
+  isActive,
   onEdit,
   onDeactivate,
   onActivate,
-  onAddLocation,
-  onViewLocations,
 }: {
-  client: CommercialClient
   isPending: boolean
-  onEdit: (client: CommercialClient) => void
-  onDeactivate: (client: CommercialClient) => void
-  onActivate: (client: CommercialClient) => void
-  onAddLocation: (client: CommercialClient) => void
-  onViewLocations: (client: CommercialClient) => void
+  isActive: boolean
+  onEdit: () => void
+  onDeactivate: () => void
+  onActivate: () => void
 }) {
-  const locations = client.locations || []
-
   return (
-    <div className={`rounded-lg border px-3 py-2 ${client.isActive ? "bg-white" : "bg-red-50/40"}`}>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <button type="button" onClick={() => onViewLocations(client)} className="min-w-0 text-left">
-          <div className="flex flex-wrap items-center gap-2">
-            <Building2 className={`h-4 w-4 ${client.isActive ? "text-primary" : "text-red-600"}`} />
-            <span className="font-semibold text-gray-950">{client.name}</span>
-            <Badge variant={client.isActive ? "outline" : "destructive"}>
-              {client.isActive ? "Actif" : "Désactivée"}
-            </Badge>
-            <Badge variant="outline">{locations.length} local(aux)</Badge>
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">{client.phone || "Téléphone non renseigné"}</div>
-        </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0" disabled={isPending}>
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Actions</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onViewLocations(client)}>
-              <MapPin className="h-4 w-4" />
-              Voir ses locaux
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={!client.isActive} onSelect={() => onAddLocation(client)}>
-              <Plus className="h-4 w-4" />
-              Ajouter un local
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onEdit(client)}>
-              <Pencil className="h-4 w-4" />
-              Modifier
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {client.isActive ? (
-              <DropdownMenuItem className="text-red-600 focus:text-red-600" onSelect={() => onDeactivate(client)}>
-                <Trash2 className="h-4 w-4" />
-                Désactiver
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onSelect={() => onActivate(client)}>
-                Activer
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0" disabled={isPending}>
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Actions</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onEdit}>
+          <Pencil className="h-4 w-4" />
+          Modifier
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {isActive ? (
+          <DropdownMenuItem className="text-red-600 focus:text-red-600" onSelect={onDeactivate}>
+            <Trash2 className="h-4 w-4" />
+            Désactiver
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={onActivate}>
+            Activer
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -875,41 +1215,39 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
 
 function PreviewTable({ rows }: { rows: CommercialImportRow[] }) {
   return (
-    <Card className="border-none shadow-md">
-      <CardHeader>
-        <CardTitle>Aperçu</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Téléphone</TableHead>
-              <TableHead>Local</TableHead>
-              <TableHead>Adresse</TableHead>
+    <div className="overflow-hidden rounded-lg border">
+      <div className="border-b bg-muted/40 px-3 py-2 text-sm font-medium">
+        Aperçu {rows.length > 0 ? `(${Math.min(rows.length, 20)} premières lignes)` : ""}
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Téléphone</TableHead>
+            <TableHead>Local</TableHead>
+            <TableHead>Adresse</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.slice(0, 20).map((row, index) => (
+            <TableRow key={`${row.name}-${index}`}>
+              <TableCell>{row.name}</TableCell>
+              <TableCell>{row.type}</TableCell>
+              <TableCell>{row.phone || "—"}</TableCell>
+              <TableCell>{row.locationName || "—"}</TableCell>
+              <TableCell>{row.address || row.locationAddress || "—"}</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.slice(0, 20).map((row, index) => (
-              <TableRow key={`${row.name}-${index}`}>
-                <TableCell>{row.name}</TableCell>
-                <TableCell>{row.type}</TableCell>
-                <TableCell>{row.phone || "-"}</TableCell>
-                <TableCell>{row.locationName || "-"}</TableCell>
-                <TableCell>{row.address || row.locationAddress || "-"}</TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                  Aucun fichier sélectionné
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+          ))}
+          {rows.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                Sélectionnez un fichier pour prévisualiser les données
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

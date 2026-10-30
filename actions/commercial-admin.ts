@@ -9,7 +9,10 @@ import {
   CommercialClient,
   CommercialClientLocation,
   CommercialDashboardData,
+  CommercialDirectoryCounts,
   CommercialImportRow,
+  CommercialPaginatedResult,
+  CommercialPaginationMeta,
   CommercialPlanningItem,
   CommercialProduct,
   CommercialTeamStatsData,
@@ -263,72 +266,174 @@ export async function deactivateCommercialAgent(id: number) {
   )
 }
 
-export async function getCommercialClients(params?: { search?: string; type?: string; includeInactive?: boolean }) {
+function normalizePaginationMeta(raw: any): CommercialPaginationMeta {
+  return {
+    total: Number(raw?.total || 0),
+    perPage: Number(raw?.perPage ?? raw?.per_page ?? 10),
+    currentPage: Number(raw?.currentPage ?? raw?.current_page ?? 1),
+    lastPage: Number(raw?.lastPage ?? raw?.last_page ?? 1),
+    firstPage: Number(raw?.firstPage ?? raw?.first_page ?? 1),
+  }
+}
+
+function emptyPaginatedResult<T>(): CommercialPaginatedResult<T> {
+  return {
+    data: [],
+    meta: {
+      total: 0,
+      perPage: 10,
+      currentPage: 1,
+      lastPage: 1,
+      firstPage: 1,
+    },
+  }
+}
+
+export async function getCommercialClients(params?: {
+  search?: string
+  type?: string
+  includeInactive?: boolean
+}): Promise<CommercialClient[]> {
   try {
-    const response = await axios.get<CommercialClient[]>(apiUrl("commercial-admin/clients"), {
+    const response = await axios.get(apiUrl("commercial-admin/clients"), {
       headers: await getAuthHeaders(),
       params,
     })
-    return response.data || []
+
+    if (Array.isArray(response.data)) {
+      return response.data
+    }
+
+    return response.data?.data || []
   } catch (error) {
     console.error("Erreur chargement clients commerciaux:", error)
     return []
   }
 }
 
+export async function getCommercialClientsPage(params: {
+  search?: string
+  type?: string
+  includeInactive?: boolean
+  page?: number
+  pageSize?: number
+  withCounts?: boolean
+}): Promise<CommercialPaginatedResult<CommercialClient>> {
+  try {
+    const response = await axios.get(apiUrl("commercial-admin/clients"), {
+      headers: await getAuthHeaders(),
+      params: {
+        search: params.search || undefined,
+        type: params.type || undefined,
+        includeInactive: params.includeInactive || undefined,
+        page: params.page || 1,
+        limit: params.pageSize || 10,
+        withCounts: params.withCounts === false ? undefined : 1,
+      },
+    })
+
+    return {
+      data: response.data?.data || [],
+      meta: normalizePaginationMeta(response.data?.meta),
+      counts: response.data?.counts,
+    }
+  } catch (error) {
+    console.error("Erreur chargement clients commerciaux paginés:", error)
+    return emptyPaginatedResult<CommercialClient>()
+  }
+}
+
+export async function getCommercialLocationsPage(params?: {
+  search?: string
+  includeInactive?: boolean
+  commercialClientId?: number | null
+  page?: number
+  pageSize?: number
+  withCounts?: boolean
+}): Promise<CommercialPaginatedResult<CommercialClientLocation>> {
+  try {
+    const response = await axios.get(apiUrl("commercial-admin/locations"), {
+      headers: await getAuthHeaders(),
+      params: {
+        search: params?.search || undefined,
+        includeInactive: params?.includeInactive || undefined,
+        commercialClientId: params?.commercialClientId || undefined,
+        page: params?.page || 1,
+        limit: params?.pageSize || 10,
+        withCounts: params?.withCounts === false ? undefined : 1,
+      },
+    })
+
+    return {
+      data: response.data?.data || [],
+      meta: normalizePaginationMeta(response.data?.meta),
+      counts: response.data?.counts as CommercialDirectoryCounts | undefined,
+    }
+  } catch (error) {
+    console.error("Erreur chargement locaux commerciaux:", error)
+    return emptyPaginatedResult<CommercialClientLocation>()
+  }
+}
+
+async function handleDirectoryMutation<T>(request: Promise<{ data: T }>) {
+  try {
+    const response = await request
+    revalidatePath("/commercial-dashboard/import")
+    revalidatePath("/commercial-dashboard/affectations")
+    return { success: true, data: response.data } as ApiResponse<T>
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || error.response?.data?.error || "Une erreur est survenue",
+    }
+  }
+}
+
 export async function createCommercialClient(data: Partial<CommercialClient>) {
-  return handleMutation(
-    axios.post(apiUrl("commercial-admin/clients"), data, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.post(apiUrl("commercial-admin/clients"), data, { headers: await getAuthHeaders() })
   )
 }
 
 export async function updateCommercialClient(id: number, data: Partial<CommercialClient>) {
-  return handleMutation(
-    axios.put(apiUrl(`commercial-admin/clients/${id}`), data, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.put(apiUrl(`commercial-admin/clients/${id}`), data, { headers: await getAuthHeaders() })
   )
 }
 
 export async function deactivateCommercialClient(id: number) {
-  return handleMutation(
-    axios.patch(apiUrl(`commercial-admin/clients/${id}/deactivate`), {}, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.patch(apiUrl(`commercial-admin/clients/${id}/deactivate`), {}, { headers: await getAuthHeaders() })
   )
 }
 
 export async function activateCommercialClient(id: number) {
-  return handleMutation(
-    axios.patch(apiUrl(`commercial-admin/clients/${id}/activate`), {}, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.patch(apiUrl(`commercial-admin/clients/${id}/activate`), {}, { headers: await getAuthHeaders() })
   )
 }
 
 export async function createCommercialLocation(data: Partial<CommercialClientLocation>) {
-  return handleMutation(
-    axios.post(apiUrl("commercial-admin/locations"), data, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.post(apiUrl("commercial-admin/locations"), data, { headers: await getAuthHeaders() })
   )
 }
 
 export async function updateCommercialLocation(id: number, data: Partial<CommercialClientLocation>) {
-  return handleMutation(
-    axios.put(apiUrl(`commercial-admin/locations/${id}`), data, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.put(apiUrl(`commercial-admin/locations/${id}`), data, { headers: await getAuthHeaders() })
   )
 }
 
 export async function deactivateCommercialLocation(id: number) {
-  return handleMutation(
-    axios.patch(apiUrl(`commercial-admin/locations/${id}/deactivate`), {}, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.patch(apiUrl(`commercial-admin/locations/${id}/deactivate`), {}, { headers: await getAuthHeaders() })
   )
 }
 
 export async function activateCommercialLocation(id: number) {
-  return handleMutation(
-    axios.patch(apiUrl(`commercial-admin/locations/${id}/activate`), {}, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/affectations"
+  return handleDirectoryMutation(
+    axios.patch(apiUrl(`commercial-admin/locations/${id}/activate`), {}, { headers: await getAuthHeaders() })
   )
 }
 

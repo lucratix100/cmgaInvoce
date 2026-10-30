@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Image from "next/image"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import login from "@/actions/login"
-import { Phone, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -114,7 +115,7 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      const result = await login({ phone, password })
+      const result = await login({ email, password })
       if (result && result.success) {
         router.push(result.redirectTo || "/dashboard")
       } else {
@@ -129,7 +130,6 @@ export default function LoginPage() {
 
   return (
     <div className="fixed inset-0 flex h-[100dvh] max-h-[100dvh] items-center justify-center overflow-hidden overscroll-none bg-gradient-to-br from-primary-50 via-white to-primary-100 px-3 py-2 sm:px-6 sm:py-8">
-      {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-primary-200 opacity-60 mix-blend-multiply blur-xl animate-blob sm:-right-40 sm:-top-40 sm:h-80 sm:w-80 sm:opacity-70"></div>
         <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-primary-300 opacity-60 mix-blend-multiply blur-xl animate-blob animation-delay-2000 sm:-bottom-40 sm:-left-40 sm:h-80 sm:w-80 sm:opacity-70"></div>
@@ -173,21 +173,23 @@ export default function LoginPage() {
           </CardHeader>
             <CardContent className="space-y-3 px-4 sm:space-y-6 sm:px-6">
             <div className="space-y-2">
-                <label htmlFor="phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                Téléphone
+                <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                Email
               </label>
                 <div className="relative">
               <Input
-                id="phone"
-                    type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Votre numéro de téléphone"
+                id="email"
+                    type="email"
+                    autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="votre@email.com"
                     className="h-11 rounded-xl border-gray-200 pl-10 text-base transition-all duration-200 focus:border-primary-500 focus:ring-primary-500 sm:h-12"
                     disabled={isLoading}
+                    required
               />
-          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 </div>
             </div>
 
@@ -200,11 +202,13 @@ export default function LoginPage() {
           <Input
                 id="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                     placeholder="Votre mot de passe"
                     className="h-11 rounded-xl border-gray-200 pl-10 pr-12 text-base transition-all duration-200 focus:border-primary-500 focus:ring-primary-500 sm:h-12"
                     disabled={isLoading}
+                    required
                   />
           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <button
@@ -219,7 +223,7 @@ export default function LoginPage() {
                 </div>
             </div>
           </CardContent>
-            <CardFooter className="flex flex-col space-y-4 px-4 pb-4 pt-4 sm:px-6 sm:pb-8 sm:pt-5">
+            <CardFooter className="flex flex-col space-y-3 px-4 pb-4 pt-4 sm:px-6 sm:pb-8 sm:pt-5">
               <Button 
                 className="h-11 w-full rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 font-medium text-white shadow-lg transition-all duration-200 hover:from-primary-700 hover:to-primary-800 hover:shadow-xl active:scale-[0.98] sm:h-12 sm:hover:scale-[1.02]" 
                 type="submit"
@@ -234,6 +238,12 @@ export default function LoginPage() {
                   "Se connecter"
                 )}
             </Button>
+              <Link
+                href="/mot-de-passe-oublie"
+                className="text-center text-sm text-primary-600 hover:text-primary-700 hover:underline"
+              >
+                Mot de passe oublié ?
+              </Link>
           </CardFooter>
         </form>
       </Card>

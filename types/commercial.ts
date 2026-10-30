@@ -47,6 +47,26 @@ export interface CommercialClient {
   assignments?: CommercialAssignment[]
 }
 
+export interface CommercialDirectoryCounts {
+  clients: number
+  enseignes: number
+  locaux: number
+}
+
+export interface CommercialPaginationMeta {
+  total: number
+  perPage: number
+  currentPage: number
+  lastPage: number
+  firstPage: number
+}
+
+export interface CommercialPaginatedResult<T> {
+  data: T[]
+  meta: CommercialPaginationMeta
+  counts?: CommercialDirectoryCounts
+}
+
 export interface CommercialAssignment {
   id: number
   agentId: number

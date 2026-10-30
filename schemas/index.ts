@@ -2,8 +2,18 @@ import { z } from "zod";
 
 
 export const LoginSchema = z.object({
-    phone: z.string(),
-    password: z.string(),
+    email: z.string().email("Format d'email invalide"),
+    password: z.string().min(1, "Le mot de passe est requis"),
+});
+
+export const ForgotPasswordSchema = z.object({
+    email: z.string().email("Format d'email invalide"),
+});
+
+export const ResetPasswordSchema = z.object({
+    token: z.string().min(20, "Token invalide"),
+    password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+    confirmPassword: z.string().min(8, "La confirmation est requise"),
 });
 
 export const DriverSchema = z.object({
@@ -32,7 +42,7 @@ export const UserSchema = z.object({
         errorMap: () => ({ message: "Rôle invalide" })
     }),
     depotId: z.number().nullable(),
-    isActive: z.boolean().default(true)
+    isActive: z.boolean().optional()
 })
 
 export const DepotSchema = z.object({

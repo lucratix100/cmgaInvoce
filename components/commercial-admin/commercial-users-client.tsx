@@ -24,6 +24,7 @@ const emptyForm = {
   password: "",
   confirmPassword: "",
   isActive: true,
+  role: "AGENT_COMMERCIAL" as const,
 }
 
 export default function CommercialUsersClient({ initialAgents }: { initialAgents: CommercialUser[] }) {
@@ -45,7 +46,10 @@ export default function CommercialUsersClient({ initialAgents }: { initialAgents
   const submit = () => {
     startTransition(async () => {
       const payload: any = { ...form }
-      if (editingId && !payload.password) {
+      if (!editingId) {
+        delete payload.password
+        delete payload.confirmPassword
+      } else if (!payload.password) {
         delete payload.password
         delete payload.confirmPassword
       }
@@ -61,7 +65,9 @@ export default function CommercialUsersClient({ initialAgents }: { initialAgents
 
       toast({
         title: "Succès",
-        description: editingId ? "Commercial modifié avec succès" : "Commercial ajouté avec succès",
+        description: editingId
+          ? "Commercial modifié avec succès"
+          : (result.data?.message || "Commercial créé. Un email d'invitation a été envoyé."),
       })
       reset()
       await refresh()
@@ -106,18 +112,27 @@ export default function CommercialUsersClient({ initialAgents }: { initialAgents
           </div>
           <Field label="Email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} />
           <Field label="Téléphone" value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} />
-          <Field
-            label={editingId ? "Nouveau mot de passe (optionnel)" : "Mot de passe"}
-            type="password"
-            value={form.password}
-            onChange={(value) => setForm({ ...form, password: value })}
-          />
-          <Field
-            label="Confirmation"
-            type="password"
-            value={form.confirmPassword}
-            onChange={(value) => setForm({ ...form, confirmPassword: value })}
-          />
+          {!editingId && (
+            <p className="text-sm text-muted-foreground">
+              Le compte restera inactif jusqu&apos;à ce que le commercial définisse son mot de passe via l&apos;email d&apos;invitation.
+            </p>
+          )}
+          {editingId && (
+            <>
+              <Field
+                label="Nouveau mot de passe (optionnel)"
+                type="password"
+                value={form.password}
+                onChange={(value) => setForm({ ...form, password: value })}
+              />
+              <Field
+                label="Confirmation"
+                type="password"
+                value={form.confirmPassword}
+                onChange={(value) => setForm({ ...form, confirmPassword: value })}
+              />
+            </>
+          )}
           <div className="flex gap-2">
             <Button onClick={submit} disabled={isPending} className="flex-1">
               {editingId ? "Modifier" : "Ajouter"}

@@ -8,16 +8,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, LogOut, Home, FileText, History, ShoppingCart, Menu, X, BriefcaseBusiness } from "lucide-react"
+import { Bell, Home, FileText, History, ShoppingCart, Menu, X, BriefcaseBusiness } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { getAgentFollowUps } from "@/actions/agent-actions"
 import Notification from "@/components/navbar/notification"
+import Logout from "@/components/logout"
 import { activePageRefetchOptions, queryKeys } from "@/lib/query-keys"
 
 export function AgentNavbar({ user }: { user?: any }) {
@@ -187,10 +187,7 @@ export function AgentNavbar({ user }: { user?: any }) {
                   <p className="text-xs text-muted-foreground">CMGA Delivery</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/logout")}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Déconnexion</span>
-                </DropdownMenuItem>
+                <Logout />
               </DropdownMenuContent>
             </DropdownMenu>
 

@@ -40,9 +40,11 @@ export function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  // Permettre l'accès à la page d'accueil sans token
-  if (path === "/") {
-    if (isAuthenticated) {
+  const publicPaths = ["/", "/mot-de-passe-oublie", "/definir-mot-de-passe"];
+
+  // Permettre l'accès aux pages publiques sans token
+  if (publicPaths.includes(path)) {
+    if (isAuthenticated && path === "/") {
       // Rediriger les utilisateurs connectés selon leur rôle
       if (userRole === "ADMIN") {
         return NextResponse.redirect(new URL("/dashboard/invoices", request.url));
@@ -158,6 +160,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/mot-de-passe-oublie",
+    "/definir-mot-de-passe",
     "/dashboard/:path*",
     "/factures/:path*",
     "/profil/:path*",
