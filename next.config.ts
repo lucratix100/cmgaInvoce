@@ -9,7 +9,11 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  /* config options here */
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '40mb',
+    },
+  },
 };
 export default withPWA({
   dest: 'public',

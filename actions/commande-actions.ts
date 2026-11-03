@@ -2,7 +2,7 @@
 
 import axios from "axios"
 import { cookies } from "next/headers"
-import type { AgentOrder } from "@/actions/agent-actions"
+import type { AgentOrder, CommercialBlDocumentRef } from "@/actions/agent-actions"
 
 export interface CommandeItem {
   id: string
@@ -30,6 +30,7 @@ export interface CommercialBl {
   editAuthorizedUntil: string | null
   adminReviewedAt?: string | null
   adminReviewComment?: string | null
+  documents?: CommercialBlDocumentRef[]
   latestRequest: {
     id: string
     status: "EN_ATTENTE" | "APPROUVEE" | "REFUSEE" | "UTILISEE" | "EXPIREE"
@@ -207,6 +208,38 @@ export async function deactivatePersonalClient(id: string) {
     return {
       success: false,
       error: extractErrorMessage(error, "Erreur lors de la désactivation du client personnel"),
+    }
+  }
+}
+
+export async function uploadCommercialBlDocuments(commercialBlId: string, formData: FormData) {
+  try {
+    const files = formData.getAll("documents").filter((entry) => entry instanceof File && entry.size > 0)
+    if (files.length === 0) {
+      return { success: true, documents: [] as CommercialBlDocumentRef[] }
+    }
+
+    const headers = await getAuthHeaders()
+    const response = await fetch(`${process.env.API_URL}agent/commercial-bls/${commercialBlId}/documents`, {
+      method: "POST",
+      headers: {
+        Authorization: headers.Authorization,
+        Accept: "application/json",
+      },
+      body: formData,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data?.message || "Impossible de joindre le bon de commande",
+      }
+    }
+    return { success: true, documents: (data.documents || []) as CommercialBlDocumentRef[] }
+  } catch (error) {
+    return {
+      success: false,
+      error: extractErrorMessage(error, "Impossible de joindre le bon de commande"),
     }
   }
 }

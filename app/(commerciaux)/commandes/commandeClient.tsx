@@ -49,8 +49,11 @@ import {
   PersonalClientInput,
   requestCommercialBlEdit,
   updateCommercialBl,
+  uploadCommercialBlDocuments,
   cancelCommercialBl
 } from "@/actions/commande-actions"
+import { buildOrderDocumentsFormData, OrderDocumentPicker } from "@/components/commercial/order-document-picker"
+import { OrderDocumentList } from "@/components/commercial/order-document-list"
 import { AgentProduct, getAgentProducts } from "@/actions/agent-actions"
 import { queryKeys } from "@/lib/query-keys"
 
@@ -94,6 +97,8 @@ export default function CommandeClientComponent() {
   const [selectedPersonalClientId, setSelectedPersonalClientId] = useState<string>("new")
   const [personalOrderLines, setPersonalOrderLines] = useState<PersonalOrderLine[]>([{ productId: "", quantity: "1" }])
   const [personalOrderComment, setPersonalOrderComment] = useState("")
+  const [personalOrderFiles, setPersonalOrderFiles] = useState<File[]>([])
+  const [detailOrderFiles, setDetailOrderFiles] = useState<File[]>([])
   const [personalSaving, setPersonalSaving] = useState(false)
   // Filtres
   const [filters, setFilters] = useState<CommandeFilters>({})
@@ -230,6 +235,22 @@ export default function CommandeClientComponent() {
       comment: personalOrderComment.trim() || null,
       orderLines,
     })
+
+    let documentError: string | null = null
+    if (result.success && personalOrderFiles.length > 0) {
+      const commercialBlId = result.data?.bl?.id
+      if (!commercialBlId) {
+        documentError = "Le BC est créé, mais le bon n'a pas pu être joint."
+      } else {
+        const upload = await uploadCommercialBlDocuments(
+          String(commercialBlId),
+          buildOrderDocumentsFormData(personalOrderFiles)
+        )
+        if (!upload.success) {
+          documentError = upload.error || "Le BC est créé, mais le bon n'a pas pu être joint."
+        }
+      }
+    }
     setPersonalSaving(false)
 
     if (!result.success) {
@@ -238,6 +259,10 @@ export default function CommandeClientComponent() {
     }
 
     toast({ title: "BC créé", description: "Le BC est en brouillon. Vous pouvez le confirmer dans la liste." })
+    if (documentError) {
+      toast({ title: "Bon non joint", description: documentError, variant: "destructive" })
+    }
+    setPersonalOrderFiles([])
     setIsPersonalOrderOpen(false)
     invalidateCommercialWorkflow()
   }
@@ -343,6 +368,23 @@ export default function CommandeClientComponent() {
       current ? { ...current, commercialBl: bl, items: updatedItems || current.items, statut: nextStatus } : current
     )
     invalidateCommercialWorkflow()
+  }
+
+  const handleUploadDetailDocuments = async () => {
+    if (!selectedCommande?.commercialBl || detailOrderFiles.length === 0) return
+    setBlSaving(true)
+    const upload = await uploadCommercialBlDocuments(
+      selectedCommande.commercialBl.id,
+      buildOrderDocumentsFormData(detailOrderFiles)
+    )
+    setBlSaving(false)
+    if (!upload.success) {
+      toast({ title: "Bon non joint", description: upload.error, variant: "destructive" })
+      return
+    }
+    updateSelectedCommercialBl({ ...selectedCommande.commercialBl, documents: upload.documents })
+    setDetailOrderFiles([])
+    toast({ title: "Bon joint", description: "Les fichiers sont associés au BC." })
   }
 
   const canEditSelectedBl = selectedCommande?.commercialBl?.status === "BROUILLON" ||
@@ -732,7 +774,10 @@ export default function CommandeClientComponent() {
         </CardContent>
       </Card>
 
-      <Dialog open={isPersonalOrderOpen} onOpenChange={setIsPersonalOrderOpen}>
+      <Dialog open={isPersonalOrderOpen} onOpenChange={(open) => {
+        setIsPersonalOrderOpen(open)
+        if (!open) setPersonalOrderFiles([])
+      }}>
         <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-2xl">
           <DialogHeader className="sticky top-0 z-10 border-b bg-white px-3 py-3 sm:static sm:border-b-0 sm:px-6 sm:pb-0 sm:pt-6">
             <DialogTitle className="text-base sm:text-lg">Créer un BC hors tournée</DialogTitle>
@@ -834,6 +879,12 @@ export default function CommandeClientComponent() {
               </div>
             </div>
 
+            <OrderDocumentPicker
+              files={personalOrderFiles}
+              onChange={setPersonalOrderFiles}
+              disabled={personalSaving}
+            />
+
             <div>
               <label className="text-xs font-medium text-muted-foreground">Commentaire</label>
               <Textarea
@@ -857,7 +908,10 @@ export default function CommandeClientComponent() {
       </Dialog>
 
       {/* Dialog de détails du bon de commande */}
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+      <Dialog open={isDetailDialogOpen} onOpenChange={(open) => {
+        setIsDetailDialogOpen(open)
+        if (!open) setDetailOrderFiles([])
+      }}>
         <DialogContent className="left-0 top-0 flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none bg-slate-50 p-0 sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[90vh] sm:max-w-4xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl">
           <DialogHeader className="border-b bg-white px-3 py-3 sm:px-5 sm:py-4">
             <DialogTitle className="flex items-center gap-2 pr-8 text-base sm:text-lg">
@@ -975,6 +1029,35 @@ export default function CommandeClientComponent() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="rounded-xl border bg-white p-3 shadow-sm">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Bons de commande joints</h3>
+                <OrderDocumentList
+                  documents={selectedCommande.commercialBl?.documents}
+                  emptyLabel="Aucun bon joint"
+                />
+                {canEditSelectedBl && (
+                  <div className="mt-2 space-y-2">
+                    <OrderDocumentPicker
+                      files={detailOrderFiles}
+                      onChange={setDetailOrderFiles}
+                      disabled={blSaving}
+                    />
+                    {detailOrderFiles.length > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleUploadDetailDocuments}
+                        disabled={blSaving}
+                        className="h-8 rounded-xl text-xs"
+                      >
+                        {blSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                        Enregistrer les fichiers
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

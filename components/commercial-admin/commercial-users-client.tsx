@@ -12,6 +12,7 @@ import {
   createCommercialAgent,
   deactivateCommercialAgent,
   getCommercialAgents,
+  resendCommercialAgentInvite,
   updateCommercialAgent,
 } from "@/actions/commercial-admin"
 import { CommercialUser } from "@/types/commercial"
@@ -46,13 +47,8 @@ export default function CommercialUsersClient({ initialAgents }: { initialAgents
   const submit = () => {
     startTransition(async () => {
       const payload: any = { ...form }
-      if (!editingId) {
-        delete payload.password
-        delete payload.confirmPassword
-      } else if (!payload.password) {
-        delete payload.password
-        delete payload.confirmPassword
-      }
+      delete payload.password
+      delete payload.confirmPassword
 
       const result = editingId
         ? await updateCommercialAgent(editingId, payload)
@@ -99,6 +95,33 @@ export default function CommercialUsersClient({ initialAgents }: { initialAgents
     })
   }
 
+  const resendInvite = (agent: CommercialUser) => {
+    if (!agent.email) {
+      toast({
+        title: "Erreur",
+        description: "Ce commercial n'a pas d'email",
+        variant: "destructive",
+      })
+      return
+    }
+
+    startTransition(async () => {
+      const result = await resendCommercialAgentInvite(agent.id)
+      if (!result.success) {
+        toast({ title: "Erreur", description: result.error, variant: "destructive" })
+        return
+      }
+      toast({
+        title: "Email envoyé",
+        description:
+          (result.data as any)?.message ||
+          (agent.isActive
+            ? "Lien de réinitialisation envoyé."
+            : "Invitation renvoyée pour activer le compte."),
+      })
+    })
+  }
+
   return (
     <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
       <Card>
@@ -118,20 +141,9 @@ export default function CommercialUsersClient({ initialAgents }: { initialAgents
             </p>
           )}
           {editingId && (
-            <>
-              <Field
-                label="Nouveau mot de passe (optionnel)"
-                type="password"
-                value={form.password}
-                onChange={(value) => setForm({ ...form, password: value })}
-              />
-              <Field
-                label="Confirmation"
-                type="password"
-                value={form.confirmPassword}
-                onChange={(value) => setForm({ ...form, confirmPassword: value })}
-              />
-            </>
+            <p className="text-sm text-muted-foreground">
+              Pour le mot de passe, utilisez le bouton « Renvoyer invitation » / « Renvoyer lien MDP ».
+            </p>
           )}
           <div className="flex gap-2">
             <Button onClick={submit} disabled={isPending} className="flex-1">
@@ -173,6 +185,11 @@ export default function CommercialUsersClient({ initialAgents }: { initialAgents
                     </Badge>
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
+                    {agent.email && (
+                      <Button size="sm" variant="secondary" onClick={() => resendInvite(agent)} disabled={isPending}>
+                        {agent.isActive ? "Renvoyer lien MDP" : "Renvoyer invitation"}
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => edit(agent)}>
                       Modifier
                     </Button>

@@ -39,9 +39,9 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md border-white/60 bg-white/90 shadow-xl backdrop-blur-sm">
         <form onSubmit={handleSubmit}>
           <CardHeader className="space-y-2">
-            <CardTitle className="text-xl font-bold text-primary-700">Mot de passe oublié</CardTitle>
+            <CardTitle className="text-xl font-bold text-primary-700">Mot de passe oublié / lien expiré</CardTitle>
             <CardDescription>
-              Saisissez votre email pour recevoir un lien de réinitialisation.
+              Saisissez votre email pour recevoir un nouveau lien (réinitialisation ou activation du compte).
             </CardDescription>
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-3">

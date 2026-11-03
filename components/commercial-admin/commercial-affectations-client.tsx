@@ -22,6 +22,7 @@ import {
 import {
   CommercialAssignment,
   CommercialClient,
+  CommercialPlanningItem,
   CommercialUser,
 } from "@/types/commercial"
 import {
@@ -87,7 +88,7 @@ export default function CommercialAffectationsClient({
   const [expandedEnseignes, setExpandedEnseignes] = useState<string[]>([])
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
   const [transferDialogOpen, setTransferDialogOpen] = useState(false)
-  const [planningCountByAgent, setPlanningCountByAgent] = useState<Record<string, number>>({})
+  const [planningItems, setPlanningItems] = useState<CommercialPlanningItem[]>([])
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
@@ -220,13 +221,7 @@ export default function CommercialAffectationsClient({
 
   const openTransferDialog = () => {
     startTransition(async () => {
-      const planning = await getCommercialPlanning()
-      const counts = planning.reduce<Record<string, number>>((acc, item) => {
-        const key = String(item.agentId)
-        acc[key] = (acc[key] || 0) + 1
-        return acc
-      }, {})
-      setPlanningCountByAgent(counts)
+      setPlanningItems(await getCommercialPlanning())
       setTransferDialogOpen(true)
     })
   }
@@ -666,8 +661,8 @@ export default function CommercialAffectationsClient({
         onOpenChange={setTransferDialogOpen}
         agents={initialAgents}
         fromAgentId={selectedAgent}
-        portfolioCount={selectedAgentAssignments.length}
-        planningCount={planningCountByAgent[selectedAgent] || 0}
+        assignments={assignments}
+        planningItems={planningItems}
         defaultTransferPortfolio
         defaultTransferPlanning={false}
         onSuccess={async (toAgentId) => {
@@ -705,6 +700,7 @@ function formatAction(action?: string | null) {
     DEACTIVATE_ASSIGNMENT: "Retrait",
     TRANSFER_ASSIGNMENT: "Transfert",
     BULK_TRANSFER: "Transfert groupé",
+    EXCHANGE: "Échange",
     DEACTIVATE_AGENT: "Agent désactivé",
     DEACTIVATE_CLIENT: "Client désactivé",
     ACTIVATE_CLIENT: "Client activé",
@@ -716,7 +712,7 @@ function actionStyle(action?: string | null) {
   if (action === "CREATE_ASSIGNMENT")   return { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" }
   if (action === "DEACTIVATE_ASSIGNMENT") return { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" }
   if (action === "TRANSFER_ASSIGNMENT") return { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" }
-  if (action === "BULK_TRANSFER") return { bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-500" }
+  if (action === "BULK_TRANSFER" || action === "EXCHANGE") return { bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-500" }
   return { bg: "bg-gray-100", text: "text-gray-600", dot: "bg-gray-400" }
 }
 

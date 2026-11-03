@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,6 +37,8 @@ import {
   getAgentProducts,
   submitClientExecution,
 } from "@/actions/agent-actions"
+import { uploadCommercialBlDocuments } from "@/actions/commande-actions"
+import { buildOrderDocumentsFormData, OrderDocumentPicker } from "@/components/commercial/order-document-picker"
 import { EXECUTION_STATUS_COLORS, EXECUTION_STATUS_LABELS } from "@/lib/agent-utils"
 
 interface ClientSheetDialogProps {
@@ -119,9 +121,11 @@ const ACTION_CONFIG: Array<{
 export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: ClientSheetDialogProps) {
   const { toast } = useToast()
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
+  const [orderFiles, setOrderFiles] = useState<File[]>([])
   const [recallDate, setRecallDate] = useState("")
   const [recallTime, setRecallTime] = useState("")
   const [comment, setComment] = useState("")
+  const [accountNumber, setAccountNumber] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedAction, setSelectedAction] = useState<ActionId | null>(null)
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
@@ -129,6 +133,10 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
   const [isAddingItem, setIsAddingItem] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [isCommentOpen, setIsCommentOpen] = useState(false)
+
+  useEffect(() => {
+    setAccountNumber(client?.accountNumber || "")
+  }, [client?.id, client?.accountNumber])
 
   const selectedActionConfig = ACTION_CONFIG.find((action) => action.id === selectedAction)
   const shouldLoadProducts = isOpen && selectedActionConfig?.status === "COMMANDE_PRISE"
@@ -142,9 +150,11 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
 
   const resetForm = () => {
     setOrderItems([])
+    setOrderFiles([])
     setRecallDate("")
     setRecallTime("")
     setComment("")
+    setAccountNumber("")
     setSelectedAction(null)
     setSelectedProductId(null)
     setQuantity("0")
@@ -214,10 +224,10 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
       return
     }
 
-    if (selectedActionConfig.status === "COMMANDE_PRISE" && orderItems.length === 0) {
+    if (selectedActionConfig.status === "COMMANDE_PRISE" && orderItems.length === 0 && orderFiles.length === 0) {
       toast({
         title: "Commande vide",
-        description: "Ajoutez au moins un produit pour une commande prise.",
+        description: "Ajoutez au moins un produit ou joignez le bon de commande.",
         variant: "destructive",
       })
       return
@@ -236,6 +246,24 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
       toast({
         title: "Heure de relance requise",
         description: "Sélectionnez l'heure à laquelle le client doit être rappelé.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const needsAccountNumber = selectedActionConfig.status === "COMMANDE_PRISE" && !client.accountNumber
+    if (needsAccountNumber && !accountNumber.trim()) {
+      toast({
+        title: "Numéro de compte requis",
+        description: "Saisissez le numéro de compte client pour cette première commande.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (needsAccountNumber && !/^\d+$/.test(accountNumber.trim())) {
+      toast({
+        title: "Numéro de compte invalide",
+        description: "Le numéro de compte doit contenir uniquement des chiffres.",
         variant: "destructive",
       })
       return
@@ -267,6 +295,8 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
         comment: finalComment,
         nextFollowUpAt: recallDate && recallTime ? `${recallDate}T${recallTime}:00` : undefined,
         orderTaken: selectedActionConfig.status === "COMMANDE_PRISE",
+        hasOrderDocument: orderFiles.length > 0,
+        clientAccountNumber: needsAccountNumber ? accountNumber.trim() : undefined,
         orderLines: orderItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -277,10 +307,32 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
         throw new Error(result.message || "Enregistrement impossible")
       }
 
+      let documentError: string | null = null
+      if (selectedActionConfig.status === "COMMANDE_PRISE" && orderFiles.length > 0) {
+        if (!result.commercialBlId) {
+          documentError = "La commande est enregistrée, mais le bon n'a pas pu être joint."
+        } else {
+          const upload = await uploadCommercialBlDocuments(
+            String(result.commercialBlId),
+            buildOrderDocumentsFormData(orderFiles)
+          )
+          if (!upload.success) {
+            documentError = upload.error || "La commande est enregistrée, mais le bon n'a pas pu être joint."
+          }
+        }
+      }
+
       toast({
         title: "Action enregistrée",
         description: `${selectedActionConfig.label} — ${client.name}`,
       })
+      if (documentError) {
+        toast({
+          title: "Bon non joint",
+          description: documentError,
+          variant: "destructive",
+        })
+      }
 
       onSuccess?.()
       handleClose()
@@ -438,6 +490,20 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
 
         {selectedActionConfig?.status === "COMMANDE_PRISE" && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-2.5">
+            {!client.accountNumber && (
+              <div className="mb-3 space-y-1">
+                <label className="text-xs font-medium text-blue-900">Numéro de compte client</label>
+                <Input
+                  value={accountNumber}
+                  onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, ""))}
+                  inputMode="numeric"
+                  placeholder="Obligatoire pour la première commande"
+                  disabled={!canModify}
+                  className="h-10 bg-white"
+                />
+              </div>
+            )}
+
             <div className="mb-2 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-blue-800">
                 <ShoppingCart className="h-4 w-4" />
@@ -512,6 +578,13 @@ export function ClientSheetDialog({ isOpen, onClose, client, onSuccess }: Client
                 Aucun produit ajouté
               </div>
             )}
+
+            <div className="mt-2">
+              <OrderDocumentPicker files={orderFiles} onChange={setOrderFiles} disabled={!canModify || isSubmitting} />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Le fichier joint est enregistré comme bon de commande, visible par l&apos;admin puis la facturation.
+              </p>
+            </div>
           </div>
         )}
 

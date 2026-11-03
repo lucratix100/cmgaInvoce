@@ -25,6 +25,7 @@ import {
   getFacturationCommercialBls,
   markCommercialBlAsFactured,
 } from "@/actions/facturation-actions"
+import { OrderDocumentList } from "@/components/commercial/order-document-list"
 import { activePageRefetchOptions, queryKeys } from "@/lib/query-keys"
 
 type Props = {
@@ -444,6 +445,11 @@ function BcDetailsModal({
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Bons de commande joints</h3>
+            <OrderDocumentList documents={bc.documents} emptyLabel="Aucun bon joint" />
           </div>
 
           <div className="flex justify-end gap-2 border-t pt-4">

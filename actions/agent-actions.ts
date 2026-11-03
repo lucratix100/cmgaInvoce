@@ -76,13 +76,24 @@ export interface SubmitExecutionInput {
   comment?: string
   nextFollowUpAt?: string
   orderTaken?: boolean
+  hasOrderDocument?: boolean
+  clientAccountNumber?: string
   orderLines?: OrderLineInput[]
+}
+
+export interface CommercialBlDocumentRef {
+  id: string
+  originalName: string
+  mimeType: string
+  size: number
+  createdAt: string | null
 }
 
 export interface ActionResult {
   success: boolean
   message?: string
   executionLogId?: number
+  commercialBlId?: number | null
 }
 
 export interface AgentHistoryEntry {
@@ -148,6 +159,7 @@ export interface AgentOrder {
     comment: string | null
     confirmedAt: string | null
     editAuthorizedUntil: string | null
+    documents?: CommercialBlDocumentRef[]
     latestRequest: {
       id: string
       status: "EN_ATTENTE" | "APPROUVEE" | "REFUSEE" | "UTILISEE" | "EXPIREE"
@@ -253,6 +265,8 @@ export async function submitClientExecution(input: SubmitExecutionInput): Promis
         comment: input.comment,
         nextFollowUpAt: input.nextFollowUpAt,
         orderTaken: input.orderTaken,
+        hasOrderDocument: input.hasOrderDocument,
+        clientAccountNumber: input.clientAccountNumber,
         orderLines: input.orderLines,
       },
       { headers: await getAuthHeaders() }
@@ -260,6 +274,7 @@ export async function submitClientExecution(input: SubmitExecutionInput): Promis
     return {
       success: true,
       executionLogId: response.data.executionLogId,
+      commercialBlId: response.data.commercialBlId ?? null,
     }
   } catch (error) {
     console.error("Erreur lors de l'enregistrement de l'action:", error)

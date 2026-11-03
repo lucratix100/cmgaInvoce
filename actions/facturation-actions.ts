@@ -24,6 +24,13 @@ export interface FacturationCommercialBl {
     productReference: string
     quantity: number
   }>
+  documents?: Array<{
+    id: string
+    originalName: string
+    mimeType: string
+    size: number
+    createdAt: string | null
+  }>
   facturedBy: string | null
 }
 

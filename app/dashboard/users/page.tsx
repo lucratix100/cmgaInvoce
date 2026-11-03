@@ -34,11 +34,10 @@ export default function UtilisateursPage() {
   const [key, setKey] = useState(0)
 
   const handleEdit = (user: User) => {
-    const userToEdit = {
+    setSelectedUser({
       ...user,
-      depot_id: user.depot?.id || 0
-    }
-    setSelectedUser(userToEdit)
+      depot_id: user.depot?.id || user.depot_id || 0,
+    })
     setOpen(true)
   }
 
@@ -49,7 +48,15 @@ export default function UtilisateursPage() {
 
   const handleSuccess = () => {
     setKey(prevKey => prevKey + 1)
+    setSelectedUser(null)
     setOpen(false)
+  }
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setSelectedUser(null)
+    }
   }
 
   return (
@@ -61,21 +68,27 @@ export default function UtilisateursPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input type="search" placeholder="Rechercher un utilisateur..." className="pl-8" />
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
               <Button 
                 className="bg-primary hover:bg-primary-600"
-                onClick={() => setOpen(true)}
+                onClick={() => {
+                  setSelectedUser(null)
+                  setOpen(true)
+                }}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Ajouter un utilisateur
               </Button>
             </DialogTrigger>
-            <UserDialog
-              onClose={handleClose}
-              onSuccess={handleSuccess}
-              user={selectedUser}
-            />
+            {open && (
+              <UserDialog
+                key={selectedUser ? `edit-${selectedUser.id}` : "create"}
+                onClose={handleClose}
+                onSuccess={handleSuccess}
+                user={selectedUser}
+              />
+            )}
           </Dialog>
         </div>
       </div>

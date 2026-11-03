@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-table"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AdminCommercialBlReview, getAdminCommercialBlReviews, reviewAdminCommercialBl } from "@/actions/commercial-admin"
+import { OrderDocumentList } from "@/components/commercial/order-document-list"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -504,6 +505,10 @@ export default function AdminCommercialBlReviewClient({ initialBls, initialFilte
                   ))}
                 </TableBody>
               </Table>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-900">Bons de commande joints</h3>
+              <OrderDocumentList documents={selectedProductsBl?.documents} emptyLabel="Aucun bon joint" />
             </div>
           </div>
         </DialogContent>

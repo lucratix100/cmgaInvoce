@@ -13,6 +13,7 @@ import {
   CommercialImportRow,
   CommercialPaginatedResult,
   CommercialPaginationMeta,
+  CommercialPlanningDay,
   CommercialPlanningItem,
   CommercialProduct,
   CommercialTeamStatsData,
@@ -88,6 +89,13 @@ export interface AdminCommercialBlReview {
     productReference: string
     quantity: number
   }>
+  documents?: Array<{
+    id: string
+    originalName: string
+    mimeType: string
+    size: number
+    createdAt: string | null
+  }>
   reviewer: string | null
 }
 
@@ -106,10 +114,10 @@ function apiUrl(path: string) {
   return `${process.env.API_URL}${path}`
 }
 
-async function handleMutation<T>(request: Promise<{ data: T }>, path = "/commercial-dashboard") {
+async function handleMutation<T>(request: Promise<{ data: T }>, path: string | null = "/commercial-dashboard") {
   try {
     const response = await request
-    revalidatePath(path)
+    if (path) revalidatePath(path)
     return { success: true, data: response.data } as ApiResponse<T>
   } catch (error: any) {
     return {
@@ -262,6 +270,17 @@ export async function updateCommercialAgent(id: number, data: any) {
 export async function deactivateCommercialAgent(id: number) {
   return handleMutation(
     axios.patch(apiUrl(`commercial-admin/agents/${id}/deactivate`), {}, { headers: await getAuthHeaders() }),
+    "/commercial-dashboard/users"
+  )
+}
+
+export async function resendCommercialAgentInvite(id: number) {
+  return handleMutation(
+    axios.post(
+      apiUrl(`commercial-admin/agents/${id}/resend-invite`),
+      {},
+      { headers: await getAuthHeaders() }
+    ),
     "/commercial-dashboard/users"
   )
 }
@@ -476,6 +495,7 @@ export interface CommercialTransferResult {
   assignmentsMerged: number
   planningTransferred: number
   planningSkipped: number
+  exchanged?: boolean
 }
 
 export async function transferCommercialResources(data: {
@@ -483,6 +503,9 @@ export async function transferCommercialResources(data: {
   toAgentId: number
   transferPortfolio: boolean
   transferPlanning: boolean
+  exchange?: boolean
+  assignmentIds?: number[]
+  planningItemIds?: number[]
   note?: string
 }) {
   const result = await handleMutation<CommercialTransferResult>(
@@ -521,6 +544,22 @@ export async function getCommercialPlanning(params?: { agentId?: string; day?: s
   }
 }
 
+export async function generateCommercialPlanning(data: {
+  agentId: number
+  replace: boolean
+  items: Array<{
+    commercialClientId?: number | null
+    commercialClientLocationId?: number | null
+    dayOfWeek: CommercialPlanningDay
+    sortOrder: number
+  }>
+}) {
+  return handleMutation(
+    axios.post(apiUrl("commercial-admin/planning/generate"), data, { headers: await getAuthHeaders() }),
+    "/commercial-dashboard/planning"
+  )
+}
+
 export async function createCommercialPlanning(data: Partial<CommercialPlanningItem>) {
   return handleMutation(
     axios.post(apiUrl("commercial-admin/planning"), data, { headers: await getAuthHeaders() }),
@@ -528,10 +567,14 @@ export async function createCommercialPlanning(data: Partial<CommercialPlanningI
   )
 }
 
-export async function updateCommercialPlanning(id: number, data: Partial<CommercialPlanningItem>) {
+export async function updateCommercialPlanning(
+  id: number,
+  data: Partial<CommercialPlanningItem>,
+  options?: { revalidate?: boolean }
+) {
   return handleMutation(
     axios.put(apiUrl(`commercial-admin/planning/${id}`), data, { headers: await getAuthHeaders() }),
-    "/commercial-dashboard/planning"
+    options?.revalidate === false ? null : "/commercial-dashboard/planning"
   )
 }
 

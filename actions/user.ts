@@ -101,19 +101,24 @@ export const createUser = async (data: z.infer<typeof UserSchema>): Promise<ApiR
     } catch (error: any) {
         console.error("Erreur détaillée:", error.response?.data || error)
 
-        // Gestion des erreurs de l'API
-        if (error.response?.data?.errors) {
-            return {
-                success: false,
-                error: error.response.data.errors
-            }
+        const apiError = error.response?.data?.error ?? error.response?.data?.errors
+
+        if (apiError && typeof apiError === "object" && !Array.isArray(apiError)) {
+            return { success: false, error: apiError }
+        }
+
+        if (typeof apiError === "string") {
+            return { success: false, error: { general: [apiError] } }
         }
 
         return {
             success: false,
             error: {
-                general: [error.response?.data?.message || "Erreur lors de la création de l'utilisateur"]
-            }
+                general: [
+                    error.response?.data?.message ||
+                        "Erreur lors de la création de l'utilisateur",
+                ],
+            },
         }
     }
 }
@@ -138,11 +143,31 @@ export const updateUser = async (id: number, data: z.infer<typeof UserSchema>): 
     } catch (error: any) {
         console.log('error', error)
         if (error instanceof z.ZodError) {
-            return { success: false, error: error.errors }
+            const formattedErrors = error.errors.reduce((acc, err) => {
+                const path = err.path[0] as string
+                if (!acc[path]) acc[path] = []
+                acc[path].push(err.message)
+                return acc
+            }, {} as Record<string, string[]>)
+            return { success: false, error: formattedErrors }
         }
+
+        const apiError = error.response?.data?.error ?? error.response?.data?.errors
+        if (apiError && typeof apiError === "object" && !Array.isArray(apiError)) {
+            return { success: false, error: apiError }
+        }
+        if (typeof apiError === "string") {
+            return { success: false, error: { general: [apiError] } }
+        }
+
         return {
             success: false,
-            error: error.response?.data?.message || "Erreur lors de la modification de l'utilisateur"
+            error: {
+                general: [
+                    error.response?.data?.message ||
+                        "Erreur lors de la modification de l'utilisateur",
+                ],
+            },
         }
     }
 }
@@ -186,6 +211,37 @@ export const deleteUser = async (id: number) => {
         return {
             success: false,
             error: error.response?.data?.message || "Erreur lors de la suppression de l'utilisateur"
+        }
+    }
+}
+
+export const resendUserInvite = async (id: number): Promise<ApiResponse> => {
+    try {
+        const cookieStore = await cookies()
+        const token = JSON.parse(cookieStore.get("accessToken")?.value || "{}").token
+
+        const response = await axios.post(
+            `${process.env.API_URL}users/${id}/resend-invite`,
+            {},
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/json",
+                },
+            }
+        )
+
+        return {
+            success: true,
+            data: response.data,
+        }
+    } catch (error: any) {
+        return {
+            success: false,
+            error:
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                "Impossible de renvoyer l'email",
         }
     }
 }

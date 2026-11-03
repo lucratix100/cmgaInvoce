@@ -23,7 +23,8 @@ interface UserDialogProps {
     email: string
     phone: string
     role: string
-    depotId: number | null
+    depotId?: number | null
+    depot_id?: number | null
     isActive: boolean
   } | null
 }
@@ -38,6 +39,7 @@ interface FormErrors {
   isActive?: string[]
   password?: string[]
   confirmPassword?: string[]
+  general?: string[]
 }
 
 const initialState = {
@@ -84,6 +86,12 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
     loadDepots()
   }, [])
 
+  const resetForm = () => {
+    setFormData(initialState)
+    setErrors({})
+    setLoading(false)
+  }
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -94,21 +102,23 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
         password: "",
         confirmPassword: "",
         role: user.role || "",
-        depotId: user.depotId || 0,
+        depotId: user.depotId || user.depot_id || 0,
         isActive: user.isActive ?? true
       })
+      setErrors({})
+      setLoading(false)
     } else {
-      setFormData(initialState)
+      resetForm()
     }
   }, [user])
 
   const handleClose = () => {
-    setFormData(initialState)
+    resetForm()
     onClose()
   }
 
   const handleSuccess = () => {
-    setFormData(initialState)
+    resetForm()
     onSuccess()
     onClose()
   }
@@ -122,16 +132,6 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
     e.preventDefault()
     setLoading(true)
     setErrors({})
-
-    // Vérification de la correspondance des mots de passe (édition uniquement)
-    if (isEditing && formData.password && formData.password !== formData.confirmPassword) {
-      setErrors({
-        ...errors,
-        confirmPassword: ["Les mots de passe ne correspondent pas"]
-      })
-      setLoading(false)
-      return
-    }
 
     // Vérification que le dépôt est sélectionné si requis
     if (formData.role && isDepotRequired(formData.role) && (!formData.depotId || formData.depotId <= 0)) {
@@ -164,10 +164,6 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
       if (formData.phone.trim()) {
         apiData.phone = formData.phone.trim()
       }
-      if (isEditing && formData.password.trim()) {
-        apiData.password = formData.password
-        apiData.confirmPassword = formData.confirmPassword
-      }
       if (formData.role) {
         apiData.role = formData.role as Role
       }
@@ -191,21 +187,34 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
             : (result.data?.message || "Utilisateur créé. Un email d'invitation a été envoyé."),
         })
         handleSuccess()
-      } else {
-        if (result.error) {
-          if (typeof result.error === 'object' && !Array.isArray(result.error)) {
-            setErrors(result.error as FormErrors)
-          } else {
+      } else if (result.error) {
+        if (typeof result.error === 'object' && !Array.isArray(result.error)) {
+          setErrors(result.error as FormErrors)
+          const fieldErrors = result.error as FormErrors
+          const firstMessage =
+            fieldErrors.general?.[0] ||
+            fieldErrors.phone?.[0] ||
+            fieldErrors.email?.[0] ||
+            Object.values(fieldErrors).flat()[0]
+          if (firstMessage) {
             toast({
               variant: "destructive",
               title: "Erreur",
-              description: Array.isArray(result.error)
-                ? result.error[0]
-                : (typeof result.error === 'string'
-                  ? result.error
-                  : "Une erreur est survenue")
+              description: firstMessage,
             })
           }
+        } else {
+          const message = Array.isArray(result.error)
+            ? result.error[0]
+            : (typeof result.error === 'string'
+              ? result.error
+              : "Une erreur est survenue")
+          setErrors({ general: [message] })
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: message,
+          })
         }
       }
     } catch (error: any) {
@@ -233,6 +242,11 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
               : "Le compte sera inactif jusqu'à ce que l'utilisateur définisse son mot de passe via l'email d'invitation."
             }
           </DialogDescription>
+          {errors.general && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2">
+              <p className="text-sm text-red-600">{errors.general.join(', ')}</p>
+            </div>
+          )}
         </DialogHeader>
         <div className="grid gap-2 py-2">
           {/* Première ligne : Prénom et Nom */}
@@ -297,41 +311,7 @@ export default function UserDialog({ onClose, onSuccess, user }: UserDialogProps
             </div>
           </div>
 
-          {/* Mot de passe optionnel uniquement en édition */}
-          {isEditing && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label htmlFor="password" className="text-sm">Nouveau mot de passe (optionnel)</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={cn(errors.password && "border-red-500", "h-8 text-sm")}
-                  disabled={loading}
-                />
-                {errors.password && (
-                  <p className="text-xs text-red-500">{errors.password.join(', ')}</p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="confirmPassword" className="text-sm">Confirmer</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className={cn(errors.confirmPassword && "border-red-500", "h-8 text-sm")}
-                  disabled={loading}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-xs text-red-500">{errors.confirmPassword.join(', ')}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Quatrième ligne : Rôle */}
+          {/* Rôle */}
           <div className="space-y-1">
             <Label htmlFor="role" className="text-sm">Rôle</Label>
             <Select

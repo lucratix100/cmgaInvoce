@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Eye, Trash2, Users } from "lucide-react"
+import { Edit, Mail, Trash2, Users } from "lucide-react"
 import { useEffect, useState } from "react"
-import { deleteUser, getUsers } from "@/actions/user"
+import { deleteUser, getUsers, resendUserInvite } from "@/actions/user"
 import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/alert-dialog"
 
@@ -91,6 +91,51 @@ export default function UserTable({ onEdit }: UserTableProps) {
     }
   }
 
+  const handleResendInvite = async (user: User) => {
+    if (!user.email) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Cet utilisateur n'a pas d'email",
+      })
+      return
+    }
+
+    try {
+      const result = await resendUserInvite(user.id)
+      if (result.success) {
+        toast({
+          title: "Email envoyé",
+          description:
+            result.data?.message ||
+            (user.isActive
+              ? "Lien de réinitialisation envoyé."
+              : "Invitation renvoyée pour activer le compte."),
+        })
+      } else {
+        const description =
+          typeof result.error === "string"
+            ? result.error
+            : result.error?.general?.[0] ||
+              (typeof result.error === "object"
+                ? Object.values(result.error as Record<string, string[]>).flat()[0]
+                : null) ||
+              "Impossible de renvoyer l'email"
+        toast({
+          variant: "destructive",
+          title: "Erreur d'envoi",
+          description,
+        })
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'envoi",
+      })
+    }
+  }
+
   return (
     <>
       <Card>
@@ -155,7 +200,22 @@ export default function UserTable({ onEdit }: UserTableProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
+                        {user.email && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-primary-600 hover:bg-primary-50"
+                            title={
+                              user.isActive
+                                ? "Renvoyer un lien de connexion / reset"
+                                : "Renvoyer l'email d'activation"
+                            }
+                            onClick={() => handleResendInvite(user)}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(user)}>
                           <Edit className="h-4 w-4" />
                         </Button>

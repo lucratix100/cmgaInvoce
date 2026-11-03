@@ -53,12 +53,14 @@ function SetPasswordForm() {
     return (
       <Card className="w-full max-w-md border-white/60 bg-white/90 shadow-xl">
         <CardHeader>
-          <CardTitle>Lien invalide</CardTitle>
-          <CardDescription>Ce lien de définition de mot de passe est invalide ou incomplet.</CardDescription>
+          <CardTitle>Lien invalide ou expiré</CardTitle>
+          <CardDescription>
+            Ce lien est invalide, incomplet ou a expiré. Demandez un nouveau lien par email.
+          </CardDescription>
         </CardHeader>
         <CardFooter>
           <Link href="/mot-de-passe-oublie" className="text-sm text-primary-600 hover:underline">
-            Demander un nouveau lien
+            Renvoyer un email
           </Link>
         </CardFooter>
       </Card>
@@ -136,7 +138,13 @@ function SetPasswordForm() {
               "Enregistrer et se connecter"
             )}
           </Button>
-          <Link href="/" className="flex items-center justify-center gap-1 text-sm text-primary-600 hover:underline">
+          <Link
+            href="/mot-de-passe-oublie"
+            className="text-center text-sm text-primary-600 hover:underline"
+          >
+            Lien expiré ? Demander un nouvel email
+          </Link>
+          <Link href="/" className="flex items-center justify-center gap-1 text-sm text-gray-500 hover:underline">
             <ArrowLeft className="h-4 w-4" />
             Retour à la connexion
           </Link>
