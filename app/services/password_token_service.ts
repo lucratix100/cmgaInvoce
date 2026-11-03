@@ -51,8 +51,8 @@ export default class PasswordTokenService {
     }
 
     const token = await this.createToken(user, 'invite', 48)
-    const { subject, html, url } = MailService.buildInviteEmail(user.firstname, token)
-    const result = await MailService.send({ to: user.email, subject, html })
+    const { subject, html, text, url } = MailService.buildInviteEmail(user.firstname, token)
+    const result = await MailService.send({ to: user.email, subject, html, text })
 
     return { token, url, ...result }
   }
@@ -63,8 +63,8 @@ export default class PasswordTokenService {
     }
 
     const token = await this.createToken(user, 'reset', 1)
-    const { subject, html, url } = MailService.buildResetEmail(user.firstname, token)
-    const result = await MailService.send({ to: user.email, subject, html })
+    const { subject, html, text, url } = MailService.buildResetEmail(user.firstname, token)
+    const result = await MailService.send({ to: user.email, subject, html, text })
 
     return { token, url, ...result }
   }

@@ -1,4 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import app from '@adonisjs/core/services/app'
+import { createReadStream, existsSync, mkdirSync } from 'node:fs'
 import { DateTime } from 'luxon'
 import User from '#models/user'
 import Invoice from '#models/invoice'
@@ -11,6 +13,7 @@ import CommercialClientImport from '#models/commercial_client_import'
 import CommercialExecutionLog from '#models/commercial_execution_log'
 import CommercialOrderLine from '#models/commercial_order_line'
 import CommercialBl from '#models/commercial_bl'
+import CommercialBlDocument from '#models/commercial_bl_document'
 import CommercialBlModificationRequest from '#models/commercial_bl_modification_request'
 import CommercialPersonalClient from '#models/commercial_personal_client'
 import Product from '#models/product'
@@ -31,6 +34,7 @@ import {
   commercialImportValidator,
   commercialPersonalClientValidator,
   commercialPersonalOrderValidator,
+  commercialPlanningGenerateValidator,
   commercialPlanningValidator,
   commercialProductValidator,
   commercialTransferValidator,
@@ -246,6 +250,128 @@ export default class CommercialAdminController {
     )
 
     return assignment
+  }
+
+  private async transferPortfolioTargetForPlanning(
+    fromAgentId: number,
+    toAgentId: number,
+    commercialClientId: number | null,
+    commercialClientLocationId: number | null,
+    performedBy: number,
+    note: string | null,
+    trx: any
+  ) {
+    const sourceAssignment = await CommercialClientAssignment.query({ client: trx })
+      .where('agent_id', fromAgentId)
+      .where('is_active', true)
+      .if(commercialClientLocationId, (query) =>
+        query.where('commercial_client_location_id', commercialClientLocationId!)
+      )
+      .if(!commercialClientLocationId, (query) =>
+        query.where('commercial_client_id', commercialClientId!).whereNull('commercial_client_location_id')
+      )
+      .first()
+
+    if (sourceAssignment) {
+      return this.transferSingleAssignment(sourceAssignment, toAgentId, performedBy, note, trx)
+    }
+
+    await this.ensureAssignmentAtAgent(
+      toAgentId,
+      commercialClientId,
+      commercialClientLocationId,
+      performedBy,
+      note,
+      trx
+    )
+
+    return 'ensured'
+  }
+
+  private async exchangeCommercialResources(
+    fromAgentId: number,
+    toAgentId: number,
+    performedBy: number,
+    note: string | null,
+    trx: any
+  ) {
+    const targetKey = (clientId: number | null, locationId: number | null) =>
+      `${clientId ?? 'null'}:${locationId ?? 'null'}`
+
+    const fromAssignments = await CommercialClientAssignment.query({ client: trx })
+      .where('agent_id', fromAgentId)
+      .where('is_active', true)
+    const toAssignments = await CommercialClientAssignment.query({ client: trx })
+      .where('agent_id', toAgentId)
+      .where('is_active', true)
+    const fromPlanning = await CommercialPlanningItem.query({ client: trx })
+      .where('agent_id', fromAgentId)
+      .where('is_active', true)
+    const toPlanning = await CommercialPlanningItem.query({ client: trx })
+      .where('agent_id', toAgentId)
+      .where('is_active', true)
+
+    if (fromAssignments.length + toAssignments.length + fromPlanning.length + toPlanning.length === 0) {
+      return null
+    }
+
+    let assignmentsTransferred = 0
+    let assignmentsMerged = 0
+    let planningTransferred = 0
+    const fromKeys = new Set(
+      fromAssignments.map((assignment) => targetKey(assignment.commercialClientId, assignment.commercialClientLocationId))
+    )
+    const toKeys = new Set(
+      toAssignments.map((assignment) => targetKey(assignment.commercialClientId, assignment.commercialClientLocationId))
+    )
+
+    for (const assignment of fromAssignments) {
+      const key = targetKey(assignment.commercialClientId, assignment.commercialClientLocationId)
+      if (toKeys.has(key)) {
+        assignmentsMerged++
+        continue
+      }
+      await this.transferSingleAssignment(assignment, toAgentId, performedBy, note, trx)
+      assignmentsTransferred++
+    }
+
+    for (const assignment of toAssignments) {
+      const key = targetKey(assignment.commercialClientId, assignment.commercialClientLocationId)
+      if (fromKeys.has(key)) continue
+      await this.transferSingleAssignment(assignment, fromAgentId, performedBy, note, trx)
+      assignmentsTransferred++
+    }
+
+    for (const planningItem of fromPlanning) {
+      planningItem.agentId = toAgentId
+      await planningItem.useTransaction(trx).save()
+      planningTransferred++
+    }
+
+    for (const planningItem of toPlanning) {
+      planningItem.agentId = fromAgentId
+      await planningItem.useTransaction(trx).save()
+      planningTransferred++
+    }
+
+    for (const planningItem of [...fromPlanning, ...toPlanning]) {
+      if (!planningItem.commercialClientId && !planningItem.commercialClientLocationId) continue
+      await this.ensureAssignmentAtAgent(
+        planningItem.agentId,
+        planningItem.commercialClientId,
+        planningItem.commercialClientLocationId,
+        performedBy,
+        note,
+        trx
+      )
+    }
+
+    return {
+      assignmentsTransferred,
+      assignmentsMerged,
+      planningTransferred,
+      planningSkipped: 0,
+    }
   }
 
   private async transferSingleAssignment(
@@ -555,6 +681,7 @@ export default class CommercialAdminController {
       editAuthorizedUntil: bl.editAuthorizedUntil?.toISO() ?? null,
       adminReviewedAt: bl.adminReviewedAt?.toISO() ?? null,
       adminReviewComment: bl.adminReviewComment,
+      documents: this.formatCommercialBlDocuments(bl.documents),
       latestRequest: latestRequest
         ? {
             id: String(latestRequest.id),
@@ -565,6 +692,16 @@ export default class CommercialAdminController {
           }
         : null,
     }
+  }
+
+  private formatCommercialBlDocuments(documents?: CommercialBlDocument[] | null) {
+    return (documents || []).map((document) => ({
+      id: String(document.id),
+      originalName: document.originalName,
+      mimeType: document.mimeType,
+      size: document.size,
+      createdAt: document.createdAt?.toISO() ?? null,
+    }))
   }
 
   private formatPersonalClient(client: CommercialPersonalClient) {
@@ -647,6 +784,7 @@ export default class CommercialAdminController {
         productReference: line.product?.reference || '',
         quantity: line.quantity,
       })),
+      documents: this.formatCommercialBlDocuments(bl.documents),
       facturedBy: bl.facturer
         ? `${bl.facturer.firstname || ''} ${bl.facturer.lastname || ''}`.trim() || bl.facturer.phone
         : null,
@@ -676,6 +814,7 @@ export default class CommercialAdminController {
         productReference: line.product?.reference || '',
         quantity: line.quantity,
       })),
+      documents: this.formatCommercialBlDocuments(bl.documents),
       reviewer: bl.adminReviewer
         ? `${bl.adminReviewer.firstname || ''} ${bl.adminReviewer.lastname || ''}`.trim() || bl.adminReviewer.phone
         : null,
@@ -697,6 +836,7 @@ export default class CommercialAdminController {
         logQuery.preload('agent')
       })
       .preload('modificationRequests')
+      .preload('documents')
       .first()
 
     if (!bl) return null
@@ -1215,6 +1355,47 @@ export default class CommercialAdminController {
     return ctx.response.json({ success: true, user: agent })
   }
 
+  async resendAgentInvite(ctx: HttpContext) {
+    const currentUser = await this.requireCommercialAdmin(ctx)
+    if (!currentUser) return
+
+    const agent = await User.query()
+      .where('id', ctx.params.id)
+      .where('role', Role.AGENT_COMMERCIAL)
+      .first()
+
+    if (!agent) {
+      return ctx.response.status(404).json({ message: 'Commercial introuvable' })
+    }
+
+    if (!agent.email) {
+      return ctx.response.status(400).json({ message: "Ce commercial n'a pas d'email" })
+    }
+
+    try {
+      if (agent.isActive) {
+        await PasswordTokenService.sendReset(agent)
+        return ctx.response.ok({
+          success: true,
+          message: 'Email de réinitialisation du mot de passe envoyé.',
+        })
+      }
+
+      await PasswordTokenService.sendInvite(agent)
+      return ctx.response.ok({
+        success: true,
+        message: "Email d'invitation renvoyé pour activer le compte.",
+      })
+    } catch (error: any) {
+      console.error('Erreur renvoi invitation commercial:', error)
+      const detail =
+        error?.code === 'SMTP_NOT_CONFIGURED'
+          ? error.message
+          : error?.response || error?.message || "Impossible d'envoyer l'email"
+      return ctx.response.status(500).json({ message: detail })
+    }
+  }
+
   async deactivateAgent(ctx: HttpContext) {
     const currentUser = await this.requireCommercialAdmin(ctx)
     if (!currentUser) return
@@ -1654,9 +1835,17 @@ export default class CommercialAdminController {
       })
     }
 
-    if (!data.transferPortfolio && !data.transferPlanning) {
+    if (!data.exchange && !data.transferPortfolio && !data.transferPlanning) {
       return ctx.response.status(422).json({
         message: 'Sélectionnez au moins le portefeuille ou le planning à transférer',
+      })
+    }
+
+    const hasPortfolioSelection = data.transferPortfolio && data.assignmentIds?.length !== 0
+    const hasPlanningSelection = data.transferPlanning && data.planningItemIds?.length !== 0
+    if (!data.exchange && !hasPortfolioSelection && !hasPlanningSelection) {
+      return ctx.response.status(422).json({
+        message: 'Sélectionnez au moins une cible à transférer',
       })
     }
 
@@ -1676,10 +1865,47 @@ export default class CommercialAdminController {
       const performedBy = Number(currentUser.id)
       const note = data.note ?? null
 
-      if (data.transferPortfolio) {
+      if (data.exchange) {
+        const summary = await this.exchangeCommercialResources(
+          data.fromAgentId,
+          data.toAgentId,
+          performedBy,
+          note,
+          trx
+        )
+        if (!summary) {
+          await trx.rollback()
+          return ctx.response.status(422).json({
+            message: 'Aucun portefeuille ni planning à échanger',
+          })
+        }
+
+        await this.logAssignmentHistory(
+          {
+            agentId: data.toAgentId,
+            previousAgentId: data.fromAgentId,
+            action: 'EXCHANGE',
+            performedBy,
+            note,
+            metadata: {
+              exchange: true,
+              ...summary,
+            },
+          },
+          trx
+        )
+
+        await trx.commit()
+        return ctx.response.json({ ...summary, exchanged: true })
+      }
+
+      const movedPortfolioTargets = new Set<string>()
+
+      if (data.transferPortfolio && data.assignmentIds?.length !== 0) {
         const assignments = await CommercialClientAssignment.query({ client: trx })
           .where('agent_id', data.fromAgentId)
           .where('is_active', true)
+          .if(data.assignmentIds, (query) => query.whereIn('id', data.assignmentIds!))
 
         for (const assignment of assignments) {
           const result = await this.transferSingleAssignment(
@@ -1689,6 +1915,9 @@ export default class CommercialAdminController {
             note,
             trx
           )
+          movedPortfolioTargets.add(
+            `${assignment.commercialClientId ?? 'null'}:${assignment.commercialClientLocationId ?? 'null'}`
+          )
           if (result === 'merged') {
             assignmentsMerged++
           } else {
@@ -1697,19 +1926,23 @@ export default class CommercialAdminController {
         }
       }
 
-      if (data.transferPlanning) {
+      if (data.transferPlanning && data.planningItemIds?.length !== 0) {
         const planningItems = await CommercialPlanningItem.query({ client: trx })
           .where('agent_id', data.fromAgentId)
           .where('is_active', true)
+          .if(data.planningItemIds, (query) => query.whereIn('id', data.planningItemIds!))
 
         for (const planningItem of planningItems) {
-          if (!planningItem.commercialClientId) {
+          if (!planningItem.commercialClientId && !planningItem.commercialClientLocationId) {
             planningSkipped++
             continue
           }
 
-          if (!data.transferPortfolio) {
-            await this.ensureAssignmentAtAgent(
+          const targetKey = `${planningItem.commercialClientId ?? 'null'}:${planningItem.commercialClientLocationId ?? 'null'}`
+          if (!movedPortfolioTargets.has(targetKey)) {
+            movedPortfolioTargets.add(targetKey)
+            const result = await this.transferPortfolioTargetForPlanning(
+              data.fromAgentId,
               data.toAgentId,
               planningItem.commercialClientId,
               planningItem.commercialClientLocationId,
@@ -1717,6 +1950,11 @@ export default class CommercialAdminController {
               note,
               trx
             )
+            if (result === 'merged') {
+              assignmentsMerged++
+            } else {
+              assignmentsTransferred++
+            }
           }
 
           const duplicate = await CommercialPlanningItem.query({ client: trx })
@@ -1870,6 +2108,106 @@ export default class CommercialAdminController {
     const [serializedPlanningItem] = await this.attachLocations([planningItem])
 
     return ctx.response.status(201).json(serializedPlanningItem)
+  }
+
+  async generatePlanning(ctx: HttpContext) {
+    const currentUser = await this.requireCommercialAdmin(ctx)
+    if (!currentUser) return
+
+    const data = await ctx.request.validateUsing(commercialPlanningGenerateValidator)
+    const agent = await this.ensureAgent(data.agentId)
+    if (!agent) {
+      return ctx.response.status(422).json({ message: 'Commercial invalide ou inactif' })
+    }
+
+    const weekDays = new Set<string>([
+      CommercialPlanningDay.LUNDI,
+      CommercialPlanningDay.MARDI,
+      CommercialPlanningDay.MERCREDI,
+      CommercialPlanningDay.JEUDI,
+      CommercialPlanningDay.VENDREDI,
+      CommercialPlanningDay.SAMEDI,
+    ])
+    const seen = new Set<string>()
+
+    for (const item of data.items) {
+      if (!weekDays.has(item.dayOfWeek)) {
+        return ctx.response.status(422).json({ message: 'Le planning aléatoire couvre uniquement le lundi au samedi' })
+      }
+      const target = await this.validateCommercialTarget(item.commercialClientId, item.commercialClientLocationId)
+      if ('error' in target) {
+        return ctx.response.status(422).json({ message: target.error })
+      }
+      const targetInPortfolio = await this.ensureTargetInAgentPortfolio(
+        data.agentId,
+        target.clientId,
+        target.locationId
+      )
+      if (!targetInPortfolio) {
+        return ctx.response.status(422).json({ message: 'Une cible ne fait pas partie du portefeuille du commercial' })
+      }
+      const key = `${item.dayOfWeek}:${target.clientId}:${target.locationId ?? 'null'}`
+      if (seen.has(key)) {
+        return ctx.response.status(422).json({ message: 'Une cible est proposée deux fois le même jour' })
+      }
+      seen.add(key)
+    }
+
+    const trx = await db.transaction()
+    try {
+      let replaced = 0
+      if (data.replace) {
+        const currentItems = await CommercialPlanningItem.query({ client: trx })
+          .where('agent_id', data.agentId)
+          .where('is_active', true)
+        replaced = currentItems.length
+        for (const currentItem of currentItems) {
+          currentItem.isActive = false
+          currentItem.disabledAt = DateTime.now()
+          await currentItem.useTransaction(trx).save()
+        }
+      }
+
+      let created = 0
+      for (const item of data.items) {
+        const target = await this.validateCommercialTarget(item.commercialClientId, item.commercialClientLocationId)
+        if ('error' in target) {
+          throw new Error(target.error)
+        }
+
+        const duplicate = await CommercialPlanningItem.query({ client: trx })
+          .where('agent_id', data.agentId)
+          .where('day_of_week', item.dayOfWeek)
+          .where('commercial_client_id', target.clientId)
+          .where('is_active', true)
+          .if(target.locationId, (query) => query.where('commercial_client_location_id', target.locationId!))
+          .if(!target.locationId, (query) => query.whereNull('commercial_client_location_id'))
+          .first()
+
+        if (duplicate) continue
+
+        await CommercialPlanningItem.create(
+          {
+            agentId: data.agentId,
+            commercialClientId: target.clientId,
+            commercialClientLocationId: target.locationId,
+            dayOfWeek: item.dayOfWeek,
+            sortOrder: item.sortOrder,
+            instructions: null,
+            isActive: true,
+            createdBy: Number(currentUser.id),
+          },
+          { client: trx }
+        )
+        created++
+      }
+
+      await trx.commit()
+      return ctx.response.status(201).json({ created, replaced })
+    } catch (error) {
+      await trx.rollback()
+      throw error
+    }
   }
 
   async updatePlanning(ctx: HttpContext) {
@@ -2135,10 +2473,11 @@ export default class CommercialAdminController {
         : null
     const clientAccountNumber = String(body.clientAccountNumber || body.accountNumber || '').trim()
 
+    const hasOrderDocument = body.hasOrderDocument === true || body.hasOrderDocument === 'true'
     if (
       executionStatus === CommercialExecutionStatus.COMMANDE_PRISE &&
       orderLines.length === 0 &&
-      !body.orderTaken
+      !hasOrderDocument
     ) {
       await NotificationService.notifyRole(
         Role.ADMIN,
@@ -2248,25 +2587,34 @@ export default class CommercialAdminController {
         { client: trx }
       )
 
-      if (orderLines.length > 0) {
+      let commercialBlId: number | null = null
+      const snapshot = orderLines.map((line) => ({
+        productId: Number(line.productId),
+        quantity: Number(line.quantity),
+      }))
+      const shouldCreateCommercialBl =
+        snapshot.length > 0 ||
+        (executionStatus === CommercialExecutionStatus.COMMANDE_PRISE && hasOrderDocument)
+
+      if (snapshot.length > 0) {
         await CommercialOrderLine.createMany(
-          orderLines.map((line) => ({
+          snapshot.map((line) => ({
             executionLogId: executionLog.id,
-            productId: Number(line.productId),
-            quantity: Number(line.quantity),
+            productId: line.productId,
+            quantity: line.quantity,
           })),
           { client: trx }
         )
+      }
 
-        await this.createCommercialBlDraft(
+      if (shouldCreateCommercialBl) {
+        const commercialBl = await this.createCommercialBlDraft(
           executionLog.id,
           Number(currentUser.id),
-          orderLines.map((line) => ({
-            productId: Number(line.productId),
-            quantity: Number(line.quantity),
-          })),
+          snapshot,
           trx
         )
+        commercialBlId = commercialBl.id
       }
 
       await trx.commit()
@@ -2283,7 +2631,7 @@ export default class CommercialAdminController {
           console.error('Erreur lors de la suppression de la notification de relance:', notificationError)
         }
       }
-      if (orderLines.length > 0) {
+      if (commercialBlId) {
         await UserActivityService.logActivity(
           Number(currentUser.id),
           UserActivityService.ACTIONS.CREATE_COMMERCIAL_BL,
@@ -2292,11 +2640,13 @@ export default class CommercialAdminController {
           {
             executionLogId: executionLog.id,
             planningItemId: planningItem.id,
+            commercialBlId,
             orderLines,
+            hasOrderDocument,
           }
         )
       }
-      return ctx.response.json({ success: true, executionLogId: executionLog.id })
+      return ctx.response.json({ success: true, executionLogId: executionLog.id, commercialBlId })
     } catch (error) {
       await trx.rollback()
       return ctx.response.status(500).json({ message: 'Erreur lors de l\'enregistrement de l\'action' })
@@ -2683,6 +3033,103 @@ export default class CommercialAdminController {
     }
   }
 
+  async storeCommercialBlDocuments(ctx: HttpContext) {
+    const currentUser = await this.requireCommercialUser(ctx)
+    if (!currentUser) return
+
+    const bl = await this.getCommercialBlForUser(Number(ctx.params.id), currentUser)
+    if (!bl) {
+      return ctx.response.status(404).json({ message: 'BC commercial introuvable' })
+    }
+
+    if (!['BROUILLON', 'REJETE_ADMIN', 'MODIFICATION_AUTORISEE'].includes(bl.status)) {
+      return ctx.response.status(403).json({ message: 'Les pièces ne peuvent plus être ajoutées sur ce BC' })
+    }
+
+    const files = ctx.request.files('documents', {
+      size: '8mb',
+      extnames: ['pdf', 'jpg', 'jpeg', 'png', 'webp'],
+    })
+
+    if (!files.length) {
+      return ctx.response.status(422).json({ message: 'Ajoutez au moins un fichier' })
+    }
+    if (files.length > 5) {
+      return ctx.response.status(422).json({ message: 'Vous pouvez joindre 5 fichiers au maximum' })
+    }
+    if (files.some((file) => !file.isValid)) {
+      return ctx.response.status(422).json({
+        message: 'Chaque fichier doit être un PDF ou une image (JPG, PNG, WEBP) de 8 Mo maximum',
+      })
+    }
+
+    const existingCount = await CommercialBlDocument.query().where('commercial_bl_id', bl.id).count('* as total')
+    if (Number(existingCount[0].$extras.total) + files.length > 5) {
+      return ctx.response.status(422).json({ message: 'Ce BC a déjà atteint la limite de 5 fichiers' })
+    }
+
+    const directory = app.makePath('storage/commercial-bl-documents')
+    mkdirSync(directory, { recursive: true })
+
+    try {
+      for (const file of files) {
+        const storedName = `${randomBytes(16).toString('hex')}.${file.extname || 'bin'}`
+        await file.move(directory, { name: storedName, overwrite: false })
+        await CommercialBlDocument.create({
+          commercialBlId: bl.id,
+          uploadedBy: Number(currentUser.id),
+          originalName: String(file.clientName || 'bon-de-commande').slice(0, 255),
+          storedName,
+          mimeType: file.type && file.subtype ? `${file.type}/${file.subtype}` : 'application/octet-stream',
+          size: file.size,
+        })
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement des pièces du BC:', error)
+      return ctx.response.status(500).json({ message: 'Impossible d\'enregistrer les fichiers du bon de commande' })
+    }
+
+    await bl.load('documents')
+    return ctx.response.status(201).json({
+      success: true,
+      documents: this.formatCommercialBlDocuments(bl.documents),
+    })
+  }
+
+  async showCommercialBlDocument(ctx: HttpContext) {
+    const user = await ctx.auth.authenticate()
+    const document = await CommercialBlDocument.query()
+      .where('id', ctx.params.id)
+      .preload('commercialBl', (query) => query.preload('executionLog'))
+      .first()
+
+    if (!document || document.storedName.includes('/') || document.storedName.includes('..')) {
+      return ctx.response.status(404).json({ message: 'Document introuvable' })
+    }
+
+    const managerRoles = [Role.ADMIN, Role.COMMERCIAL_ADMIN, Role.ADMIN_DETAILLANT, Role.FACTURATION]
+    const isOwner =
+      [Role.AGENT_COMMERCIAL, Role.COMMERCIAL_DETAILLANT].includes(user.role) &&
+      document.commercialBl.executionLog.agentId === Number(user.id)
+
+    if (!managerRoles.includes(user.role) && !isOwner) {
+      return ctx.response.status(403).json({ message: 'Accès refusé à ce document' })
+    }
+
+    const filePath = app.makePath('storage/commercial-bl-documents', document.storedName)
+    if (!existsSync(filePath)) {
+      return ctx.response.status(404).json({ message: 'Fichier introuvable' })
+    }
+
+    const safeName = document.originalName.replace(/[\r\n"]/g, '_')
+    ctx.response.header('Content-Type', document.mimeType || 'application/octet-stream')
+    ctx.response.header(
+      'Content-Disposition',
+      `inline; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(document.originalName)}`
+    )
+    return ctx.response.stream(createReadStream(filePath))
+  }
+
   async agentHistory(ctx: HttpContext) {
     const currentUser = await this.requireCommercialUser(ctx)
     if (!currentUser) return
@@ -2866,7 +3313,10 @@ export default class CommercialAdminController {
       })
       .if(personalClientsSupported, (logQuery) => logQuery.preload('personalClient'))
       .preload('orderLines', (linesQuery) => linesQuery.preload('product'))
-      .preload('commercialBl', (blQuery) => blQuery.preload('modificationRequests'))
+      .preload('commercialBl', (blQuery) => {
+        blQuery.preload('modificationRequests')
+        blQuery.preload('documents')
+      })
       .orderBy('created_at', 'desc')
 
     if (from) {
@@ -2912,6 +3362,7 @@ export default class CommercialAdminController {
     const bl = await CommercialBl.query()
       .where('execution_log_id', executionLogId)
       .preload('modificationRequests')
+      .preload('documents')
       .preload('executionLog', (logQuery) => {
         if (personalClientsSupported) logQuery.preload('personalClient')
         logQuery.preload('orderLines', (linesQuery) => linesQuery.preload('product'))
@@ -3410,6 +3861,7 @@ export default class CommercialAdminController {
         if (personalClientsSupported) logQuery.preload('personalClient')
         logQuery.preload('orderLines', (linesQuery) => linesQuery.preload('product'))
       })
+      .preload('documents')
       .preload('adminReviewer')
       .orderBy('confirmed_at', 'asc')
       .orderBy('id', 'asc')
@@ -3567,6 +4019,7 @@ export default class CommercialAdminController {
         if (personalClientsSupported) logQuery.preload('personalClient')
         logQuery.preload('orderLines', (linesQuery) => linesQuery.preload('product'))
       })
+      .preload('documents')
       .preload('confirmer')
       .preload('facturer')
       .orderBy('admin_reviewed_at', 'asc')

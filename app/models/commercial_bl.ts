@@ -3,6 +3,7 @@ import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import CommercialExecutionLog from './commercial_execution_log.js'
 import CommercialBlModificationRequest from './commercial_bl_modification_request.js'
+import CommercialBlDocument from './commercial_bl_document.js'
 import User from './user.js'
 
 export type CommercialBlStatus =
@@ -85,6 +86,9 @@ export default class CommercialBl extends BaseModel {
 
   @hasMany(() => CommercialBlModificationRequest, { foreignKey: 'commercialBlId' })
   declare modificationRequests: HasMany<typeof CommercialBlModificationRequest>
+
+  @hasMany(() => CommercialBlDocument, { foreignKey: 'commercialBlId' })
+  declare documents: HasMany<typeof CommercialBlDocument>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

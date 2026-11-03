@@ -15,6 +15,30 @@ export default class UsersController {
         return `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.phone || user.email || `Utilisateur #${user.id}`
     }
 
+    /** Erreurs Postgres unique → messages champ par champ pour le dialog */
+    private mapUniqueConstraintError(error: any): Record<string, string[]> | null {
+        const message = String(error?.message || error?.detail || '')
+        const constraint = String(error?.constraint || '')
+
+        if (
+            constraint === 'users_phone_unique' ||
+            message.includes('users_phone_unique') ||
+            (message.includes('duplicate key') && message.includes('phone'))
+        ) {
+            return { phone: ['Ce numéro de téléphone est déjà utilisé'] }
+        }
+
+        if (
+            constraint === 'users_email_unique' ||
+            message.includes('users_email_unique') ||
+            (message.includes('duplicate key') && message.includes('email'))
+        ) {
+            return { email: ['Cet email est déjà utilisé'] }
+        }
+
+        return null
+    }
+
     async index({ request, response }: HttpContext) {
         try {
             const users = await User.query()
@@ -124,21 +148,28 @@ export default class UsersController {
                 inviteSent,
             })
         } catch (error) {
-            console.error('Erreur de création:', error) // Debug
+            console.error('Erreur de création:', error)
 
-            // Si c'est une erreur de validation
             if (error.messages) {
                 return response.status(422).json({
                     success: false,
-                    error: error.messages
+                    error: error.messages,
                 })
             }
 
-            // Pour les autres types d'erreurs
+            const uniqueErrors = this.mapUniqueConstraintError(error)
+            if (uniqueErrors) {
+                return response.status(409).json({
+                    success: false,
+                    error: uniqueErrors,
+                })
+            }
+
             return response.status(500).json({
                 success: false,
-                error: 'Erreur lors de la création de l\'utilisateur',
-                details: error.message
+                error: {
+                    general: ["Erreur lors de la création de l'utilisateur"],
+                },
             })
         }
     }
@@ -204,7 +235,74 @@ export default class UsersController {
             return response.json(user)
         } catch (error) {
             console.log('error', error)
-            return response.status(500).json({ error: error.messages })
+
+            if (error.messages) {
+                return response.status(422).json({
+                    success: false,
+                    error: error.messages,
+                })
+            }
+
+            const uniqueErrors = this.mapUniqueConstraintError(error)
+            if (uniqueErrors) {
+                return response.status(409).json({
+                    success: false,
+                    error: uniqueErrors,
+                })
+            }
+
+            return response.status(500).json({
+                success: false,
+                error: {
+                    general: ["Erreur lors de la modification de l'utilisateur"],
+                },
+            })
+        }
+    }
+
+    async resendInvite({ params, response, auth }: HttpContext) {
+        try {
+            await auth.authenticate()
+            const user = await User.find(params.id)
+
+            if (!user) {
+                return response.status(404).json({
+                    success: false,
+                    error: 'Utilisateur introuvable',
+                })
+            }
+
+            if (!user.email) {
+                return response.status(400).json({
+                    success: false,
+                    error: "Cet utilisateur n'a pas d'email",
+                })
+            }
+
+            // Si déjà actif → lien de reset ; sinon → invitation d'activation
+            if (user.isActive) {
+                await PasswordTokenService.sendReset(user)
+                return response.ok({
+                    success: true,
+                    message: 'Email de réinitialisation du mot de passe envoyé.',
+                })
+            }
+
+            await PasswordTokenService.sendInvite(user)
+            return response.ok({
+                success: true,
+                message: "Email d'invitation renvoyé. Le destinataire pourra définir son mot de passe et activer son compte.",
+            })
+        } catch (error: any) {
+            console.error('Erreur renvoi invitation:', error)
+            const detail =
+                error?.code === 'SMTP_NOT_CONFIGURED'
+                    ? error.message
+                    : error?.response || error?.message || "Impossible d'envoyer l'email"
+            return response.status(500).json({
+                success: false,
+                error: detail,
+            })
         }
     }
 

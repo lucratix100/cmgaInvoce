@@ -114,6 +114,7 @@ router.group(() => {
   router.get('/commercial-admin/agents', [CommercialAdminController, 'agents'])
   router.post('/commercial-admin/agents', [CommercialAdminController, 'storeAgent'])
   router.put('/commercial-admin/agents/:id', [CommercialAdminController, 'updateAgent'])
+  router.post('/commercial-admin/agents/:id/resend-invite', [CommercialAdminController, 'resendAgentInvite'])
   router.patch('/commercial-admin/agents/:id/deactivate', [CommercialAdminController, 'deactivateAgent'])
   router.get('/commercial-admin/clients', [CommercialAdminController, 'clients'])
   router.post('/commercial-admin/clients', [CommercialAdminController, 'storeClient'])
@@ -131,6 +132,7 @@ router.group(() => {
   router.post('/commercial-admin/transfer', [CommercialAdminController, 'transferCommercialResources'])
   router.get('/commercial-admin/histories', [CommercialAdminController, 'histories'])
   router.get('/commercial-admin/planning', [CommercialAdminController, 'planning'])
+  router.post('/commercial-admin/planning/generate', [CommercialAdminController, 'generatePlanning'])
   router.post('/commercial-admin/planning', [CommercialAdminController, 'storePlanning'])
   router.put('/commercial-admin/planning/:id', [CommercialAdminController, 'updatePlanning'])
   router.patch('/commercial-admin/planning/:id/deactivate', [CommercialAdminController, 'deactivatePlanning'])
@@ -157,6 +159,8 @@ router.group(() => {
   router.get('/agent/orders', [CommercialAdminController, 'agentOrders'])
   router.get('/agent/orders/:id/commercial-bl', [CommercialAdminController, 'agentCommercialBl'])
   router.put('/agent/commercial-bls/:id', [CommercialAdminController, 'updateAgentCommercialBl'])
+  router.post('/agent/commercial-bls/:id/documents', [CommercialAdminController, 'storeCommercialBlDocuments'])
+  router.get('/commercial-bl-documents/:id', [CommercialAdminController, 'showCommercialBlDocument'])
   router.post('/agent/commercial-bls/:id/confirm', [CommercialAdminController, 'confirmAgentCommercialBl'])
   router.post('/agent/commercial-bls/:id/request-edit', [CommercialAdminController, 'requestCommercialBlEdit'])
   router.post('/agent/commercial-bls/:id/cancel', [CommercialAdminController, 'cancelAgentCommercialBl'])
@@ -202,6 +206,7 @@ router.group(() => {
 
 // admin routes
 router.group(() => {
+  router.post('/users/:id/resend-invite', [UsersController, 'resendInvite'])
   router.resource('/users', UsersController)
   router.resource('/assignments', AssignmentsController)
   router.resource('/depot-assignments', DepotAssignmentsController)

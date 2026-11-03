@@ -51,12 +51,32 @@ export const commercialPlanningValidator = vine.compile(
   })
 )
 
+export const commercialPlanningGenerateValidator = vine.compile(
+  vine.object({
+    agentId: vine.number(),
+    replace: vine.boolean(),
+    items: vine
+      .array(
+        vine.object({
+          commercialClientId: vine.number().nullable().optional(),
+          commercialClientLocationId: vine.number().nullable().optional(),
+          dayOfWeek: vine.enum(Object.values(CommercialPlanningDay)),
+          sortOrder: vine.number(),
+        })
+      )
+      .minLength(1),
+  })
+)
+
 export const commercialTransferValidator = vine.compile(
   vine.object({
     fromAgentId: vine.number(),
     toAgentId: vine.number(),
     transferPortfolio: vine.boolean(),
     transferPlanning: vine.boolean(),
+    exchange: vine.boolean().optional(),
+    assignmentIds: vine.array(vine.number()).optional(),
+    planningItemIds: vine.array(vine.number()).optional(),
     note: vine.string().trim().nullable().optional(),
   })
 )

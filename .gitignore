@@ -3,6 +3,10 @@ node_modules
 build
 tmp
 
+# Uploaded purchase order documents
+storage/commercial-bl-documents/*
+!storage/commercial-bl-documents/.gitkeep
+
 # Secrets
 .env
 .env.local
