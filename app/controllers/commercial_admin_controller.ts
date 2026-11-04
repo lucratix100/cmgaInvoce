@@ -1290,37 +1290,107 @@ export default class CommercialAdminController {
     return ctx.response.json(agents)
   }
 
+  private validationFieldErrors(error: any): Record<string, string[]> | null {
+    const raw = error?.messages
+    const list = Array.isArray(raw) ? raw : raw?.errors
+    if (!Array.isArray(list) || list.length === 0) return null
+
+    const fieldErrors: Record<string, string[]> = {}
+    for (const item of list) {
+      const field = item?.field || 'general'
+      const message = item?.message || 'Valeur invalide'
+      fieldErrors[field] = [...(fieldErrors[field] || []), message]
+    }
+    return fieldErrors
+  }
+
+  private mapUniqueConstraintError(error: any): Record<string, string[]> | null {
+    const message = String(error?.message || error?.cause?.message || error?.detail || '')
+    const constraint = String(error?.constraint || error?.cause?.constraint || '')
+
+    if (
+      constraint === 'users_phone_unique' ||
+      message.includes('users_phone_unique') ||
+      (message.includes('duplicate key') && message.includes('(phone)'))
+    ) {
+      return { phone: ['Ce numéro de téléphone est déjà utilisé'] }
+    }
+
+    if (
+      constraint === 'users_email_unique' ||
+      message.includes('users_email_unique') ||
+      (message.includes('duplicate key') && message.includes('(email)'))
+    ) {
+      return { email: ['Cet email est déjà utilisé'] }
+    }
+
+    return null
+  }
+
+  private userWriteErrorResponse(ctx: HttpContext, error: any) {
+    const validation = this.validationFieldErrors(error)
+    if (validation) {
+      const message = Object.values(validation).flat()[0] || 'Données invalides'
+      return ctx.response.status(422).json({
+        success: false,
+        message,
+        error: validation,
+      })
+    }
+
+    const uniqueErrors = this.mapUniqueConstraintError(error)
+    if (uniqueErrors) {
+      const message = Object.values(uniqueErrors).flat()[0]
+      return ctx.response.status(409).json({
+        success: false,
+        message,
+        error: uniqueErrors,
+      })
+    }
+
+    console.error('Erreur enregistrement commercial:', error)
+    return ctx.response.status(500).json({
+      success: false,
+      message: "Impossible d'enregistrer le commercial",
+      error: { general: ["Impossible d'enregistrer le commercial"] },
+    })
+  }
+
   async storeAgent(ctx: HttpContext) {
     const currentUser = await this.requireCommercialAdmin(ctx)
     if (!currentUser) return
 
-    const data = await ctx.request.validateUsing(userValidatorStore)
-
-    // Compte inactif jusqu'à définition du mot de passe via le lien email
-    const user = await User.create({
-      ...data,
-      password: randomBytes(32).toString('hex'),
-      role: Role.AGENT_COMMERCIAL,
-      depotId: null,
-      isActive: false,
-    })
-
-    let inviteSent = false
     try {
-      await PasswordTokenService.sendInvite(user)
-      inviteSent = true
-    } catch (mailError) {
-      console.error("Erreur envoi invitation commercial:", mailError)
-    }
+      const data = await ctx.request.validateUsing(userValidatorStore)
 
-    return ctx.response.status(201).json({
-      success: true,
-      user,
-      inviteSent,
-      message: inviteSent
-        ? 'Commercial créé (inactif). Un email a été envoyé pour définir le mot de passe et activer le compte.'
-        : 'Commercial créé (inactif), mais l’email d’invitation n’a pas pu être envoyé.',
-    })
+      // Compte inactif jusqu'à définition du mot de passe via le lien email
+      const user = await User.create({
+        ...data,
+        password: randomBytes(32).toString('hex'),
+        role: Role.AGENT_COMMERCIAL,
+        depotId: null,
+        isActive: false,
+      })
+
+      let inviteSent = false
+      try {
+        await PasswordTokenService.sendInvite(user)
+        inviteSent = true
+      } catch (mailError) {
+        console.error("Erreur envoi invitation commercial:", mailError)
+      }
+
+      return ctx.response.status(201).json({
+        success: true,
+        user,
+        inviteSent,
+        message: inviteSent
+          ? 'Commercial créé (inactif). Un email a été envoyé pour définir le mot de passe et activer le compte.'
+          : 'Commercial créé (inactif), mais l’email d’invitation n’a pas pu être envoyé.',
+      })
+    } catch (error) {
+      return this.userWriteErrorResponse(ctx, error)
+    }
   }
 
   async updateAgent(ctx: HttpContext) {
@@ -1336,23 +1406,31 @@ export default class CommercialAdminController {
       return ctx.response.status(404).json({ message: 'Commercial introuvable' })
     }
 
-    const data = await ctx.request.validateUsing(userValidatorUpdate)
-    if (data.password && data.password !== data.confirmPassword) {
-      return ctx.response.status(400).json({ message: 'Les mots de passe ne correspondent pas' })
-    }
+    try {
+      const data = await ctx.request.validateUsing(userValidatorUpdate)
+      if (data.password && data.password !== data.confirmPassword) {
+        return ctx.response.status(400).json({
+          success: false,
+          message: 'Les mots de passe ne correspondent pas',
+          error: { confirmPassword: ['Les mots de passe ne correspondent pas'] },
+        })
+      }
 
-    const { confirmPassword, ...userData } = data
-    if (!userData.password) {
-      delete userData.password
-    }
-    agent.merge({
-      ...userData,
-      role: Role.AGENT_COMMERCIAL,
-      depotId: null,
-    } as Partial<User>)
-    await agent.save()
+      const { confirmPassword, ...userData } = data
+      if (!userData.password) {
+        delete userData.password
+      }
+      agent.merge({
+        ...userData,
+        role: Role.AGENT_COMMERCIAL,
+        depotId: null,
+      } as Partial<User>)
+      await agent.save()
 
-    return ctx.response.json({ success: true, user: agent })
+      return ctx.response.json({ success: true, user: agent })
+    } catch (error) {
+      return this.userWriteErrorResponse(ctx, error)
+    }
   }
 
   async resendAgentInvite(ctx: HttpContext) {
