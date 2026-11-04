@@ -26,6 +26,37 @@ type ApiResponse<T = any> = {
   success: boolean
   data?: T
   error?: string
+  fieldErrors?: Record<string, string[]>
+}
+
+function extractApiError(error: any): { error: string; fieldErrors?: Record<string, string[]> } {
+  const data = error?.response?.data
+  let fieldErrors: Record<string, string[]> | undefined
+
+  if (data?.error && typeof data.error === "object" && !Array.isArray(data.error)) {
+    fieldErrors = Object.fromEntries(
+      Object.entries(data.error).map(([field, value]) => [
+        field,
+        Array.isArray(value) ? value.map(String) : [String(value)],
+      ])
+    )
+  } else if (Array.isArray(data?.errors)) {
+    fieldErrors = {}
+    for (const item of data.errors) {
+      const field = item?.field || "general"
+      const message = item?.message || "Valeur invalide"
+      fieldErrors[field] = [...(fieldErrors[field] || []), message]
+    }
+  }
+
+  const fieldMessage = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined
+  const message =
+    (typeof data?.message === "string" && data.message) ||
+    (typeof data?.error === "string" && data.error) ||
+    fieldMessage ||
+    "Une erreur est survenue"
+
+  return { error: message, fieldErrors }
 }
 
 export interface CommercialBlEditRequest {
@@ -120,10 +151,7 @@ async function handleMutation<T>(request: Promise<{ data: T }>, path: string | n
     if (path) revalidatePath(path)
     return { success: true, data: response.data } as ApiResponse<T>
   } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || error.response?.data?.error || "Une erreur est survenue",
-    }
+    return { success: false, ...extractApiError(error) }
   }
 }
 
@@ -401,10 +429,7 @@ async function handleDirectoryMutation<T>(request: Promise<{ data: T }>) {
     revalidatePath("/commercial-dashboard/affectations")
     return { success: true, data: response.data } as ApiResponse<T>
   } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || error.response?.data?.error || "Une erreur est survenue",
-    }
+    return { success: false, ...extractApiError(error) }
   }
 }
 
