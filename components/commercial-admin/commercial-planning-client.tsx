@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition, type DragEvent } from "react"
 import { flushSync } from "react-dom"
+import { usePathname } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -37,6 +38,7 @@ import {
   ArrowRightLeft,
 } from "lucide-react"
 import CommercialTransferDialog from "@/components/commercial-admin/commercial-transfer-dialog"
+import { replaceQuery } from "@/lib/url-filters"
 
 /* ─── constantes ────────────────────────────────────────────── */
 
@@ -65,11 +67,16 @@ export default function CommercialPlanningClient({
   initialAgents,
   initialAssignments,
   initialPlanning,
+  initialAgentId = "",
+  initialDay = "",
 }: {
   initialAgents: CommercialUser[]
   initialAssignments: CommercialAssignment[]
   initialPlanning: CommercialPlanningItem[]
+  initialAgentId?: string
+  initialDay?: string
 }) {
+  const pathname = usePathname()
   const activeAgents = initialAgents.filter((agent) => agent.isActive !== false)
 
   const [planning, setPlanning] = useState(initialPlanning)
@@ -82,8 +89,12 @@ export default function CommercialPlanningClient({
   }, [activeAgents, initialAgents, planning])
 
   const defaultAgentId = selectableAgents[0]?.id != null ? String(selectableAgents[0].id) : ""
-  const [filterAgent, setFilterAgent] = useState(defaultAgentId)
-  const [focusDay, setFocusDay] = useState<CommercialPlanningDay | "all">("all")
+  const agentFromUrl = selectableAgents.some((agent) => String(agent.id) === initialAgentId)
+    ? initialAgentId
+    : defaultAgentId
+  const dayFromUrl = (DAYS as string[]).includes(initialDay) ? (initialDay as CommercialPlanningDay) : "all"
+  const [filterAgent, setFilterAgent] = useState(agentFromUrl)
+  const [focusDay, setFocusDay] = useState<CommercialPlanningDay | "all">(dayFromUrl)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [transferDialogOpen, setTransferDialogOpen] = useState(false)
   const [randomOpen, setRandomOpen] = useState(false)
@@ -92,7 +103,7 @@ export default function CommercialPlanningClient({
   const [randomDraft, setRandomDraft] = useState<RandomSlot[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({
-    agentId: defaultAgentId,
+    agentId: agentFromUrl,
     dayOfWeek: "LUNDI" as CommercialPlanningDay,
     targets: [] as string[],
     sortOrder: "0",
@@ -178,6 +189,10 @@ export default function CommercialPlanningClient({
 
   const selectedAgent = selectableAgents.find((a) => String(a.id) === filterAgent)
   const selectedAgentStats = agentStats.find(({ agent }) => String(agent.id) === filterAgent)
+  const selectedAgentTotal = selectedAgentStats?.total ?? 0
+  const selectedAgentLabel = selectedAgent
+    ? `${selectedAgent.firstname} ${selectedAgent.lastname} · ${selectedAgentStats?.covered || 0}j · ${selectedAgentTotal} programme${selectedAgentTotal > 1 ? "s" : ""}`
+    : undefined
   const totalItems = portfolioOptions.length
 
   useEffect(() => {
@@ -188,6 +203,13 @@ export default function CommercialPlanningClient({
       setFilterAgent(defaultAgentId)
     }
   }, [defaultAgentId, filterAgent, selectableAgents])
+
+  useEffect(() => {
+    replaceQuery(pathname, {
+      agent: filterAgent || null,
+      jour: focusDay === "all" ? null : focusDay,
+    })
+  }, [filterAgent, focusDay, pathname])
 
   /* ── actions ──────────────────────────────────────────────── */
 
@@ -483,7 +505,7 @@ export default function CommercialPlanningClient({
                 disabled={selectableAgents.length === 0}
               >
                 <SelectTrigger className="mt-1 h-9 rounded-xl bg-white font-semibold shadow-sm">
-                  <SelectValue placeholder="Sélectionnez un commercial" />
+                  <SelectValue placeholder="Sélectionnez un commercial">{selectedAgentLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {selectableAgents.map((agent) => {

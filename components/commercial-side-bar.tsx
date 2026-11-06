@@ -1,7 +1,8 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import type { MouseEvent } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -143,8 +144,32 @@ export default function CommercialSideBar() {
   )
 }
 
+const AGENT_FILTER_HREFS = new Set([
+  "/commercial-dashboard/planning",
+  "/commercial-dashboard/affectations",
+])
+
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const open = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (item.href === pathname) {
+      event.preventDefault()
+      return
+    }
+    if (!AGENT_FILTER_HREFS.has(item.href) || !AGENT_FILTER_HREFS.has(pathname)) return
+    const current = new URLSearchParams(window.location.search)
+    const agent = current.get("agent")
+    const jour = current.get("jour")
+    if (!agent && !jour) return
+    event.preventDefault()
+    const next = new URLSearchParams()
+    if (agent) next.set("agent", agent)
+    if (jour) next.set("jour", jour)
+    router.push(`${item.href}?${next.toString()}`)
+  }
 
   return (
     <SidebarMenuItem>
@@ -159,7 +184,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
             : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         )}
       >
-        <Link href={item.href} aria-current={active ? "page" : undefined}>
+        <Link href={item.href} aria-current={active ? "page" : undefined} onClick={open}>
           <Icon className="h-4 w-4" />
           <span>{item.label}</span>
         </Link>

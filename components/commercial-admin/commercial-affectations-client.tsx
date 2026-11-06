@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
+import { usePathname } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,6 +23,7 @@ import {
 import {
   CommercialAssignment,
   CommercialClient,
+  CommercialPlanningDay,
   CommercialPlanningItem,
   CommercialUser,
 } from "@/types/commercial"
@@ -43,6 +45,29 @@ import {
   UsersRound,
 } from "lucide-react"
 import CommercialTransferDialog from "@/components/commercial-admin/commercial-transfer-dialog"
+import { replaceQuery } from "@/lib/url-filters"
+
+const DAYS: CommercialPlanningDay[] = ["LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"]
+
+const DAY_SHORT: Record<CommercialPlanningDay, string> = {
+  LUNDI: "Lun",
+  MARDI: "Mar",
+  MERCREDI: "Mer",
+  JEUDI: "Jeu",
+  VENDREDI: "Ven",
+  SAMEDI: "Sam",
+  DIMANCHE: "Dim",
+}
+
+const DAY_LABEL: Record<CommercialPlanningDay, string> = {
+  LUNDI: "lundi",
+  MARDI: "mardi",
+  MERCREDI: "mercredi",
+  JEUDI: "jeudi",
+  VENDREDI: "vendredi",
+  SAMEDI: "samedi",
+  DIMANCHE: "dimanche",
+}
 
 const AVATAR_COLORS = [
   "bg-blue-500",
@@ -64,31 +89,45 @@ export default function CommercialAffectationsClient({
   initialClients,
   initialAssignments,
   initialHistories,
+  initialAgentId = "",
+  initialQuery = "",
+  initialDay = "",
+  initialPlanning = [],
 }: {
   initialAgents: CommercialUser[]
   initialClients: CommercialClient[]
   initialAssignments: CommercialAssignment[]
   initialHistories: any[]
+  initialAgentId?: string
+  initialQuery?: string
+  initialDay?: string
+  initialPlanning?: CommercialPlanningItem[]
 }) {
+  const pathname = usePathname()
   const activeAgents = initialAgents.filter((agent) => agent.isActive)
   const defaultAgentId = activeAgents[0]?.id ? String(activeAgents[0].id) : ""
+  const agentFromUrl = activeAgents.some((agent) => String(agent.id) === initialAgentId)
+    ? initialAgentId
+    : defaultAgentId
+  const dayFromUrl = (DAYS as string[]).includes(initialDay) ? (initialDay as CommercialPlanningDay) : "all"
 
   const [clients, setClients] = useState(initialClients)
   const [assignments, setAssignments] = useState(initialAssignments)
   const [histories, setHistories] = useState(initialHistories)
   const [assignmentForm, setAssignmentForm] = useState({
-    agentId: defaultAgentId,
+    agentId: agentFromUrl,
     enseigneId: "all",
     targets: [] as string[],
     note: "",
   })
-  const [selectedAgent, setSelectedAgent] = useState(defaultAgentId)
-  const [targetSearch, setTargetSearch] = useState("")
+  const [selectedAgent, setSelectedAgent] = useState(agentFromUrl)
+  const [targetSearch, setTargetSearch] = useState(initialQuery)
+  const [focusDay, setFocusDay] = useState<CommercialPlanningDay | "all">(dayFromUrl)
   const [targetPickerSearch, setTargetPickerSearch] = useState("")
   const [expandedEnseignes, setExpandedEnseignes] = useState<string[]>([])
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
   const [transferDialogOpen, setTransferDialogOpen] = useState(false)
-  const [planningItems, setPlanningItems] = useState<CommercialPlanningItem[]>([])
+  const [planningItems, setPlanningItems] = useState<CommercialPlanningItem[]>(initialPlanning)
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
@@ -126,9 +165,24 @@ export default function CommercialAffectationsClient({
     (s, a) => { const loc = a.commercialClientLocation || a.location; if (loc) s.locations++; else s.clients++; return s },
     { clients: 0, locations: 0 }
   )
-  const filteredAssignments = selectedAgentAssignments.filter((a) =>
-    targetSearch ? formatAssignmentTarget(a).toLowerCase().includes(targetSearch.toLowerCase()) : true
-  )
+  const plannedKeysByDay = useMemo(() => {
+    const map = new Map<CommercialPlanningDay, Set<string>>()
+    for (const day of DAYS) map.set(day, new Set())
+    for (const item of planningItems) {
+      if (item.isActive === false || String(item.agentId) !== selectedAgent) continue
+      const key = planningTargetKey(item)
+      if (key) map.get(item.dayOfWeek)?.add(key)
+    }
+    return map
+  }, [planningItems, selectedAgent])
+  const filteredAssignments = selectedAgentAssignments.filter((assignment) => {
+    const matchesSearch = targetSearch
+      ? formatAssignmentTarget(assignment).toLowerCase().includes(targetSearch.toLowerCase())
+      : true
+    if (!matchesSearch) return false
+    if (focusDay === "all") return true
+    return plannedKeysByDay.get(focusDay)?.has(assignmentTargetKey(assignment)) ?? false
+  })
 
   const groupedPortfolio = useMemo(() => {
     const enseigneMap = new Map<string, {
@@ -172,6 +226,10 @@ export default function CommercialAffectationsClient({
   })
 
   const selectedAgentData = initialAgents.find((a) => String(a.id) === selectedAgent)
+  const selectedAgentCount = agentOptions.find(({ agent }) => String(agent.id) === selectedAgent)?.count ?? 0
+  const selectedAgentLabel = selectedAgentData
+    ? `${selectedAgentData.firstname} ${selectedAgentData.lastname} · ${selectedAgentCount} cible(s)`
+    : undefined
   const assignedTargetCount = assignments.length
   const targetCount = targetOptions.length
   const unassignedTargetCount = availableTargetOptions.length
@@ -179,14 +237,16 @@ export default function CommercialAffectationsClient({
   /* ─── actions ───────────────────────────────────────────────── */
 
   const refresh = async () => {
-    const [nextClients, nextAssignments, nextHistories] = await Promise.all([
+    const [nextClients, nextAssignments, nextHistories, nextPlanning] = await Promise.all([
       getCommercialClients(),
       getCommercialAssignments(),
       getCommercialAssignmentHistories(),
+      getCommercialPlanning(),
     ])
     setClients(nextClients)
     setAssignments(nextAssignments)
     setHistories(nextHistories)
+    setPlanningItems(nextPlanning)
   }
 
   const submitAssignment = () => {
@@ -226,9 +286,18 @@ export default function CommercialAffectationsClient({
     })
   }
 
+  useEffect(() => {
+    replaceQuery(pathname, {
+      agent: selectedAgent || null,
+      q: targetSearch.trim() || null,
+      jour: focusDay === "all" ? null : focusDay,
+    })
+  }, [pathname, selectedAgent, targetSearch, focusDay])
+
   const selectAgent = (agentId: string) => {
     setSelectedAgent(agentId)
     setTargetSearch("")
+    setFocusDay("all")
     setAssignmentForm((cur) => ({ ...cur, agentId, targets: [] }))
   }
 
@@ -305,7 +374,7 @@ export default function CommercialAffectationsClient({
                     <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                       <Select value={selectedAgent} onValueChange={selectAgent}>
                         <SelectTrigger className="h-10 w-full rounded-xl bg-white text-sm shadow-sm sm:w-[360px]">
-                          <SelectValue placeholder="Choisir un commercial" />
+                          <SelectValue placeholder="Choisir un commercial">{selectedAgentLabel}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {agentOptions.map(({ agent, count }) => (
@@ -374,6 +443,42 @@ export default function CommercialAffectationsClient({
             {/* recherche + cibles */}
             {selectedAgent && (
               <>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFocusDay("all")}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                      focusDay === "all"
+                        ? "bg-primary text-white shadow-sm"
+                        : "border bg-white text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    Toute la semaine
+                  </button>
+                  {DAYS.map((day) => {
+                    const count = plannedKeysByDay.get(day)?.size || 0
+                    const active = focusDay === day
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => setFocusDay(active ? "all" : day)}
+                        className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "bg-primary/10 text-primary ring-1 ring-primary/30 shadow-sm"
+                            : "border bg-white text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        {DAY_SHORT[day]}
+                        {count > 0 && (
+                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -387,13 +492,19 @@ export default function CommercialAffectationsClient({
                 {filteredAssignments.length === 0 ? (
                   <div className="flex min-h-[190px] flex-col items-center justify-center rounded-2xl border border-dashed text-center">
                     <ArrowRightLeft className="mb-2 h-8 w-8 text-muted-foreground" />
-                    <p className="font-medium">Aucune cible en portefeuille</p>
-                    <p className="text-sm text-muted-foreground">Cliquez sur «&nbsp;Ajouter des cibles&nbsp;» pour commencer.</p>
+                    <p className="font-medium">
+                      {focusDay === "all" ? "Aucune cible en portefeuille" : `Aucune cible planifiée le ${DAY_LABEL[focusDay]}`}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {focusDay === "all"
+                        ? "Cliquez sur « Ajouter des cibles » pour commencer."
+                        : "Ce jour ne contient aucune visite de ce portefeuille."}
+                    </p>
                   </div>
                 ) : (
                   <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
                     {groupedPortfolio.enseignes.map((enseigne) => {
-                      const isExpanded = expandedEnseignes.includes(enseigne.id) || Boolean(targetSearch)
+                      const isExpanded = expandedEnseignes.includes(enseigne.id) || Boolean(targetSearch) || focusDay !== "all"
                       return (
                         <div key={enseigne.id} className="border-b last:border-b-0">
                           <button
@@ -675,6 +786,18 @@ export default function CommercialAffectationsClient({
 }
 
 /* ─── helpers ─────────────────────────────────────────────────── */
+
+function assignmentTargetKey(assignment: CommercialAssignment) {
+  return assignment.commercialClientLocationId
+    ? `location:${assignment.commercialClientLocationId}`
+    : `client:${assignment.commercialClientId}`
+}
+
+function planningTargetKey(item: CommercialPlanningItem) {
+  if (item.commercialClientLocationId) return `location:${item.commercialClientLocationId}`
+  if (item.commercialClientId) return `client:${item.commercialClientId}`
+  return ""
+}
 
 function formatAssignmentTarget(assignment: CommercialAssignment) {
   const location = assignment.commercialClientLocation || assignment.location

@@ -3,24 +3,41 @@ import {
   getCommercialAssignmentHistories,
   getCommercialAssignments,
   getCommercialClients,
+  getCommercialPlanning,
 } from "@/actions/commercial-admin"
 import { getCurrentUser } from "@/actions/user"
 import CommercialAffectationsClient from "@/components/commercial-admin/commercial-affectations-client"
 import { Role } from "@/types/roles"
 import { redirect } from "next/navigation"
 
-export default async function CommercialAffectationsPage() {
+type SearchParams = {
+  agent?: string
+  q?: string
+  jour?: string
+}
+
+export default async function CommercialAffectationsPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams | Promise<SearchParams>
+}) {
   const user = await getCurrentUser()
 
   if (!user || user.role !== Role.COMMERCIAL_ADMIN) {
     redirect("/")
   }
 
-  const [agents, clients, assignments, histories] = await Promise.all([
+  const params = searchParams ? await searchParams : {}
+  const agent = typeof params.agent === "string" ? params.agent : ""
+  const query = typeof params.q === "string" ? params.q : ""
+  const jour = typeof params.jour === "string" ? params.jour : ""
+
+  const [agents, clients, assignments, histories, planning] = await Promise.all([
     getCommercialAgents(),
     getCommercialClients(),
     getCommercialAssignments(),
     getCommercialAssignmentHistories(),
+    getCommercialPlanning(),
   ])
 
   return (
@@ -36,6 +53,10 @@ export default async function CommercialAffectationsPage() {
         initialClients={clients}
         initialAssignments={assignments}
         initialHistories={histories}
+        initialAgentId={agent}
+        initialQuery={query}
+        initialDay={jour}
+        initialPlanning={planning}
       />
     </div>
   )
